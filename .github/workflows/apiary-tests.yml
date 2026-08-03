@@ -1,0 +1,43 @@
+# Tier 1 — deterministic apiary suites. Fast, hermetic, no secrets, no model calls.
+# Intended as a REQUIRED check (branch protection is a repo-settings step).
+name: apiary-tests
+on:
+  pull_request:
+    paths:
+      - 'plugins/apiary/**'
+      - '.github/workflows/apiary-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/apiary/**'
+      - '.github/workflows/apiary-tests.yml'
+
+jobs:
+  suites:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: plugins/apiary/skills/apiary/tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test deps (jsonschema for the apiculturist spec harness)
+        run: pip install jsonschema
+      - name: clone-flow
+        run: bash clone-flow.test.sh
+      - name: apiculturist
+        run: bash apiculturist.test.sh
+      - name: normalizer
+        run: bash normalizer.test.sh
+      - name: golden-routing (Part A — deterministic fixture checks)
+        run: bash golden-routing.test.sh
+      - name: sentinel-base
+        run: bash sentinel-base.test.sh
+      - name: gate-extensions
+        run: bash gate-extensions.test.sh
+      - name: sentinel (against a freshly generated hook)
+        run: |
+          GEN_HOOK=$(mktemp)
+          bash ../assets/generate-hook.sh ../assets/sentinel-patterns.json > "$GEN_HOOK"
+          chmod +x "$GEN_HOOK"
+          bash sentinel.test.sh "$GEN_HOOK"

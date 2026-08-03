@@ -13,14 +13,17 @@ Most items carry provenance and a confidence tag:
 
 ## Held — awaiting a human decision (do not start without it)
 
-- [ ] **Inbox transport redesign (queue branch / Issues transport).** ⏸ **HELD by Alek pending
-  outside consultations (2026-08-03).** The bind: GitHub protection is branch-scoped, Apiary's
-  write policy is path-scoped; the current `pr`-mode workaround needs policy-bot + CODEOWNERS
-  narrowing + auto-merge. Candidate design: a long-lived unprotected `inbox` queue branch (master
-  fully protected, Parliament the only bridge; bonus: a Sentinel-missed secret never enters master
-  history and queue history is cheaply rewritable), plus GitHub Issues as a zero-clone second
-  transport. Full analysis in the 2026-08 audit directives doc. (audit 2026-08) [confidence:
-  high on the problem; design needs the consultation outcome]
+- [ ] **Inbox transport redesign (queue branch). ✅ APPROVED 2026-08-03** — Alek's team said yes
+  to the queue-branch direction; Issues-as-second-transport remains optional follow-on. Next step
+  is a design doc (`references/inbox-transport-design.md`) then implementation: long-lived
+  unprotected `inbox` branch (master fully protected — required PRs + codeowners, no policy-bot,
+  no CODEOWNERS narrowing), Parliament as the only bridge, `hive.yml.inbox_transport:
+  default-branch (default) | branch` with upgrade-mode migration, Step 0 dual-ref fetch, Status
+  reads pending entries from the queue ref, attribution captured in reconciliation notes before
+  queue truncation, pathspec-limited + force-with-lease queue maintenance. Security bonus that
+  motivated approval: a Sentinel-missed secret never enters master history, and queue history is
+  cheaply rewritable for incident response. Full analysis: audit directives doc § I1. (audit
+  2026-08) [confidence: high; MAJOR version — transport is a schema+behavior change]
 - [ ] **Goal-4 carve-out for `audit --fix`.** `design-goals.md` §4 forbids agents opening
   `knowledge/` PRs; the remediation pass needs a narrow, named exception (human-invoked,
   findings-justified, codeowner-gated, never auto-merge). Decision + amendment must land with the
@@ -49,12 +52,14 @@ enforces X." Prose alone is not enough.
   hook; `scan`/`scan-dir` invoked by Parliament §0; classification banners baked from the ceiling;
   frontmatter + `sources/**.txt` scanned; excerpt-bound overrides. Remaining judgment-only:
   prompt-injection review and frontmatter/banner mismatch (Layer 3).
-- [ ] **Wire the seven `.test.sh` suites into CI as a required check.** For this repo: a GitHub
-  Actions job on `plugins/apiary/**` paths running all seven (golden Part A only; Part B stays
-  manual — live model calls). Also add `claude plugin validate`. Until this lands, every "run the
-  tests" instruction is honor-system, and for a public repo that reads as unmaintained — treat as
-  a **precondition for promoting the repo publicly**, not hygiene. (audit 2026-08) [confidence:
-  high]
+- [x] **Wire the seven `.test.sh` suites into CI — delivered (2.22.0).** Tier 1
+  (`.github/workflows/apiary-tests.yml`): all seven suites on every `plugins/apiary/**` PR. Tier 2
+  (`apiary-golden-behavioral.yml`): golden Part B via headless `claude -p` — weekly cron +
+  `workflow_dispatch` + maintainer-applied `golden-behavioral` label on same-repo PRs only (secret
+  boundary), transcripts uploaded as artifacts, model pinned via `APIARY_GOLDEN_CLAUDE_ARGS`.
+  **Two repo-settings steps remain (Alek):** add the `ANTHROPIC_API_KEY` secret; mark
+  `apiary-tests / suites` as a required check. Remaining nice-to-have: `claude plugin validate`
+  in Tier 1 once the CLI is cheap to install there.
 - [ ] **Deterministic prompt-injection pre-filter.** Three protocol files promise injection
   scanning at intake; there is no pattern list, no hook coverage, no test — and the check runs
   inside the very agent an injection targets. Add a small `injection` category to

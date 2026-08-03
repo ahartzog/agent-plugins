@@ -214,7 +214,10 @@ else
       local n="$1" prompt="$2"; shift 2
       local out="$TRANSCRIPT_DIR/case-$n.txt"
       echo "--- Case $n ---"
-      if ( cd "$GOLDEN_DIR" && "${TIMEOUT_CMD[@]+"${TIMEOUT_CMD[@]}"}" claude -p "$prompt" --allowedTools "Read,Glob,Grep" > "$out" 2>&1 ); then
+      # APIARY_GOLDEN_CLAUDE_ARGS lets CI pin the run (e.g. "--bare --model sonnet")
+      # without changing local behavior. Word-splitting is intended.
+      # shellcheck disable=SC2086
+      if ( cd "$GOLDEN_DIR" && "${TIMEOUT_CMD[@]+"${TIMEOUT_CMD[@]}"}" claude -p "$prompt" ${APIARY_GOLDEN_CLAUDE_ARGS:-} --allowedTools "Read,Glob,Grep" > "$out" 2>&1 ); then
         local all_ok=0
         for pat in "$@"; do
           if ! grep -qiE "$pat" "$out"; then
