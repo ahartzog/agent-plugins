@@ -485,8 +485,13 @@ from the session."
 
 **Prompt:**
 > Using the Reference Library Discovery Protocol, answer: "What exactly did the team commit to for
-> downlink link margin — quote the number from the session." The knowledge tree is ./knowledge here
-> and deposited sources are under ./sources. State which file you quoted from.
+> downlink link margin — quote the number from the session." The knowledge tree is ./knowledge here.
+> State which file you quoted from.
+
+**The prompt must NOT name `./sources`.** Telling the agent where deposited sources live pre-resolves
+the exact locator the §Resolve Hive-root row exists to resolve — the case would then pass with that
+row deleted, which is the one thing it is here to detect. The agent has to reach `sources/` the way
+a real session does: match the router row, then resolve `sources/index.md` from the Hive root.
 
 **Pass:** Resolves `sources/index.md` from the **Hive root** (not `knowledge/sources/index.md`),
 reaches the transcript, and answers **4.7 dB**, citing the transcript path. Recognizing that the
@@ -517,9 +522,13 @@ question is used so the trace is asserted independently of retrieval difficulty.
 > routing trace the protocol requires.
 
 **Pass:** Answer ends with a single-line `trace:` carrying the restatement, the library/match
-counts, the sufficiency verdict, and an `opened:` list; `program/overview.md` appears in `opened:`
-and is the file cited in the answer body. Every citation in the body resolves to something in
-`opened:`.
+counts, and an `opened:` list; `program/overview.md` appears in `opened:` and is the file cited in
+the answer body. Every citation in the body resolves to something in `opened:`.
+
+This route is one-hop and local — it reaches no catalog rows, so §Prefer's sufficiency test is
+never asked and the trace correctly carries **no** `sufficiency:` field. Emitting one here is a
+fabricated verdict, not a completeness bonus (§Answer, "Omit a field the route never produced").
+Case 13 is where the sufficiency verdict genuinely binds.
 
 **Fail:** No trace line. A trace whose `opened:` list omits a file the answer cites — that is the
 unopened-citation defect the rule exists to catch, and it is a **harder** fail than omitting the

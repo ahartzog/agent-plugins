@@ -632,15 +632,87 @@ else
     echo "FAIL: final fallback returned '$got', expected 'master'"; FAIL=$((FAIL + 1))
   fi
 
-  # C0d — THE REGRESSION: a healthy `main` clone must not trip branch-normalize.
-  # Before self-resolution the session compared against a guessed `master` and HALTed here.
-  CURRENT_BRANCH=$(git -C "$C0_CLONE" rev-parse --abbrev-ref HEAD)
-  RESOLVED=$(cd "$C0_CLONE" && resolve_default_branch)
-  if [ "$CURRENT_BRANCH" = "$RESOLVED" ]; then
-    echo "PASS: healthy 'main' clone does NOT trip HALT_ORPHANED_BRANCH"; PASS=$((PASS + 1))
-  else
-    echo "FAIL: branch-normalize would HALT: on '$CURRENT_BRANCH', resolved '$RESOLVED'"; FAIL=$((FAIL + 1))
-  fi
+fi
+
+# --- Scenario C0e: run the REAL Step 0 script end-to-end against a `main`-defaulted Hive ---
+# Asserting only on the extracted resolver is not enough: a mutation test proved that reverting
+# the branch-normalize comparison to the literal `{DEFAULT_BRANCH}` placeholder AND deleting both
+# `DEFAULT_BRANCH=$(resolve_default_branch)` call sites still left every C0a-C0d check green,
+# because none of them executed the shipped control flow. This scenario extracts the entire Step 0
+# bash block from mode-operate.md, substitutes only the placeholders the protocol says a session
+# substitutes ({HIVE_SLUG}, {REMOTE}, {APIARY_ROOT}), and runs it. If `{DEFAULT_BRANCH}` is ever
+# reintroduced into executable Step 0 code, this fails.
+echo ""
+echo "=== Scenario C0e: real Step 0 executed end-to-end (main-defaulted Hive) ==="
+APIARY_PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+C0E="$TEST_ROOT/c0e"; mkdir -p "$C0E/home"
+git init -q -b main "$C0E/up"
+mkdir -p "$C0E/up/PROTOCOL" "$C0E/up/knowledge" "$C0E/up/_inbox"
+echo "# persona fixture" > "$C0E/up/PROTOCOL/agent-definition.md"
+echo "# knowledge" > "$C0E/up/knowledge/seed.md"
+echo "keep" > "$C0E/up/_inbox/.gitkeep"
+printf 'hive_slug: c0e\ndefault_branch: main\npersona: PROTOCOL/agent-definition.md\n' > "$C0E/up/hive.yml"
+git -C "$C0E/up" add -A && git -C "$C0E/up" commit -q -m seed
+git clone -q --bare "$C0E/up" "$C0E/bare.git"
+git -C "$C0E/bare.git" symbolic-ref HEAD refs/heads/main
+git -C "$C0E/up" remote add origin "file://$C0E/bare.git"
+
+STEP0_SRC="$TEST_ROOT/step0-real.sh"
+python3 - "$MODE_OPERATE" "file://$C0E/bare.git" "$APIARY_PLUGIN_ROOT" > "$STEP0_SRC" <<'PYEOF'
+import re, sys
+md, remote, apiary_root = open(sys.argv[1]).read(), sys.argv[2], sys.argv[3]
+seg = md.split('## Step 0', 1)[1]
+block = re.search(r'```bash\n(.*?)```', seg, re.S).group(1)
+block = block.replace('{HIVE_SLUG}', 'c0e').replace('{REMOTE}', remote).replace('{APIARY_ROOT}', apiary_root)
+sys.stdout.write(block)
+PYEOF
+
+run_real_step0() { HOME="$C0E/home" bash "$STEP0_SRC" 2>&1; }
+
+# Any surviving {PLACEHOLDER} in executable code is itself the regression.
+if grep -vE '^[[:space:]]*#' "$STEP0_SRC" | grep -q '{DEFAULT_BRANCH}'; then
+  echo "FAIL: {DEFAULT_BRANCH} still appears in EXECUTABLE Step 0 code after substitution"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: no {DEFAULT_BRANCH} placeholder in executable Step 0 code"; PASS=$((PASS + 1))
+fi
+
+rc=0; output=$(run_real_step0) || rc=$?
+check "real Step 0 completes on first install of a 'main' Hive" 0 "$rc" "DEFAULT_BRANCH_RESOLVED:main" "$output"
+if [[ "$output" == *"HALT_ORPHANED_BRANCH"* ]]; then
+  echo "FAIL: first install HALTed on a healthy 'main' clone"; FAIL=$((FAIL + 1))
+else
+  echo "PASS: first install did not HALT"; PASS=$((PASS + 1))
+fi
+
+# Returning session, remote advanced — the case the --depth 1 sync fetch used to break.
+echo "more" >> "$C0E/up/knowledge/seed.md"
+git -C "$C0E/up" commit -qam advance && git -C "$C0E/up" push -q origin main
+rc=0; output=$(run_real_step0) || rc=$?
+check "real Step 0 re-runs cleanly on a returning session (remote ahead)" 0 "$rc" "DEFAULT_BRANCH_RESOLVED:main" "$output"
+if grep -q "more" "$C0E/home/.claude-hive/c0e/knowledge/seed.md" 2>/dev/null; then
+  echo "PASS: returning session actually synced the new remote content"; PASS=$((PASS + 1))
+else
+  echo "FAIL: returning session did not sync new remote content"; FAIL=$((FAIL + 1))
+fi
+
+# Sparse set must be applied to an EXISTING clone, not only at clone time.
+if git -C "$C0E/home/.claude-hive/c0e" sparse-checkout list 2>/dev/null | grep -q '_metrics/'; then
+  echo "PASS: sparse set is (re)applied on every invocation, not just first clone"; PASS=$((PASS + 1))
+else
+  echo "FAIL: _metrics/ absent from the sparse set on a returning session — pre-existing"
+  echo "      clones would never widen, so session logs stay uncommittable"
+  FAIL=$((FAIL + 1))
+fi
+
+# And the halt path still fires for a genuinely orphaned branch.
+git -C "$C0E/home/.claude-hive/c0e" checkout -q -b stray
+rc=0; output=$(run_real_step0) || rc=$?
+check "real Step 0 HALTs on a genuinely orphaned branch" 1 "$rc" "HALT_ORPHANED_BRANCH" "$output"
+if [[ "$output" == *"not 'main'"* ]]; then
+  echo "PASS: HALT message names the resolved default ('main'), not a guess"; PASS=$((PASS + 1))
+else
+  echo "FAIL: HALT message did not name the resolved default branch"; FAIL=$((FAIL + 1))
 fi
 
 # --- Scenario C2: returning-session ff-sync against a SHALLOW clone (the harness-divergence bug) ---

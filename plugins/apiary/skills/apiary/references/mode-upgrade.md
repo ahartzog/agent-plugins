@@ -136,9 +136,13 @@ worth taking**, called out first.
   the value before the script reads `hive.yml`, and a session that has never read `hive.yml` could
   only guess `master`. Resolution order: `hive.yml` → `refs/remotes/origin/HEAD` → `master`. The
   sparse-checkout set gains `/CLAUDE.md`, `/README.md`, `_metrics/`, and `.signal/` — all four were
-  read or written by sessions and audit without ever being checked out. The Identity parse list
-  gains the push modes, the `classification` block, and the `federation` block, which later steps
-  in the same file already dispatched on.
+  read or written by sessions and audit without ever being checked out — and it is now applied on
+  **every** invocation rather than only at clone time, so your existing `~/.claude-hive/{slug}`
+  clones widen on their next session instead of keeping their original patterns forever. (If a
+  session ever failed to commit its `_metrics/` log with *"matched paths that exist outside of your
+  sparse-checkout definition"*, that was this.) The Identity parse list gains the push modes, the
+  `classification` block, and the `federation` block, which later steps in the same file already
+  dispatched on.
 
 ### 2.23.0 — inbox queue-branch transport (recommended default for new Hives)
 

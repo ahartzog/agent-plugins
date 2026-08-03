@@ -112,12 +112,19 @@ For each knowledge file in `knowledge/`:
 **Decay from `[effective:]` where a fact carries one.** `last_updated` is a *file-write* date, so a
 file touched for an unrelated reason reads as fresh while the facts inside it age, and a backfilled
 fact reads as fresh on the day it is recorded even when it describes a state from months earlier.
-Where a flagged file's individual facts carry `[effective: YYYY-MM-DD]`
-(`protocol/knowledge-schema.md` § Inline Annotations), measure those facts from that date instead
-and report them separately: **INFO: {N} fact(s) in {file} are past the `{decay}` threshold measured
-from `[effective:]`, though the file's `last_updated` is current.** This is the per-fact half of the
-same check — the file-level flag stays as-is, so a Hive that has adopted no annotations sees
-byte-identical output. Do not infer an `[effective:]` date for a fact that lacks one; an
+Run this over **every** knowledge file, not only the ones step 3 flagged — the whole point is the
+file whose `last_updated` looks current. For each fact carrying `[effective: YYYY-MM-DD]`
+(`protocol/knowledge-schema.md` § Inline Annotations), measure that fact's age from the
+`[effective:]` date against the file's `decay` threshold and report the overdue ones separately:
+
+- File **not** flagged by step 3 (its `last_updated` is current): **INFO: {N} fact(s) in {file} are
+  past the `{decay}` threshold measured from `[effective:]`, though the file's `last_updated` is
+  current.** This is the case the check exists for.
+- File **already** flagged by step 3: fold the count into that finding — **…and {N} of its facts are
+  older still, measured from `[effective:]`** — rather than emitting a second, contradictory line.
+
+This is the per-fact half of the same check; the file-level flag from step 3 stays as-is, so a Hive
+that has adopted no annotations sees byte-identical output. Do not infer an `[effective:]` date for a fact that lacks one; an
 un-annotated fact is measured by `last_updated`, exactly as today.
 
 ### Step 2b: Catalog Staleness Check

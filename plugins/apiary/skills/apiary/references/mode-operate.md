@@ -56,13 +56,21 @@ else
   git clone --depth 1 --sparse --filter=blob:none \
     {REMOTE} "$HIVE_DIR"
   cd "$HIVE_DIR"
-  # `/CLAUDE.md` and `/README.md` are anchored root files audit reads; `_metrics/` is written by
-  # every session (Ask step 5) and `.signal/` holds the Signal config audit checks — all four were
-  # outside the sparse set, so the session wrote into and audited paths it had never checked out.
-  git sparse-checkout set --no-cone PROTOCOL/ knowledge/ sources/ /hive.yml /CLAUDE.md /README.md \
-    _inbox/ _custodian/ _metrics/ .signal/ .claude/
   DEFAULT_BRANCH=$(resolve_default_branch)
 fi
+
+# --- Sparse set: applied on EVERY invocation, not only on first clone ---
+# `git sparse-checkout set` is idempotent, so running it unconditionally costs nothing on a clone
+# that already matches — and it is the only thing that widens an EXISTING clone. Scoping it to the
+# fresh-clone arm (as it was) means a Hive cloned by an older Apiary keeps that version's patterns
+# forever: `git add _metrics/<file>` then fails with "matched paths that exist outside of your
+# sparse-checkout definition", so the session log can never be committed, and audit finds no
+# CLAUDE.md or README.md on disk. `/CLAUDE.md` and `/README.md` are anchored root files audit
+# reads; `_metrics/` is written by every session (Ask step 5); `.signal/` holds the Signal config
+# audit checks.
+git sparse-checkout set --no-cone PROTOCOL/ knowledge/ sources/ /hive.yml /CLAUDE.md /README.md \
+  _inbox/ _custodian/ _metrics/ .signal/ .claude/ 2>/dev/null \
+  || echo "WARN_SPARSE_SET_FAILED: could not apply the sparse-checkout patterns." >&2
 
 # --- Sync to the remote default branch (HALT if not fast-forwardable) ---
 # NO --depth on this fetch. The clone is shallow, and `fetch --depth 1` RE-shallows to the new tip

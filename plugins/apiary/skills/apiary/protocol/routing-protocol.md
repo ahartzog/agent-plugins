@@ -261,6 +261,11 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
      no extra call, since the opened list is already in hand.
    - **An empty `opened:` means §On no match must have fired.** The trace is where that gate
      becomes checkable instead of remembered.
+   - **Omit a field the route never produced — never invent one.** A one-hop local answer reaches
+     no catalog rows, so §Prefer's sufficiency test was never asked and the trace carries no
+     `sufficiency:`; a question answered without restatement ambiguity may carry none. A trace that
+     reports a verdict nobody reached is a fabricated observation, which is the exact failure the
+     trace exists to make detectable. `opened:` is the only field required on every Ask.
 
    Keep it to one line — this runs on every Ask, so the trace is deliberately a line and not the
    step-by-step narration it could easily become. It exists to make the protocol observable: golden

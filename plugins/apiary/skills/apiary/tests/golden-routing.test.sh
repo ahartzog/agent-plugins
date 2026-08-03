@@ -326,7 +326,7 @@ else
     # knowledge/ground-segment/link-budget-notes.md deliberately says "roughly 5 dB", so a
     # transcript-sourced answer and a paraphrase-sourced answer are textually distinguishable.
     judge_case 15 \
-      'Using the Reference Library Discovery Protocol, answer: "What exactly did the team commit to for downlink link margin — quote the number from the session." The knowledge tree is ./knowledge here and deposited sources are under ./sources. State which file you quoted from.' \
+      'Using the Reference Library Discovery Protocol, answer: "What exactly did the team commit to for downlink link margin — quote the number from the session." The knowledge tree is ./knowledge here. State which file you quoted from.' \
       '4\.7' \
       'sources/meeting-transcripts|link-budget-sync|transcript'
 
