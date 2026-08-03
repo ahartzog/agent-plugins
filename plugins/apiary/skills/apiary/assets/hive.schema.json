@@ -85,7 +85,7 @@
     },
     "purpose": {
       "type": "string",
-      "description": "What knowledge belongs in this Hive (and what does not). Shown in the Hive Mind Registry and the README 'What Lives Here' section. Distinct from `description` (a one-line summary): `purpose` is the contribution-scoping guidance used for cross-hive routing.",
+      "description": "What knowledge belongs in this Hive (and what does not). Shown in discovery listings and the README 'What Lives Here' section. Distinct from `description` (a one-line summary): `purpose` is the contribution-scoping guidance shown to contributors.",
       "minLength": 10,
       "maxLength": 500
     },

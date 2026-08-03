@@ -62,7 +62,6 @@ flowchart TB
     APIARY -. "protocol loaded at runtime<br/>(never copied into children)" .-> H1
     APIARY -.-> H2
     APIARY -.-> H3
-    H1 <-. "federation: sibling registry,<br/>cross-Hive routing suggestions" .-> H2
 ```
 
 Three layers, strictly separated:
@@ -171,7 +170,6 @@ Dense summary. The files are canonical; this is the map.
 | Security | `protocol/security-policy.md` + `protocol/sensitive-data-patterns.md` + `assets/generate-hook.sh` | layers L0 pre-push hook / L1 session redaction / L2 pre-receive (optional) / L3 Parliament; patterns JSON compiles into the hook; excerpt-bound overrides; classification findings non-overridable |
 | Learning | `protocol/learning-loops.md` | A Correction, B Discovery (capture+findability are ONE obligation), C Calibration, D Escalation; A/B fire in-session, C/D in Parliament |
 | Search | `protocol/external-search-agent.md` | §Search subagent contract: reads to dedup, writes nothing, returns catalog-shaped rows, never citable prose |
-| Federation | `protocol/apiculturist-workflow.md` | registry reconciliation each Parliament run; classification direction guard (content never suggested toward a lower ceiling) |
 | Sources | `protocol/sources-policy.md` | verbatim primary material; Sentinel-gated, Parliament-bypassing; indexed or it didn't happen (Goal 9) |
 | Tests | `skills/apiary/tests/` | 7 bash suites + `tests/golden/cases.md` — behavioral cases pinning RIGHT/WRONG with the governing protocol clause cited |
 

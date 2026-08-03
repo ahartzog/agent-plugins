@@ -78,6 +78,6 @@ A pattern graduates into this file when:
 2. A single Hive solves a non-obvious structural problem and the Apiary CODEOWNERS agree other Hives would benefit.
 3. A migration from a simpler structure to a more scaled one has been executed, and the migration path itself is worth capturing so the next Hive doesn't repeat the discovery.
 
-Patterns that only apply to one Hive's domain (e.g., "CDR close-plan tracker" for a program Hive) do **not** belong here — those stay in the Hive's own `knowledge/`. This file is for cross-Hive structural conventions only.
+Patterns that only apply to one Hive's domain (e.g., "CDR close-plan tracker" for a program Hive) do **not** belong here — those stay in the Hive's own `knowledge/`. This file is for structural conventions shared across all Hives only.
 
 Propose new patterns by editing this file in the Apiary repo and opening a PR.

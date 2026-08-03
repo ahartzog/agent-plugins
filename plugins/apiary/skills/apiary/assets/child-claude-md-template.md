@@ -20,7 +20,6 @@ Parliament processes inbox files into knowledge files via PR. Direct edits to `k
 - Upstream protocol: `/apiary` (Hive Parent Protocol)
 - Identity: `hive.yml`
 - Persona: `PROTOCOL/agent-definition.md`
-- Hive registry (all Hives): [{REGISTRY_URL}]({REGISTRY_URL})
 
 ## Classification / Security
 

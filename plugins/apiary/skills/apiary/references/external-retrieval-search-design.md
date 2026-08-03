@@ -142,11 +142,12 @@ all of it and produces a handful of rows. Loading the noise into the session's c
 the rows costs the session its remaining budget and buys nothing — the discarded hits are never
 referenced again.
 
-This is the case Parliament already solved for registry reconciliation: the Apiculturist runs as a
-subagent so "the registry table, the storage XML, and per-row detail all stay in the
-Apiculturist's context" (`protocol/apiculturist-workflow.md`). Search has the same profile — bounded
-inputs, high-volume intermediate data, small structured output — so it gets the same treatment, and
-`protocol/external-search-agent.md` is written to the same contract shape for consistency.
+This is a pattern Parliament already relies on elsewhere: the critic dispatch in
+`protocol/custodian-workflow.md` §4.1 runs Skeptic, Archivist, and Cartographer as subagents
+precisely so each one's noisy working context stays out of the parent session. Search has the same
+profile — bounded inputs, high-volume intermediate data, small structured output — so it gets the
+same treatment, and `protocol/external-search-agent.md` is written to the same contract shape for
+consistency.
 
 Two of the inputs that contract hands down are not obvious, and search fails quietly without them:
 

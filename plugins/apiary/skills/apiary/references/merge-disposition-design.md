@@ -34,7 +34,7 @@ triage:
   about *deliberated* content only, so capture ergonomics and the flywheel are unaffected.
 
 Absent field = `auto` = current behavior; no migration (matches the absent-block-means-default
-precedent set by `classification:` and `federation:`).
+precedent set by `classification:`).
 
 **Direction constraint: the knob only tightens.** `review` adds a human gate; nothing a Hive can
 set weakens the upstream default or any other control. Same additive-only philosophy as gate

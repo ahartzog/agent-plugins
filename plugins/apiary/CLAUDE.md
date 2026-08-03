@@ -11,7 +11,6 @@ Run the test suites and report the results in the PR body — don't just claim t
 ```bash
 cd plugins/apiary/skills/apiary/tests
 bash clone-flow.test.sh
-bash apiculturist.test.sh
 bash normalizer.test.sh
 bash golden-routing.test.sh   # deterministic fixture checks; always run this half
 bash sentinel-base.test.sh    # merge-base resolution regression guard (2.16.1)

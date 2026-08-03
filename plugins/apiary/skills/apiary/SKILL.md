@@ -76,7 +76,6 @@ This skill bundles canonical protocol files in `protocol/`. These are the single
 - `protocol/sources-policy.md` — Deposit path for primary source material (transcripts, documents); Sentinel-gated, no Parliament deliberation
 - `protocol/document-quality.md` — `doc_type` / `authority` / `covers` taxonomy for external-document catalogs; trawling heuristics; question-type routing
 - `protocol/external-search-agent.md` — Dispatch contract for the RLDP §Search live store-search subagent
-- `protocol/apiculturist-workflow.md` — Registry-reconciliation subagent dispatched by Parliament §1.4
 
 ## Machine-Readable Schemas
 
@@ -103,4 +102,3 @@ The Apiary knows that Meridian Systems shared skills live in claude-clams. When 
 - **The Apiary plugin is a hard dependency for all child Hives.** Child skills declare `apiary` in their `plugin.json` dependencies. Protocol files are read directly from this skill's `protocol/` directory at runtime — no vendoring or syncing required.
 - All git flow (clone, pull, sync, rebase-before-push) is handled by operate mode, not by hooks. This ensures operations work regardless of where the user invoked the skill from.
 - Sentinel cannot be disabled. It runs on every Parliament pipeline.
-- **Hives are federated.** Each Hive is listed in the [Hive Mind Registry](https://confluence.meridian.example/pages/viewpage.action?pageId=100000001) and knows its siblings via `hive.yml.siblings`; create mode registers new Hives, and Parliament's Apiculturist reconciles both directions on every run (`protocol/apiculturist-workflow.md`). Mis-filed contributions are only ever *suggested* to siblings, under the classification direction guard — `protocol/custodian-workflow.md` §2.1 step 5 (authoritative).

@@ -225,10 +225,8 @@ check "fixture paraphrase actually carries [effective:] annotations" \
   "$(grep -qF '[effective: 2026-07-15]' "$LB_NOTES" && echo 0 || echo 1)"
 
 echo ""
-echo "--- hive.yml.fixture sanity (no real remote/registry leaked into a fixture) ---"
-check "hive.yml.fixture federation is fully opted out (fixture must never touch Confluence/registry)" \
-  "$(grep -A2 '^federation:' "$GOLDEN_DIR/hive.yml.fixture" | grep -qF 'register: false' && echo 0 || echo 1)"
-check "hive.yml.fixture is NOT literally named hive.yml (must never be cwd-walk discoverable)" \
+echo "--- golden fixture sanity (must never look like a real Hive root) ---"
+check "golden/ has no file literally named hive.yml (must never be cwd-walk discoverable)" \
   "$([[ ! -f "$GOLDEN_DIR/hive.yml" ]] && echo 0 || echo 1)"
 
 echo ""

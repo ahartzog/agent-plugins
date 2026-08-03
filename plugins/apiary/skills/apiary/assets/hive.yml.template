@@ -10,37 +10,9 @@ persona: PROTOCOL/agent-definition.md
 codeowners: [{CODEOWNERS}]
 slack_channel: "{SLACK_CHANNEL}"
 
-# What knowledge belongs in this Hive (and what does not). Shown in the Hive Mind
-# Registry and the README "What Lives Here" section; used for cross-hive routing.
+# What knowledge belongs in this Hive (and what does not). Shown in discovery listings
+# and the README "What Lives Here" section.
 purpose: "{HIVE_PURPOSE}"
-
-# Canonical Hive Mind Registry page this Hive is listed in (backlinked from the README).
-confluence_registry: "{REGISTRY_URL}"
-
-# Federation opt-outs. Both default to true; omit this block entirely to participate
-# normally. Independent of each other:
-#   register           - let the Apiculturist publish/maintain this Hive's registry row.
-#                        false = stay unlisted. Does NOT delete an already-published row;
-#                        retraction is a deliberate manual step.
-#   cross_hive_routing - let this Hive suggest that a mis-filed contribution belongs in a
-#                        sibling Hive. false = never route outward.
-# Setting both false makes the Hive self-contained: Parliament skips the Apiculturist and
-# never contacts Confluence. Neither switch is a security control — classification is
-# enforced by the direction guard (custodian-workflow.md §2.1 step 5).
-# federation:
-#   register: true
-#   cross_hive_routing: true
-
-# Cached roster of peer Hives, seeded from the registry at create time and reconciled by
-# the Apiculturist on every Parliament run. Used by Parliament to suggest re-filing
-# mis-placed contributions.
-# `classification` is REQUIRED per sibling — the cross-hive guard never suggests
-# content toward a Hive with a lower ceiling. Empty list is valid.
-siblings: []
-#  - slug: vault-hive
-#    purpose: "CUI Service & International program knowledge"
-#    repo: "restricted-org/vault-hive"
-#    classification: CUI       # UNCLASSIFIED or CUI (FOUO = obsolete, legacy-only, treated as CUI)
 
 # Hive-local additions to upstream protocol. Additive only — extensions cannot
 # remove or override upstream behavior. Leave null to use upstream defaults.

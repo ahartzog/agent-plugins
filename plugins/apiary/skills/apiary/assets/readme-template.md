@@ -1,7 +1,5 @@
 # {HIVE_NAME} Hive Mind
 
-> 📒 Part of the [Meridian Systems Hive Mind Registry]({REGISTRY_URL}) — the index of every team Hive Mind, what each is for, and how to use it.
-
 {DESCRIPTION}
 
 This repository is a **collectively-maintained** AI knowledge base. Claude Code loads the persona from `PROTOCOL/agent-definition.md`, grounds its answers in `knowledge/`, and captures new facts in `_inbox/` for Parliament to triage.
@@ -10,7 +8,7 @@ This repository is a **collectively-maintained** AI knowledge base. Claude Code 
 
 {HIVE_PURPOSE}
 
-Knowledge outside this scope likely belongs in a different Hive — see the [registry]({REGISTRY_URL}) for the full set.
+Knowledge outside this scope likely belongs in a different repository — check with the codeowners below.
 
 ## Quick Start
 
@@ -134,8 +132,6 @@ Governed by the Apiary (Hive Parent Protocol). The Apiary provides:
 - `protocol/tool-tiers.md` — graceful tool-availability degradation
 
 When working in this repo, `/{HIVE_SLUG}` dispatches through the Apiary for protocol. Only domain-specific additions live here in `PROTOCOL/extensions/` — Hive-local named workflows go in `PROTOCOL/extensions/workflows/` and are wired up via `extensions.workflows` in `hive.yml` (authoring guide: `references/authoring-workflow-extensions.md` in the Apiary skill).
-
-For the full set of Hives across Meridian Systems — and which one owns a given topic — see the [Hive Mind Registry]({REGISTRY_URL}).
 
 ## Contribute
 

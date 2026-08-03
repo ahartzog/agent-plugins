@@ -103,31 +103,11 @@ If `CUI`, confirm the storage tier (e.g. `ghe-cui`). The Apiary does not verify 
 Store as `{MAX_LEVEL}` (`UNCLASSIFIED` or `CUI`), `{MARKING_REQUIRED}` (true if `MAX_LEVEL` is `CUI`; false otherwise), and `{STORAGE_TIER}` (optional, documentation-only).
 
 ### Q5.7: Purpose / What Lives Here
-"In one or two sentences, what knowledge *belongs* in this Hive — and what does NOT? This becomes the 'What Lives Here' section of the README, the Purpose column in the Hive Mind Registry, and the scoping signal Parliament uses to suggest re-filing mis-placed contributions to a sibling Hive."
+"In one or two sentences, what knowledge *belongs* in this Hive — and what does NOT? This becomes the 'What Lives Here' section of the README and the scoping signal contributors and Parliament use to keep contributions on-topic."
 
-Example: "Releasable, unclassified program knowledge for non-US-accessible teams. CUI/ITAR/SECRET+ content does NOT belong here — it lives in `vault-hive` (restricted-org)."
+Example: "Releasable, unclassified program knowledge for non-US-accessible teams. CUI/ITAR/SECRET+ content does NOT belong here."
 
 Store as `{HIVE_PURPOSE}`. Distinct from `{DESCRIPTION}` (a one-line summary): purpose is the contribution-scoping guidance.
-
-### Q5.8: Federation (ask only if the user hesitates on Q5.7, or volunteers that the Hive is private)
-
-Default both to `true` and **do not ask** — federation is the norm and an extra question on every
-create is friction for no benefit. Ask only when there is a signal the Hive may not want to
-participate (the user describes it as private/personal/experimental, or balks at the registry being
-mentioned in Q5.7):
-
-> "Two independent choices. Should this Hive be **listed** in the Hive Mind Registry so others can
-> discover it? And should it be allowed to **suggest** that a mis-filed contribution belongs in a
-> different Hive? Both default to yes."
-
-Store as `{FEDERATION_REGISTER}` / `{FEDERATION_CROSS_HIVE}`. Emit a `federation:` block in `hive.yml`
-**only if the user chose a non-default** — an absent block already means both `true`, and a redundant
-block is noise in every new `hive.yml`.
-
-**If `{FEDERATION_REGISTER}` is `false`, skip Step 6 entirely** — do not publish a row for a Hive that
-just told you not to. Note it in the Step 8 summary as `registration: skipped (opted out)`. Step 7
-still runs when `{FEDERATION_CROSS_HIVE}` is `true`, since an unlisted Hive can still consume the
-roster.
 
 ### Q6: Knowledge Topics
 "What knowledge files should this Hive start with? List the topic areas."
@@ -169,9 +149,7 @@ Read each template from `assets/` and substitute all `{PLACEHOLDER}` values.
 
 **Version substitution.** `{APIARY_VERSION}` in `hive.yml.template` must be replaced with the Apiary's **current** version — read the `version` field from `{APIARY_ROOT}/.claude-plugin/plugin.json` and strip any pre-release suffix (`X.Y.Z-experimental-<alias>` → `X.Y.Z`) so it satisfies the `hive.schema.json` semver pattern. Never hardcode a version here: seeding a stale value makes the new Hive appear a major version behind and trips a spurious Upgrade on its first operate invocation.
 
-**Registry substitutions.** Two placeholders carry federation values:
-- `{HIVE_PURPOSE}` — from Q5.7. Emitted into `hive.yml` (`purpose:`), the README "What Lives Here" section, and used to build the registry row in Step 6.
-- `{REGISTRY_URL}` — the canonical Hive Mind Registry page. Use **`https://confluence.meridian.example/pages/viewpage.action?pageId=100000001`** unless the user supplies a different registry. Emitted into `hive.yml` (`confluence_registry:`), the README banner, and `CLAUDE.md`.
+**Purpose substitution.** `{HIVE_PURPOSE}` — from Q5.7. Emitted into `hive.yml` (`purpose:`) and the README "What Lives Here" section.
 
 **Classification-conditional substitutions.** Several templates carry `{CLASSIFICATION_CONSTRAINT}` / `{CLASSIFICATION_SECTION}` / `{CLASSIFICATION_SECTION_README}` placeholders, each followed by an HTML authoring-guidance comment (`<!-- Create mode substitutes … with one of: … -->`) that shows the UNCLASSIFIED and classified variants. Substitute based on the Q5.5 answer:
 
@@ -293,40 +271,10 @@ Before summarizing, run deterministic checks on what was generated. Fail loud if
 
 Report each check as `PASS`/`FAIL` in the Step 8 summary.
 
-## Step 6: Register in the Hive Mind Registry
-
-**Skip this entire step if `{FEDERATION_REGISTER}` is `false`** (Q5.8) — record `registration: skipped (opted out)` in the Step 8 summary and move to Step 7.
-
-Add this Hive to the canonical registry page (`{REGISTRY_URL}`, default pageId `100000001`) so it is discoverable and so other Hives learn it exists.
-
-1. Read the current registry page storage body:
-   ```bash
-   confluence edit {REGISTRY_PAGE_ID}    # exports raw storage XML (a READ op despite the name)
-   ```
-2. Build one `<tr>` for this Hive per **`protocol/apiculturist-workflow.md` §3 "Row Markup (canonical)"** — column order, the highlighted Max Classification cell and its hexes, and the "look like the rows already there" rule all live there as the single source of truth. Insert the row alphabetically by slug into the `<tbody>`.
-
-   A new Hive's ceiling is only ever `UNCLASSIFIED` or `CUI` (see Q5.5 — `FOUO` is obsolete and not selectable), so only the first two rows of that table apply here; the `FOUO (legacy)` row exists for Hives that predate the ban.
-3. Push the update:
-   ```bash
-   confluence update {REGISTRY_PAGE_ID} -f <edited-file> --format storage
-   ```
-4. **Graceful degradation (do NOT silently skip).** If the `confluence` CLI is unavailable, unauthenticated, or returns 403/401, do not fail the whole create. Instead, print the exact `<tr>` to add and tell the user:
-   > "Could not write to the registry automatically. Add this Hive to {REGISTRY_URL} manually — here is the row:" followed by the rendered `<tr>`.
-   Record this as a `FAIL (manual follow-up)` in the Step 8 summary. From 2.11.0 this is also self-healing: the Apiculturist inserts the missing row on the Hive's first Parliament run.
-
-## Step 7: Seed the Sibling Roster
-
-Populate `hive.yml.siblings` so Parliament can route mis-filed contributions (see `protocol/custodian-workflow.md` §4.1).
-
-1. Read the registry table (from Step 6) and extract every *other* Hive's slug, purpose, repo, and classification.
-2. Write them into this Hive's `hive.yml` `siblings:` list, each as `{slug, purpose, repo, classification}`. `classification` is REQUIRED — it is the ceiling the cross-hive direction guard compares against.
-3. If the registry was unreachable in Step 6, seed `siblings: []` and note it — the roster self-heals on the next Parliament run, which refreshes it from the registry (`custodian-workflow.md` §1.4). Operate mode never contacts Confluence.
-4. From 2.11.0 onward the roster **and** this Hive's own row are reconciled by the Apiculturist on every Parliament run (`protocol/apiculturist-workflow.md`). Create-mode registration is the *bootstrap*, no longer the only write — so a create that degraded at Step 6.4 recovers on its own.
-
 ## Step 8: Summary
 
 Show the user:
 1. List of all generated files
 2. The `hive.yml` contents
-3. Step 4 validation results, plus Step 6 registry registration and Step 7 sibling-seeding results (each `PASS` / `FAIL (manual follow-up)`)
+3. Step 4 validation results
 4. Next steps: "Push this repo to GHE, then register the child skill in claude-clams."
