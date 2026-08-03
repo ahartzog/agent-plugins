@@ -1,6 +1,20 @@
 # Push Mode: `pr`
 
-Use this reference when a Hive's resolved push mode is `pr` — set via `hive.yml.push_mode: pr`, or per-flow via `inbox_push_mode: pr` / `parliament_push_mode: pr`. That mode is required when the default branch is protected by required status checks, policy-bot, or any other gate that rejects direct pushes from session agents.
+> **Consider `inbox_transport: branch` before wiring up the inbox half of this document.** The
+> queue-branch transport (`references/inbox-transport-design.md`) solves the same problem — inbox
+> capture on a repo whose default branch is protected — with vanilla branch protection and none of
+> the policy-bot / CODEOWNERS-narrowing setup below. Under that transport, the **Session Contribute
+> Push** procedure, the `.policy.yml` inbox-only rule, the `CODEOWNERS` narrowing (setup step 5),
+> and `inbox_push_mode: pr` are not merely unnecessary — a Hive **migrating** to the queue
+> transport **must tear them down** (`references/mode-upgrade.md` § 2.23.0 step 3b): left in
+> place, the zero-approval inbox rule + narrowed CODEOWNERS let an inbox-only PR auto-merge into
+> the protected default branch with no review, silently voiding the transport's
+> no-unreviewed-history guarantee. Audit Step 4b FAILs on the leftovers. The **Parliament
+> Housekeeping** procedure and the operator steps it needs (auto-merge enablement, required
+> checks, codeowner gating on `knowledge/`) remain fully in use — Parliament still lands on the
+> default branch via PR under every transport.
+
+Use this reference when a Hive's resolved push mode is `pr` — set via `hive.yml.push_mode: pr`, or per-flow via `inbox_push_mode: pr` / `parliament_push_mode: pr`. That mode is required when the default branch is protected by required status checks, policy-bot, or any other gate that rejects direct pushes from session agents — and the Hive has not opted into `inbox_transport: branch`.
 
 **Per-flow split:** `push_mode` is the baseline for both flows; `inbox_push_mode` and `parliament_push_mode` override it for their respective flows (resolution: specific override → `push_mode` → `direct`). The common configuration is `inbox_push_mode: direct` + `parliament_push_mode: pr` — inbox entries are captured aggressively straight to the default branch (the inbox is a review buffer, not a publishing surface), while `knowledge/` merges stay gated behind a codeowner-reviewed Parliament PR. Only the flow whose resolved mode is `pr` uses the runtime procedures below.
 

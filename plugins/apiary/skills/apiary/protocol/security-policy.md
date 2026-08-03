@@ -184,6 +184,34 @@ If a credential (password, token, key, connection string) enters git history des
 Rotation is the load-bearing step; a purged-but-unrotated credential is still a live key that was
 public for a window.
 
+**Queue-branch transport addendum** (`inbox_transport: branch`):
+
+- **First establish where the value lives.** Search `{DEFAULT_BRANCH}` for it (`git log -S`, plus
+  `_inbox/_completed/` and `knowledge/` at HEAD): if the contribution was already processed, its
+  verbatim `_completed/` record is on the default branch and the **base runbook above applies
+  there** (filter-repo) *in addition to* the queue re-root below.
+- **If the value exists only in queue history** — the common case for anything caught before its
+  housekeeping PR merged — replace step 3's `filter-repo` with a **re-root**: build a fresh
+  orphan history carrying the surviving pending files minus the affected one, and
+  `git push --force-with-lease` it onto `{INBOX_BRANCH}` (temporarily disable the "Inbox Queue
+  Safety" ruleset, re-enable immediately after). Replay each surviving pending entry as its own
+  commit with `GIT_AUTHOR_NAME`/`GIT_AUTHOR_EMAIL` taken from `git log` of the old tip, so §1.3's
+  later attribution capture still names the contributor rather than the re-rooting operator. No
+  default-branch rewrite, no fleet-wide re-clone: nothing bases durable work on queue history,
+  and attribution for already-processed entries lives in their `_inbox/_completed/` records.
+- **Old-tip sessions are handled by the re-root guard, not by luck:** the queue push procedure
+  (`mode-operate.md` § Queue-branch push, block C) detects the missing merge base and replays
+  **only that machine's own not-yet-pushed entries** onto the new root — a range bounded by the
+  last successfully pushed tip and verified to contain only own-authored, `_inbox/*.md`-only
+  commits; anything else HALTs into worktree recovery instead of replaying. Without that guard a
+  plain rebase would replay the entire purged history — including the secret — back onto the
+  queue; do not weaken the guard, and treat any post-incident reappearance of the purged path as
+  a signal that a machine is running a pre-guard Apiary version.
+- **Close the incident by adding the missed pattern** to `assets/sentinel-patterns.json` (with a
+  positive test, per the testing discipline) — the leak proved a detection gap, and rotation plus
+  purge without a pattern fix leaves the same gap open.
+- Steps 1, 2, and 4 (rotate, notify, log) are unchanged.
+
 ## Classification Remediation Runbook
 
 If content above the Hive's `max_level` enters git history despite the defensive layers:
@@ -227,6 +255,13 @@ Knowledge file entry
 
 This chain must be maintained. Parliament must never merge a contribution without preserving the attribution back to the original session file.
 
+**Queue-branch transport:** the git-blame link is served by the reconciliation note instead of
+live history. Parliament records `queue_commit` (SHA) and `queue_author` in each
+`_inbox/_completed/` record **before** the entry is deleted from the queue
+(`custodian-workflow.md` §1.3/§6.1), so the chain survives routine queue truncation and
+incident-response re-roots. A queue entry may never be deleted before its `_completed/` record —
+content plus attribution — has been pushed to the remote.
+
 ---
 
 ## Rollback
@@ -257,6 +292,41 @@ This enables session agents to push inbox contributions directly while protectin
 `sources/**` allows direct push because sources are ground truth (verbatim primary material). Text sources pass through pre-push Sentinel scanning but not Parliament deliberation. **Binary sources (PDF/PPTX/DOCX/XLSX) are LFS-tracked, and the pre-push hook cannot scan LFS binary content — the depositor is responsible for confirming a binary is safe to store at the Hive's classification ceiling.** Learnings extracted from sources enter `knowledge/` only via the inbox→Parliament path. Full model: `PROTOCOL/sources-policy.md`.
 
 The classification ceiling is orthogonal to this model. A classified Hive still routes contributions through `_inbox/` and protects `knowledge/` with the same rulesets; only the content policy changes.
+
+### Transport = branch variant (`hive.yml.inbox_transport: branch`)
+
+The path-scoped model above approximates a path policy with branch-scoped tools. The queue-branch
+transport (`references/inbox-transport-design.md`) aligns the policy boundary with the protection
+primitive instead — the unreviewed surface gets its own branch, and the rulesets become vanilla:
+
+| Surface | Ruleset | Contents |
+|---|---|---|
+| `{DEFAULT_BRANCH}` | Standard branch protection | Require PR + codeowner review for **everything**; block force push + deletion. No policy-bot, no path rulesets, no CODEOWNERS narrowing. |
+| `{INBOX_BRANCH}` (queue, default `inbox`) | "Inbox Queue Safety" branch ruleset | Block **deletion** and **force push** only. Never require PRs or checks here — that would wedge capture. |
+| `parliament/*` (incl. the `parliament/lock` ref) | none | Working branches; the lock ref must remain creatable and deletable. |
+
+Under this variant, two properties hold that the path-scoped model cannot provide — stated
+precisely, because their boundaries are part of the contract:
+
+1. **Unreviewed content never enters `{DEFAULT_BRANCH}` directly.** Everything on the default
+   branch arrived through a reviewed PR. The scope is exact: while a contribution is **pending or
+   quarantined**, its raw bytes exist only in queue history (quarantine records are redacted
+   copies), so a Sentinel-missed secret caught at any point before its housekeeping PR merges
+   never touches default-branch history and there is nothing to purge there. Once Parliament
+   processes a contribution, its **verbatim content does reach `{DEFAULT_BRANCH}`** inside the
+   merged `_inbox/_completed/` record — through the reviewed housekeeping PR. That review is the
+   last human gate before session bytes become permanent default-branch history; codeowners
+   reviewing a Parliament PR should treat the `_completed/` diff accordingly.
+2. **Queue history is cheaply rewritable for incident response** (nothing bases durable work on
+   it — see the credential runbook addendum below). Routine queue maintenance is always ordinary
+   commits; **rewrite is incident-only.** Note the queue's commit history grows for the life of
+   the branch (routine drains delete files, not history); a re-root resets it as a side effect.
+
+Session pushes to the queue remain Layer 0-gated for the shapes sessions produce: the pre-push
+hook fires on pushes to any branch and scans top-level `_inbox/*.md` (and `sources/**` text) —
+the same surface the session push stages. Non-conforming paths pushed by other tooling are swept
+by Parliament's queue janitor (`custodian-workflow.md` §1.3), which scans them with the same
+pattern set before draining them.
 
 ---
 

@@ -45,6 +45,19 @@ A previous agent session left the clone on a feature branch with uncommitted cha
 - [ ] Session proceeds normally on the default branch
 - [ ] No work is silently lost (no `git stash` without push, no `git checkout --force`)
 
+### Scenario 4: Queue-Branch Transport (`inbox_transport: branch`)
+
+A Hive routes inbox contributions to a dedicated queue branch (`references/inbox-transport-design.md`). Applies whenever a change touches Step 0's queue-ref block, the Queue-branch push procedure, custodian §1.3 materialization / §6.3 drain, or the transport fields in `hive.schema.json`.
+
+**Must verify:**
+- [ ] First queue push from a fresh Step 0-shaped clone (`--depth 1 --sparse --filter=blob:none`) registers the queue fetch refspec, bootstraps the orphan queue branch if absent, creates the `.inbox-worktree`, and lands the entry — with the session clone still on the default branch
+- [ ] The pre-push Sentinel hook **fires on the worktree push** (absolute `core.hooksPath` — a relative path silently skips Layer 0 from a worktree)
+- [ ] The queue branch shares no history with the default branch (orphan root), and nothing is pushed to the default branch
+- [ ] A returning session reuses the worktree; two racing sessions both land via fetch → rebase → retry (unique filenames, no conflicts)
+- [ ] Parliament records `queue_commit` + `queue_author` in the `_inbox/_completed/` record **before** any queue deletion, and the drain is pathspec-limited, never forced — an entry pushed mid-run survives it
+- [ ] **Re-root guard:** after an incident re-root of the queue, an old-tip worktree's next push replays only that machine's not-yet-pushed entries (bounded by `refs/hive/inbox-last-push`, recorded only on push success, own-author/own-files verified) — the purged file must NOT reappear on the queue tip or in its history, and a range contaminated by a foreign commit (failed-push window) must HALT rather than replay (`clone-flow.test.sh` Scenarios B5 and B5b)
+- [ ] Behavior with `inbox_transport` absent is byte-identical to before (Scenarios 1–3 unchanged)
+
 ## How to Verify
 
 ### Option A: Run the test script (fast, local, no GHE dependency)

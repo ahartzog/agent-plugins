@@ -18,11 +18,13 @@ This document describes how the Hive Mind works from the contributor's perspecti
   Session                    Accumulation               Incorporation
   ───────                    ────────────               ─────────────
   User invokes               Inbox files pile up        Parliament reads inbox,
-  the Hive's skill  ──►      on master via direct  ──►  produces PRs against
-  Skill answers,             push. No coordination      knowledge/. Fast-path
-  writes _inbox/,            between sessions.          auto-merges. Deliberation
-  pushes.                    No PRs needed.             goes through critics.
-
+  the Hive's skill  ──►      via direct push — on  ──►  produces PRs against
+  Skill answers,             master, or on the          knowledge/. Fast-path
+  writes _inbox/,            dedicated queue branch     auto-merges. Deliberation
+  pushes.                    (inbox_transport).         goes through critics.
+                             No coordination between    Under the queue transport,
+                             sessions. No PRs needed.   Parliament then drains the
+                                                        processed queue entries.
                              Sources deposited          Parliament cites sources
                              directly to sources/       during deliberation for
                              via Deposit workflow.      corroboration.
@@ -41,13 +43,21 @@ This document describes how the Hive Mind works from the contributor's perspecti
 
 ### Phase 2: Accumulation (zero coordination)
 
-Inbox files accumulate on master from all sessions. This works without conflicts because:
+Inbox files accumulate from all sessions on the Hive's **inbox transport** — a dedicated,
+never-PR-gated queue branch (`inbox_transport: branch` — the recommended transport, scaffolded
+into new Hives by default; see `references/inbox-transport-design.md`), or the default branch
+itself (`inbox_transport: default-branch` — the legacy path, and what an absent field means, so
+pre-2.23.0 Hives are unchanged). Either way, accumulation works without conflicts because:
 
 - **Unique naming:** Each file is `YYYY-MM-DD-<author>-<topic>.md` — no two sessions produce the same filename.
 - **Append-only:** Sessions create new files. They never modify existing inbox files or knowledge files.
-- **Push retry:** If a push fails because master moved (another session pushed first), the skill runs `git pull --rebase` and retries. Since files never collide, the rebase always succeeds.
+- **Push retry:** If a push fails because the target ref moved (another session pushed first), the skill fetches, rebases, and retries. Since files never collide, the rebase always succeeds.
 
-No PR is required for inbox files. Direct push is the expected path.
+No PR is ever required for inbox files — direct push is the expected path on both transports. The
+queue transport exists so a Hive can also give its default branch full vanilla protection
+(required PR + codeowner review on everything): capture stays one direct push to the queue,
+unreviewed content never enters default-branch history, and Parliament is the only bridge between
+the two.
 
 ### Phase 3: Incorporation (Parliament)
 
@@ -56,7 +66,7 @@ Parliament processes the accumulated inbox into knowledge:
 1. Collects all `status: ready` inbox files.
 2. Routes contributions: `[link]`, `[person]`, `[tracker]` take the fast path (auto-merge). Everything else goes through the deliberation tribunal (Skeptic, Archivist, Cartographer critics -> Reviser -> Chancellor verdict).
 3. Produces PRs against `knowledge/` — one auto-merge batch PR for fast-path and clean-MERGE deliberation outcomes; separate needs-review / rejection / escalation PRs otherwise (canonical rule: `custodian-workflow.md` §4.3).
-4. Moves processed inbox files to `_inbox/_completed/`.
+4. Moves processed inbox files to `_inbox/_completed/`. Under the queue transport it then deletes the processed entries from the queue branch — after their `_completed/` records (content + original queue commit + author) are safely pushed, so attribution survives the deletion.
 
 Full Parliament mechanics: upstream `protocol/custodian-workflow.md`
 
@@ -80,7 +90,7 @@ Full Parliament mechanics: upstream `protocol/custodian-workflow.md`
 ### What needs to be built
 
 1. **CI pipeline for Parliament.** A scheduled job (GitHub Actions cron or CircleCI scheduled workflow) that clones the repo, invokes the Parliament workflow via Claude CLI (`claude -p "run parliament"`), and posts results. Config target: hourly, per `_custodian/config.yml`.
-2. **Branch protection for `_inbox/`.** GHE branch protection rules must allow direct pushes to master for paths matching `_inbox/**`. This may require a bypass rule or a bot account, depending on GHE org policy.
+2. **Branch protection for `_inbox/`** (default-branch transport only). GHE branch protection rules must allow direct pushes to master for paths matching `_inbox/**`. This may require a bypass rule or a bot account, depending on GHE org policy. Under `inbox_transport: branch` this problem does not exist — the queue branch is unprotected by design and master carries plain vanilla protection (`protocol/security-policy.md` § Repository Protection Model, transport=branch variant).
 3. **CI pipeline for Audit.** Scheduled weekly, produces audit reports in `_custodian/reports/`.
 
 ---
@@ -103,7 +113,7 @@ The skill needs to push to master without prompting the user for every git opera
 }
 ```
 
-This grants auto-approval for git operations scoped to this repo only. Users working in this repo get frictionless inbox pushes. The permission does not propagate to other repositories.
+This grants auto-approval for git operations scoped to this repo only. Users working in this repo get frictionless inbox pushes. The permission does not propagate to other repositories. (The shipped template additionally allows the read and plumbing commands the queue-branch transport's push worktree and queue reads use — `git fetch`/`worktree`/`show`/`ls-tree`/`ls-remote`/`rev-parse`/`merge-base`/`rebase`/`sparse-checkout`/`hash-object`/`commit-tree`/`show-ref` — so a queue push needs no permission prompts; see `assets/child-settings-template.json` for the authoritative list.)
 
 `git add` is scoped to `_inbox/*` and `sources/*` — the skill should never stage changes to `knowledge/` or `PROTOCOL/` files directly. Humans editing `knowledge/` by hand follow the direct-PR path (see `PROTOCOL/triage-policy.md` §"Human Direct-PR Path") — they branch, edit, push, and open a PR that CODEOWNERS review. Agents never open PRs against `knowledge/`.
 
@@ -122,7 +132,7 @@ Operate mode Step 0's ff-sync phase fetches and fast-forward merges the remote d
 
 ### Before every push: Rebase
 
-Operate mode's Contribution Handling includes a mandatory pre-push rebase onto the remote default branch. This prevents push rejections from concurrent sessions.
+Operate mode's Contribution Handling includes a mandatory pre-push rebase onto the push target's remote ref — the default branch, or the inbox queue branch under `inbox_transport: branch`. This prevents push rejections from concurrent sessions.
 
 - **No merge commits.** Rebase keeps inbox history linear.
 - **Safe because sessions write unique files.** Inbox files are `YYYY-MM-DD-<author>-<topic>.md` — no two sessions modify the same file, so rebase conflicts are structurally impossible for inbox writes.

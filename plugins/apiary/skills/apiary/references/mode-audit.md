@@ -167,11 +167,12 @@ Validates how the Hive pushes inbox contributions and Parliament runs. The failu
 catches is silent: a Hive configured for `pr` on an unprotected branch opens PRs that never
 auto-merge, so contributions sit open and are effectively lost.
 
-First, resolve the effective mode for each flow (same resolution the runtime uses):
-- **inbox mode** = `hive.yml.inbox_push_mode` if set, else `hive.yml.push_mode`, else `direct`
+First, resolve the transport, then the effective mode for each flow (same resolution the runtime uses):
+- **transport** = `hive.yml.inbox_transport`, default `default-branch`; **queue branch** = `hive.yml.inbox_branch`, default `inbox`
+- **inbox mode** = `hive.yml.inbox_push_mode` if set, else `hive.yml.push_mode`, else `direct` — **ignored when transport is `branch`** (the queue is direct-push by construction)
 - **parliament mode** = `hive.yml.parliament_push_mode` if set, else `hive.yml.push_mode`, else `direct`
 
-Then check branch protection once (used by the checks below):
+Then check branch protection on `{DEFAULT_BRANCH}` once (used by both paths below):
 
 ```bash
 gh api "repos/{owner}/{repo}/branches/{DEFAULT_BRANCH}/protection" >/dev/null 2>&1 \
@@ -180,21 +181,60 @@ gh api "repos/{owner}/{repo}/branches/{DEFAULT_BRANCH}/protection" >/dev/null 2>
 (A 404 "Branch not protected" means unprotected. If `gh` is unavailable or auth fails, mark
 protection **UNKNOWN** and downgrade the checks below to informational — do not assume protected.)
 
-Flag the following:
+**Queue-transport checks — run these when transport is `branch`, INSTEAD of the default-branch
+checks further down** (those police the inbox-on-default-branch configuration this Hive has opted
+out of):
+
+1. **FAIL — queue branch is PR-gated.** Check **both** protection surfaces — legacy branch
+   protection (`gh api "repos/{owner}/{repo}/branches/{INBOX_BRANCH}/protection"`) **and**
+   rulesets (`gh api "repos/{owner}/{repo}/rules/branches/{INBOX_BRANCH}"`, which the legacy
+   endpoint cannot see). If either imposes required PRs or required status checks on the queue:
+   **FAIL: the inbox queue branch must never require PRs or checks — sessions push it directly; a
+   gate here wedges capture. Keep only deletion/force-push protection (see
+   `protocol/security-policy.md` § Transport = branch variant).**
+2. **FAIL — Parliament cannot land.** If `{DEFAULT_BRANCH}` is protected and the resolved parliament mode is `direct`: **FAIL: `{DEFAULT_BRANCH}` requires PRs but Parliament is configured to push direct — housekeeping and knowledge merges will be rejected. Set `parliament_push_mode: pr`.** (Same check for `sources_push_mode` if the Hive uses native Deposit: a fully protected default branch needs `sources_push_mode: pr`.)
+2b. **WARN — Parliament PRs will strand (the reverse pairing).** If the resolved parliament mode is `pr` and `{DEFAULT_BRANCH}` is **unprotected**: **WARN: `parliament_push_mode: pr` on an unprotected branch — GitHub only arms auto-merge on a PR blocked by a required check/review, so housekeeping PRs sit open until a human merges them, and under the merge-gated drain the queue lags accordingly (entries stay `PENDING_REVIEW`). Fix: apply the vanilla protection (the intended end-state — see check 6), or set `parliament_push_mode: direct` until you do.** This is the state a new Hive reaches by doing create-mode follow-up (3) before (1); nothing is lost, but the queue stops draining.
+3. **FAIL — legacy `pr`-mode apparatus still live.** If the repo still carries the
+   push-mode-pr-setup machinery — policy-bot in `{DEFAULT_BRANCH}`'s required status checks, a
+   `.policy.yml` inbox-only zero-approval rule, or a `CODEOWNERS` file with an ownerless
+   `_inbox/` override: **FAIL: leftover pr-mode apparatus lets inbox-only PRs merge into
+   `{DEFAULT_BRANCH}` without review, voiding the transport's no-unreviewed-history guarantee.
+   Complete the teardown in `references/mode-upgrade.md` § 2.23.0.**
+4. **FAIL — refname conflict blocks bootstrap.** If the queue branch is missing AND
+   `git ls-remote --heads origin "{INBOX_BRANCH}/*"` returns anything (legacy pr-mode inbox
+   branches): **FAIL: the queue branch cannot be created while `{INBOX_BRANCH}/*` branches exist
+   (git refname conflict) — every session's bootstrap is rejected. Merge/close those PRs and
+   delete their branches, or set a non-colliding `inbox_branch`.**
+5. **WARN — dead config.** If `inbox_push_mode` (or an inbox-relevant `push_mode: pr`) is set: **WARN: `inbox_push_mode` has no effect under `inbox_transport: branch` — remove it to avoid misleading a future operator.** Exception: during a migration coexistence window, `inbox_push_mode: pr` is the documented straggler net for pre-2.23.0 clients (`mode-upgrade.md` § 2.23.0) — if the Hive migrated recently, report it as INFO ("intentional during cutover; remove once the fleet is current") rather than WARN.
+6. **WARN — protection goal unrealized.** If `{DEFAULT_BRANCH}` is unprotected: **WARN: the queue transport is configured but `{DEFAULT_BRANCH}` accepts direct pushes — the "unreviewed content never enters default-branch history" guarantee is not repo-enforced. Apply vanilla branch protection (require PR + codeowner review).**
+7. **INFO — queue ruleset.** If no deletion/force-push protection exists on `{INBOX_BRANCH}`: recommend the "Inbox Queue Safety" ruleset.
+8. **INFO — queue depth/age/hygiene.** Report `git ls-tree -r --name-only origin/{INBOX_BRANCH} | wc -l` and the oldest entry's last-commit age (an old queue means Parliament is not running often enough), and WARN-list any queue path not matching the conforming shape `_inbox/<name>.md` — non-conforming paths are unscanned by the session push path and wait on Parliament's janitor (`custodian-workflow.md` §1.3). A missing queue branch with no `{INBOX_BRANCH}/*` conflict (check 4) is INFO, not FAIL — it bootstraps on the first session push. Also list any `parliament/*` branches whose housekeeping PR is closed-unmerged: their queue files are stuck `PENDING_REVIEW` until the dead branch is deleted.
+
+**Default-branch transport checks — flag the following when transport is `default-branch`:**
 
 1. **FAIL — `pr` mode on an unprotected branch.** If either resolved mode is `pr` and
    `{DEFAULT_BRANCH}` is unprotected: **FAIL: {flow} push mode is `pr` but `{DEFAULT_BRANCH}` is
    unprotected. GitHub only arms auto-merge on a PR blocked by a required check/review, so
    `gh pr merge --auto` is rejected and these PRs never merge — contributions are lost. Fix: set
    `{flow}_push_mode: direct`, or protect the branch (see `references/push-mode-pr-setup.md`).**
+1b. **FAIL — `direct` inbox mode on a protected branch.** The mirror failure — reachable after a
+   queue-transport rollback that reverted `inbox_transport` before relaxing protection, or after
+   protecting a branch without configuring an inbox path. If the resolved inbox mode is `direct`
+   and `{DEFAULT_BRANCH}` is protected: **FAIL: direct inbox pushes are rejected by branch
+   protection — capture is wedged and every session's contribution is lost. Fix: adopt
+   `inbox_transport: branch`, or set `inbox_push_mode: pr` with the
+   `references/push-mode-pr-setup.md` apparatus, or relax the protection.**
 2. **WARN — `pr` Parliament mode with auto-merge unwired.** If parliament mode is `pr` and
    `hive.yml.auto_merge.mechanism` is `pending`: **WARN: Parliament opens PRs (`parliament_push_mode:
    pr`) but `auto_merge.mechanism: pending` means nothing auto-merges. Parliament PRs will wait for
    a manual merge. Set a real `mechanism`, or expect to merge Parliament PRs by hand.**
-3. **INFO — per-flow overrides not set.** If **both** `inbox_push_mode` and `parliament_push_mode`
-   are absent from `hive.yml` (i.e. the Hive relies solely on `push_mode` or the `direct` default):
-   inform the user the overrides exist and **offer to configure them**. Present it as an optional
-   improvement, not a defect:
+3. **INFO — per-flow overrides not set.** Evaluate **after** check 4's migration offer: if the
+   user accepts the queue-transport migration, skip this check entirely — `inbox_push_mode`
+   becomes dead config under that transport, so recommending it here would have the next audit
+   warning about the config this one suggested. Otherwise: if **both** `inbox_push_mode` and
+   `parliament_push_mode` are absent from `hive.yml` (i.e. the Hive relies solely on `push_mode`
+   or the `direct` default), inform the user the overrides exist and **offer to configure
+   them**. Present it as an optional improvement, not a defect:
    > This Hive uses a single push mode for both inbox contributions and Parliament. You can split
    > them: `inbox_push_mode` and `parliament_push_mode` override `push_mode` per flow. The common
    > setup is **`inbox_push_mode: direct`** (capture contributions aggressively — the inbox is a
@@ -205,6 +245,22 @@ Flag the following:
    branch is unprotected — `parliament_push_mode: pr` requires protection per check 1) and note the
    change in the report. If they decline, record the offer as declined and move on. Do not nag on
    subsequent audits beyond this single INFO line.
+4. **INFO — queue-branch transport available (the recommended transport).** A Hive on the
+   `default-branch` transport is on the legacy path: new Hives are scaffolded with
+   `inbox_transport: branch` since 2.23.0, which keeps capture friction identical while letting
+   `{DEFAULT_BRANCH}` carry full vanilla protection and keeping unreviewed content out of its
+   history. **Offer the migration** — present it as the recommended upgrade, not a defect:
+   > This Hive routes inbox contributions through `{DEFAULT_BRANCH}` (the pre-2.23.0 transport).
+   > The recommended setup is `inbox_transport: branch`: same one-push capture, but the default
+   > branch can then require PR + codeowner review on everything, and unreviewed session content
+   > never enters its history. Migration is reversible and has a coexistence window — want me to
+   > walk `references/mode-upgrade.md` § 2.23.0 with you (pre-flight checks first)?
+
+   If the user accepts, follow the § 2.23.0 migration **in order** — the pre-flight refname check
+   and the protect-last / teardown steps are load-bearing, not ceremony. If they decline, record
+   the offer as declined; as with check 3, do not re-nag on subsequent audits. If the Hive
+   currently uses `inbox_push_mode: pr` + the policy-bot apparatus, note that the migration
+   retires that entire setup (its teardown is § 2.23.0 step 3b).
 
 ### Step 4c: Registry Reconciliation Check
 
@@ -303,7 +359,7 @@ Also check, independent of whether `extensions.gates` is set:
 |---|---|
 | `.githooks/pre-push` exists | ERROR (no push-time enforcement) |
 | `.githooks/pre-push` contains the generator's marker (resolve it with `bash {APIARY_ROOT}/skills/apiary/assets/generate-hook.sh --print-marker`, then `grep -qF`; never hardcode the string here) | WARN: `foreign pre-push hook — frozen against upstream pattern updates; migrate its checks to extensions.gates (references/authoring-gate-extensions.md § Migrating a hand-rolled hook)` |
-| `git config core.hooksPath` is `.githooks` | ERROR (hook present but not active) |
+| `git config core.hooksPath` resolves to the Hive root's hooks dir — PASS iff the value equals the **absolute** `{HIVE_ROOT}/.githooks` (what Step 0 writes since 2.23.0). A **relative** `.githooks` is ERROR under `inbox_transport: branch` ("queue-worktree pushes run NO pre-push hook — Layer 0 bypass; re-run operate Step 0 to upgrade to the absolute path") and WARN under `default-branch` ("works from the clone root today, but silently skips the hook on any worktree push and breaks on a transport flip — re-run Step 0"). Any other value, or unset | ERROR (hook present but not active) |
 | A gate directory exists on disk but `extensions.gates` is null | WARN (orphaned gates — declared nowhere, so never baked into the hook) |
 
 The last row is the Goal 9 discoverability guarantee for this surface: a gate that
@@ -353,7 +409,7 @@ hive: {HIVE_SLUG}
 - Learning Loops: A/Correction={status} B/Discovery={status} C/Calibration={status} D/Escalation={status}
 - Routing coverage: {N} uncovered / {N} directory-pointer-only / {N} total knowledge files
 - Fast-path share: {N}% measured vs ~80% predicted ({PASS/WARN})
-- Push Mode: inbox={resolved} parliament={resolved}, branch={protected|unprotected|unknown} ({PASS/WARN/FAIL})
+- Push Mode: transport={default-branch|branch(queue={INBOX_BRANCH}, depth {N})} inbox={resolved|n/a} parliament={resolved}, branch={protected|unprotected|unknown} ({PASS/WARN/FAIL})
 - Version: {current|behind}
 - Registry: row {present|missing|opted out} / ver {match|A vs B} / siblings {N of M} ({PASS/WARN/FAIL/SKIP})
 - Extensions: {valid|N issues}
@@ -371,7 +427,7 @@ hive: {HIVE_SLUG}
 {table of `type: index` catalogs trailing their re-trawl threshold: catalog | last_updated | days_old | store | discovered_via:search row count — or "None"; each is a re-trawl recommendation, not a defect}
 
 ### Push Mode
-{resolved inbox/parliament modes, branch protection state, and any FAIL/WARN/INFO from Step 4b — including whether per-flow overrides were offered and the user's response}
+{resolved transport and inbox/parliament modes, branch protection state, queue depth/oldest-entry age when transport is `branch`, and any FAIL/WARN/INFO from Step 4b — including whether per-flow overrides were offered and the user's response}
 
 ### Registry Reconciliation
 {Step 4c results: row presence, Apiary ver comparison, per-field metadata drift, sibling cache freshness. If the Hive has opted out via `federation`, say which switches are off and which checks were therefore skipped. If the Hive predates federation, the /apiary upgrade backfill recommendation instead.}
