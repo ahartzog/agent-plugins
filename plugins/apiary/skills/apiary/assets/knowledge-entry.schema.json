@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/knowledge-entry.schema.json",
+  "title": "Hive Mind Knowledge File Frontmatter",
+  "description": "Required frontmatter on every `knowledge/**/*.md` file. The Apiary Archivist enforces this on Parliament merges; the Audit mode checks it during health checks.",
+  "type": "object",
+  "required": ["domain", "type", "description", "decay", "confidence", "last_updated"],
+  "additionalProperties": true,
+  "properties": {
+    "domain": {
+      "type": "string",
+      "description": "Top-level domain for routing. Typically matches a directory under knowledge/ (e.g. `ground-segment`, `program`, `orbital`).",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "type": {
+      "type": "string",
+      "description": "File role. `reference` = stable facts. `register` = tables (risks, decisions, stakeholders). `status` = current state, decays fast. `index` = pointers to external systems. `reference-library` = corpus index with retrieval triggers, auto-discovered by the Ask workflow.",
+      "enum": ["reference", "register", "status", "index", "reference-library"]
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line summary of the file's contents. Used by agents to decide whether to load this file.",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "decay": {
+      "type": "string",
+      "description": "How fast the content goes stale. Determines freshness thresholds in Audit mode (fast=14d, medium=60d, slow=180d).",
+      "enum": ["fast", "medium", "slow"]
+    },
+    "confidence": {
+      "type": "string",
+      "description": "Agent's confidence that the content is correct. Forces agents to surface uncertainty.",
+      "enum": ["low", "medium", "high"]
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 date of most recent update.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "review_by": {
+      "type": "string",
+      "description": "Optional — date by which a review is expected. Required for `decay: fast` files. Audit flags when exceeded.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "sources": {
+      "type": "array",
+      "description": "Optional citation list. Items may be free-form strings or objects with `path`/`url`/`doc`/`type` fields.",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "path": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "doc": { "type": "string" },
+              "type": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "classification": {
+      "type": "string",
+      "description": "Classification of the content in this file. Optional by default; required on every knowledge file when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`. Files above UNCLASSIFIED must also carry an in-body banner as the first body line.",
+      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "decay": { "const": "fast" } } },
+      "then": { "required": ["review_by"] }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "second-brain",
+  "description": "Create, adopt, audit, and improve domain-focused AI agents with persistent knowledge files. Full lifecycle: operate (load the single-sourced protocol every agent bootstraps), create via interview, adopt hand-rolled agents, audit consistency/freshness/loop health, improve against gold-standard patterns, add repeatable workflows, wrap working sessions (transcript-verified persistence check). Five self-reinforcement loops (corrections, discoveries, custodian, contradictions, process retrospection).",
+  "version": "2.0.1",
+  "author": {
+    "name": "Alek Hartzog",
+    "email": "ahartzog@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "second-brain",
+    "domain-agent",
+    "knowledge-base",
+    "agents",
+    "knowledge-management",
+    "learning-loops",
+    "retrospection",
+    "audit",
+    "workflow",
+    "session-end",
+    "wrap"
+  ]
+}

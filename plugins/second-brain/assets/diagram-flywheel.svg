@@ -1,0 +1,77 @@
+<svg viewBox="0 0 700 700" width="700" height="700" xmlns="http://www.w3.org/2000/svg" font-family="Inter, system-ui, sans-serif">
+  <rect width="700" height="700" fill="#111113" rx="8"/>
+
+  <!-- Title -->
+  <text x="350" y="48" text-anchor="middle" fill="#edeef0" font-size="18" font-weight="700">The Flywheel</text>
+  <text x="350" y="70" text-anchor="middle" fill="#868a92" font-size="12">Every interaction makes the system smarter</text>
+
+  <!-- USE node (top) -->
+  <rect x="280" y="150" width="140" height="70" rx="8" fill="#334eff"/>
+  <text x="350" y="180" text-anchor="middle" fill="#edeef0" font-size="14" font-weight="700">USE</text>
+  <text x="350" y="198" text-anchor="middle" fill="#d1e1ff" font-size="10">Ask questions, run</text>
+  <text x="350" y="210" text-anchor="middle" fill="#d1e1ff" font-size="10">workflows, debug</text>
+
+  <!-- LEARN node (right) -->
+  <rect x="490" y="330" width="140" height="70" rx="8" fill="#334eff" opacity="0.85"/>
+  <text x="560" y="360" text-anchor="middle" fill="#edeef0" font-size="14" font-weight="700">LEARN</text>
+  <text x="560" y="378" text-anchor="middle" fill="#d1e1ff" font-size="10">Corrections, workarounds,</text>
+  <text x="560" y="390" text-anchor="middle" fill="#d1e1ff" font-size="10">new facts</text>
+
+  <!-- PERSIST node (bottom) -->
+  <rect x="280" y="510" width="140" height="70" rx="8" fill="#334eff" opacity="0.7"/>
+  <text x="350" y="540" text-anchor="middle" fill="#edeef0" font-size="14" font-weight="700">PERSIST</text>
+  <text x="350" y="558" text-anchor="middle" fill="#d1e1ff" font-size="10">Write to agent rules,</text>
+  <text x="350" y="570" text-anchor="middle" fill="#d1e1ff" font-size="10">knowledge files, custodian</text>
+
+  <!-- SHARE node (left) -->
+  <rect x="70" y="330" width="140" height="70" rx="8" fill="#334eff" opacity="0.55"/>
+  <text x="140" y="360" text-anchor="middle" fill="#edeef0" font-size="14" font-weight="700">SHARE</text>
+  <text x="140" y="378" text-anchor="middle" fill="#d1e1ff" font-size="10">Upstream skills,</text>
+  <text x="140" y="390" text-anchor="middle" fill="#d1e1ff" font-size="10">shared MCP servers</text>
+
+  <!-- Curved arrows between nodes -->
+  <path d="M 420 195 Q 520 240 520 330" fill="none" stroke="#7d8fff" stroke-width="2"/>
+  <polygon points="516,324 524,324 520,332" fill="#7d8fff"/>
+
+  <path d="M 530 400 Q 490 470 420 530" fill="none" stroke="#7d8fff" stroke-width="2"/>
+  <polygon points="416,526 424,534 414,534" fill="#7d8fff"/>
+
+  <path d="M 280 545 Q 200 500 180 400" fill="none" stroke="#7d8fff" stroke-width="2"/>
+  <polygon points="176,404 184,404 180,396" fill="#7d8fff"/>
+
+  <path d="M 160 330 Q 180 250 280 195" fill="none" stroke="#7d8fff" stroke-width="2"/>
+  <polygon points="276,198 280,190 286,200" fill="#7d8fff"/>
+
+  <!-- Loop labels on the arcs -->
+  <rect x="468" y="246" width="100" height="38" rx="4" fill="#212225" stroke="#ffc430" stroke-width="1"/>
+  <text x="518" y="262" text-anchor="middle" fill="#ffc430" font-size="10" font-weight="600">Sessions produce</text>
+  <text x="518" y="276" text-anchor="middle" fill="#ffc430" font-size="10" font-weight="600">new knowledge</text>
+
+  <!-- Loop A -->
+  <rect x="440" y="446" width="120" height="46" rx="4" fill="#212225" stroke="#ff6464" stroke-width="1"/>
+  <text x="500" y="462" text-anchor="middle" fill="#ff6464" font-size="10" font-weight="700">LOOP A</text>
+  <text x="500" y="476" text-anchor="middle" fill="#edeef0" font-size="9">Corrections → Rules</text>
+  <text x="500" y="488" text-anchor="middle" fill="#868a92" font-size="9">(not just memory)</text>
+
+  <!-- Loop B -->
+  <rect x="358" y="446" width="120" height="46" rx="4" fill="#212225" stroke="#3fd869" stroke-width="1"/>
+  <text x="418" y="462" text-anchor="middle" fill="#3fd869" font-size="10" font-weight="700">LOOP B</text>
+  <text x="418" y="476" text-anchor="middle" fill="#edeef0" font-size="9">Workarounds → Files</text>
+  <text x="418" y="488" text-anchor="middle" fill="#868a92" font-size="9">(not just memory)</text>
+
+  <!-- Loop C -->
+  <rect x="140" y="446" width="120" height="46" rx="4" fill="#212225" stroke="#7d8fff" stroke-width="1"/>
+  <text x="200" y="462" text-anchor="middle" fill="#7d8fff" font-size="10" font-weight="700">LOOP C</text>
+  <text x="200" y="476" text-anchor="middle" fill="#edeef0" font-size="9">Manual fixes → Custodian</text>
+  <text x="200" y="488" text-anchor="middle" fill="#868a92" font-size="9">(checklist grows)</text>
+
+  <!-- Center emphasis -->
+  <circle cx="350" cy="370" r="40" fill="none" stroke="#363a3f" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="350" y="367" text-anchor="middle" fill="#868a92" font-size="10" font-weight="600">System gets</text>
+  <text x="350" y="381" text-anchor="middle" fill="#868a92" font-size="10" font-weight="600">smarter</text>
+
+  <!-- Bottom annotation -->
+  <rect x="120" y="620" width="460" height="50" rx="6" fill="#18191b" stroke="#363a3f" stroke-width="1"/>
+  <text x="350" y="642" text-anchor="middle" fill="#edeef0" font-size="12" font-weight="600">The key: every correction lands where it will be loaded automatically.</text>
+  <text x="350" y="658" text-anchor="middle" fill="#868a92" font-size="11">Memory alone is not enough. Memory gets compacted.</text>
+</svg>

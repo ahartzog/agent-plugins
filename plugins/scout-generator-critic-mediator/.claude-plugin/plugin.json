@@ -1,0 +1,11 @@
+{
+  "name": "scout-generator-critic-mediator",
+  "description": "Scout-Generator-Critic-Mediator: composable multi-agent orchestration pattern with structured checklists and confidence scoring",
+  "version": "0.3.0",
+  "author": {
+    "name": "Alek Hartzog",
+    "email": "ahartzog@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["orchestration", "verification", "multi-agent", "checklists", "confidence-scoring"]
+}

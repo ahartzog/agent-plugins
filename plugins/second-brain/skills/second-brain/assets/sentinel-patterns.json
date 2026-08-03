@@ -1,0 +1,15 @@
+{
+  "comment": "Single source of truth for the second-brain pre-push sentinel. Targets credentials and gross PII leaks, NOT the vault's normal content (a personal vault legitimately holds financial and medical facts, insurance/policy numbers, account references — those are expected and must not be flagged). Sibling to apiary's assets/sentinel-patterns.json, kept independent because the plugins install independently. Adjust patterns to taste; the hook is fail-open, so a bad pattern degrades to no-scan rather than blocking work.",
+  "patterns": [
+    { "name": "private-key-block", "regex": "-----BEGIN [A-Z ]*PRIVATE KEY-----" },
+    { "name": "aws-access-key", "regex": "\\bAKIA[0-9A-Z]{16}\\b" },
+    { "name": "anthropic-api-key", "regex": "\\bsk-ant-[A-Za-z0-9_-]{16,}" },
+    { "name": "openai-api-key", "regex": "\\bsk-proj-[A-Za-z0-9_-]{20,}|\\bsk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}\\b" },
+    { "name": "github-token", "regex": "\\bgh[pousr]_[A-Za-z0-9]{30,}\\b" },
+    { "name": "github-fine-grained-pat", "regex": "\\bgithub_pat_[A-Za-z0-9_]{30,}\\b" },
+    { "name": "slack-token", "regex": "\\bxox[baprs]-[A-Za-z0-9-]{10,}\\b" },
+    { "name": "google-api-key", "regex": "\\bAIza[0-9A-Za-z_-]{35}\\b" },
+    { "name": "connection-string-with-password", "regex": "[a-z]{2,12}(ql)?://[^\\s:@/]+:[^\\s@/]{4,}@" },
+    { "name": "plaintext-ssn", "regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b" }
+  ]
+}

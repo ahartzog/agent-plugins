@@ -1,0 +1,9 @@
+# Hive Mind Custodian Configuration
+# Thresholds for Parliament pipeline behavior
+
+timeout_minutes: 60          # Session file active->ready timeout
+parliament_schedule: hourly  # Target cadence for Parliament runs
+batch_threshold: 50          # Inbox file count to trigger Parliament
+lock_timeout_minutes: 30     # Orphaned lock file timeout
+model_default: sonnet        # Default model for Parliament agents
+model_structural: opus       # Model for structural changes (Cartographer-triggered)

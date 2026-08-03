@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/hive.schema.json",
+  "title": "Hive Mind Identity (hive.yml)",
+  "description": "Identity contract for a Hive Mind governed by the Apiary. Validate with `yq -o json hive.yml | ajv validate -s hive.schema.json`.",
+  "type": "object",
+  "required": ["hive_slug", "description", "upstream_version", "persona", "codeowners", "slack_channel", "remote", "default_branch"],
+  "additionalProperties": false,
+  "properties": {
+    "hive_slug": {
+      "type": "string",
+      "description": "Kebab-case identity for the Hive. Matches the child skill name (e.g. `orbit` for `/orbit`).",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "description": {
+      "type": "string",
+      "description": "One-sentence summary of the Hive's purpose. Shown in discovery / marketplace listings.",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "upstream_version": {
+      "type": "string",
+      "description": "Semver version of the Apiary this Hive was last upgraded against. Major mismatch triggers Upgrade mode.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "persona": {
+      "type": "string",
+      "description": "Path (relative to the Hive root) to the agent-definition file.",
+      "default": "PROTOCOL/agent-definition.md"
+    },
+    "codeowners": {
+      "type": "array",
+      "description": "GitHub usernames who approve protocol changes, handle escalations, and receive auto-merge PR review requests.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "slack_channel": {
+      "type": "string",
+      "description": "Slack channel the Signal bot posts to. No leading `#`. Corporate or government Slack.",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "remote": {
+      "type": "string",
+      "description": "Git remote URL for this Hive repo. Used by Apiary operate mode for clone/pull operations.",
+      "pattern": "^git@[a-zA-Z0-9._-]+:[a-zA-Z0-9/_-]+\\.git$"
+    },
+    "default_branch": {
+      "type": "string",
+      "description": "Default branch name for this Hive repo (e.g. 'master' or 'main'). Used for push, rebase, and sync operations.",
+      "default": "master"
+    },
+    "push_mode": {
+      "type": "string",
+      "enum": ["direct", "pr"],
+      "default": "direct",
+      "description": "Baseline push mode for both inbox contributions and Parliament runs. `direct` (default) pushes commits straight to {DEFAULT_BRANCH}; preserves v1.x behavior. `pr` opens a short-lived branch + PR and calls `gh pr merge --auto` — required when {DEFAULT_BRANCH} is protected by required status checks or policy-bot. The per-flow overrides `inbox_push_mode` and `parliament_push_mode` take precedence over this value for their respective flows; when an override is unset it falls back here, and this falls back to `direct`. Setup guide in `references/push-mode-pr-setup.md`."
+    },
+    "inbox_push_mode": {
+      "type": "string",
+      "enum": ["direct", "pr"],
+      "description": "Overrides `push_mode` for session inbox contributions only. Set to `direct` to push inbox entries straight to {DEFAULT_BRANCH} (aggressive capture — the inbox is a low-cost buffer; Parliament reviews everything downstream) even while Parliament publishes via `pr`. Falls back to `push_mode`, then `direct`, when unset. Has no effect unless it differs from the resolved `push_mode` baseline."
+    },
+    "parliament_push_mode": {
+      "type": "string",
+      "enum": ["direct", "pr"],
+      "description": "Overrides `push_mode` for Parliament runs only (lock push in custodian-workflow §1.1 and housekeeping commit in §6.3). Set to `pr` to gate knowledge/ merges behind a codeowner-reviewed `parliament/*` PR even while inbox contributions push direct. Falls back to `push_mode`, then `direct`, when unset."
+    },
+    "sources_push_mode": {
+      "type": "string",
+      "enum": ["direct", "pr"],
+      "description": "Overrides `push_mode` for the native Deposit workflow's `sources/` writes only (see `protocol/sources-policy.md`). Set to `direct` to push source deposits straight to {DEFAULT_BRANCH} (sources are ground truth, not deliberated by Parliament) even while inbox/Parliament publish via `pr`. Falls back to `push_mode`, then `direct`, when unset."
+    },
+    "purpose": {
+      "type": "string",
+      "description": "What knowledge belongs in this Hive (and what does not). Shown in the Hive Mind Registry and the README 'What Lives Here' section. Distinct from `description` (a one-line summary): `purpose` is the contribution-scoping guidance used for cross-hive routing.",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "confluence_registry": {
+      "type": "string",
+      "description": "URL of the canonical Hive Mind Registry page this Hive is listed in. Backlinked from the README. The registry is the source of truth for the sibling roster. Required for registry reconciliation: without it the Apiculturist exits early and the Hive is neither registered nor roster-refreshed. Hives created before 2.5.0 backfill it via `/apiary upgrade`."
+    },
+    "federation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Opt-out switches for participation in the Hive federation. Both default to `true`, so omitting this block preserves the historical behavior. Independent by design: a Hive may stay unlisted while still routing outward, or stay listed while routing nothing. Setting both to `false` makes the Hive fully self-contained and the Apiculturist skips its Confluence call entirely.",
+      "properties": {
+        "register": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the Apiculturist may publish and maintain this Hive's own row in the registry. `false` means never write the row — useful for a Hive that should not be centrally discoverable. NOTE: `false` does NOT delete an existing row; removing a published row is a deliberate human action (audit Step 4c reports the mismatch so you can do it)."
+        },
+        "cross_hive_routing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this Hive may suggest that a mis-filed contribution belongs in a sibling Hive. `false` suppresses `cross_hive_suggestion` in Parliament (custodian-workflow.md §2.1/§4.1/§4.3) and the session-time advisory in operate mode, and makes the sibling-roster pull unnecessary. Does not affect what other Hives suggest toward this one."
+        }
+      }
+    },
+    "siblings": {
+      "type": "array",
+      "description": "Cached roster of peer Hives, used for cross-hive routing during Parliament. Source of truth is the registry (`confluence_registry`); this is an offline cache, reconciled by the Apiculturist on every Parliament run (`protocol/apiculturist-workflow.md`). Empty/absent is valid (cross-hive routing simply does not fire).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slug", "classification"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+            "description": "Sibling Hive's slug (its `/<slug>` skill name)."
+          },
+          "purpose": {
+            "type": "string",
+            "description": "What lives in the sibling Hive — used to decide whether a mis-filed contribution belongs there."
+          },
+          "repo": {
+            "type": "string",
+            "description": "Sibling Hive's repo (e.g. `restricted-org/vault-hive`)."
+          },
+          "classification": {
+            "type": "string",
+            "enum": ["UNCLASSIFIED", "FOUO", "CUI"],
+            "description": "Sibling's max classification ceiling. REQUIRED — the cross-hive direction guard (custodian-workflow §4.1) compares a contribution's marking against this so controlled content is never suggested toward a lower-ceiling Hive. Use UNCLASSIFIED or CUI for new Hives; FOUO is an obsolete DoD marking (DoDI 5200.48) retained in the enum only for recognizing legacy sibling values, and is treated as CUI-equivalent (controlled) by the guard."
+          }
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional per-Hive extensions to upstream protocol. Null values mean 'use upstream default'.",
+      "additionalProperties": false,
+      "properties": {
+        "workflows": {
+          "type": ["string", "null"],
+          "description": "Path (relative to the Hive root) to a directory or file of workflow-extension files — Hive-local named workflows appended to the upstream dispatch table by operate mode's Merge Extensions step. A directory is preferred: every `*.md` inside carrying `type: workflow-extension` is loaded, so new workflows need no `hive.yml` change. Conventional value: `PROTOCOL/extensions/workflows/`. Extensions are additive — they cannot remove or override upstream workflows. File format, required frontmatter, and the dispatch-row/disambiguation conventions: `references/authoring-workflow-extensions.md` (frontmatter schema: `assets/workflow-extension.schema.json`)."
+        },
+        "gates": {
+          "type": ["string", "null"],
+          "description": "Path (relative to the Hive root) to a directory of gate-extension files — Hive-specific pre-push hardening layers (LLM compliance review, classification scan, domain lint) baked into the generated pre-push hook by operate mode Step 0. Every `*.md` inside carrying `type: gate-extension` is loaded, so new gates need no `hive.yml` change. Conventional value: `PROTOCOL/extensions/gates/`. Gates are additive: they run only AFTER the built-in Sentinel pattern scan has passed, so no gate can suppress a built-in match or disable the Sentinel. Gates fail closed by default — a gate whose required tools are missing blocks the push unless it declares `on_error: warn`. Because gate commands may require runtimes beyond bash/grep/git, they are the Hive's own dependency to document and install (design goal 9: opt-in, not Apiary core). File format and required frontmatter: `references/authoring-gate-extensions.md` (frontmatter schema: `assets/gate-extension.schema.json`).",
+          "examples": ["PROTOCOL/extensions/gates/"]
+        },
+        "knowledge_schema": {
+          "type": ["string", "null"],
+          "description": "Path to a YAML/JSON file declaring additional frontmatter fields required on knowledge files."
+        },
+        "triage_routing": {
+          "type": ["string", "null"],
+          "description": "Path to a YAML/JSON file declaring additional contribution tag routing rules."
+        }
+      }
+    },
+    "auto_merge": {
+      "type": "object",
+      "description": "Auto-merge intent for Parliament-generated PRs.",
+      "additionalProperties": false,
+      "properties": {
+        "tribunal_passed": {
+          "type": "boolean",
+          "description": "When true, PRs with a MERGE verdict from Chancellor and no high-confidence critic objections auto-merge after CI."
+        },
+        "mechanism": {
+          "type": "string",
+          "enum": ["pending", "gh-auto-merge-label", "ci-gate", "signal-bot"],
+          "description": "How auto-merge is executed. `pending` means no auto-merge — create PR and wait for human merge."
+        }
+      },
+      "required": ["tribunal_passed", "mechanism"]
+    },
+    "classification": {
+      "type": "object",
+      "description": "Classification ceiling for this Hive. When omitted, defaults to UNCLASSIFIED with no marking discipline — identical to pre-v1.1 behavior. Declaring a higher ceiling authorizes storage of classified content at or below that level, provided markings are correct. Storing content above the declared ceiling is always prohibited.",
+      "additionalProperties": false,
+      "required": ["max_level", "marking_required"],
+      "properties": {
+        "max_level": {
+          "type": "string",
+          "enum": ["UNCLASSIFIED", "FOUO", "CUI"],
+          "description": "Highest classification this Hive is authorized to store. Content above this level is rejected regardless of markings."
+        },
+        "marking_required": {
+          "type": "boolean",
+          "description": "When true, every knowledge/inbox file must carry a frontmatter `classification` field, and files containing content above UNCLASSIFIED must also carry an in-body banner as the first line."
+        },
+        "storage_tier": {
+          "type": "string",
+          "description": "Documentation-only reminder of the hosting requirement (e.g. 'ghe-cui'). Not enforced by Apiary — the operator is responsible for ensuring the repo lives on an authorized storage tier."
+        }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "description": "Configuration for the sources deposit path. Sources are primary source material (transcripts, documents) that bypass Parliament deliberation.",
+      "properties": {
+        "subdirectories": {
+          "type": "array",
+          "description": "List of subdirectory names under sources/. Each is scaffolded on create and included in sparse-checkout.",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "default": ["meeting-transcripts"]
+        }
+      }
+    }
+  }
+}

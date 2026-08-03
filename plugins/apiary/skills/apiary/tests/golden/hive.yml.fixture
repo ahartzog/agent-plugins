@@ -1,0 +1,41 @@
+# Synthetic Hive Mind Identity — golden-case fixture, NOT a real Hive.
+# Exists only so the golden-routing.test.sh federation-opt-out check has a hive.yml
+# shape to assert against; no golden case in cases.md needs this file to be
+# discoverable, since §Discover globs reference-library.md and every case prompt
+# points at knowledge/. Named hive.yml.fixture (not hive.yml) deliberately, so
+# SKILL.md's Hive Discovery cwd-walk can never match this file and route an
+# accidental /apiary invocation from this directory into Operate mode against a
+# fake remote. No program names, no real backing-store URLs — see CONTRIBUTING.md's
+# no-program-names rule.
+
+hive_slug: golden-demo-hive
+description: "Synthetic Hive Mind used only by the Apiary's own golden routing-behavior test suite."
+upstream_version: "2.14.0"
+remote: "git@example.com:demo/golden-demo-hive.git"
+default_branch: master
+persona: PROTOCOL/agent-definition.md
+codeowners: [demo-owner]
+slack_channel: "demo-hive-fixture"
+
+purpose: "Fixture data only — exercises RLDP routing/retrieval scenarios. Carries no real program content."
+
+confluence_registry: "https://example.sharepoint.us/sites/demo/hive-mind-registry"
+
+federation:
+  register: false
+  cross_hive_routing: false
+
+siblings: []
+
+extensions:
+  workflows: null
+  knowledge_schema: null
+  triage_routing: null
+
+auto_merge:
+  tribunal_passed: true
+  mechanism: pending
+
+sources:
+  subdirectories:
+    - meeting-transcripts

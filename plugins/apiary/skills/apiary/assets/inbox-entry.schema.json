@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/inbox-entry.schema.json",
+  "title": "Hive Mind Inbox Entry Frontmatter",
+  "description": "Required frontmatter on every `_inbox/*.md` contribution. Parliament Sentinel rejects files whose frontmatter fails this schema before any other processing.",
+  "$comment": "Parliament Step 2.0 (Frontmatter Normalizer, see protocol/custodian-workflow.md) recognizes common alt-field aliases and adds canonical fields alongside before validation. Aliases: contributor/contributed_by -> author; session_date -> date; type:<value> -> tag:<canonical-value>. The normalizer is additive only — it never deletes or overwrites fields the author wrote. Contributors should still write canonical fields by default; assets/inbox-template.md is the reference shape.",
+  "type": "object",
+  "required": [
+    "author",
+    "date",
+    "tag",
+    "status"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "author": {
+      "type": "string",
+      "description": "GitHub username or verifiable identity of the contributor. Must match commit author for attribution chain integrity.",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+    },
+    "date": {
+      "type": "string",
+      "description": "ISO 8601 date (YYYY-MM-DD) the contribution was drafted.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "tag": {
+      "type": "string",
+      "description": "Contribution category — determines triage path (fast vs. deliberation). See `protocol/triage-policy.md`.",
+      "enum": [
+        "link",
+        "person",
+        "tracker",
+        "status",
+        "correction",
+        "architecture",
+        "process",
+        "contradiction",
+        "strategy",
+        "meta"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "description": "Lifecycle state. Only `ready` files are picked up by Parliament. `active` = session still in progress; `completed` = Parliament has processed.",
+      "enum": [
+        "active",
+        "ready",
+        "completed",
+        "quarantined"
+      ]
+    },
+    "target_file": {
+      "type": "string",
+      "description": "Optional hint from the author for which knowledge file this contribution updates. Archivist may override.",
+      "pattern": "^knowledge/.+\\.md$"
+    },
+    "source": {
+      "type": "string",
+      "description": "Optional citation (URL, file path, meeting reference, Slack message timestamp). Strongly encouraged for `[status]`, `[correction]`, `[contradiction]`."
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Optional Claude Code session identifier for attribution chain."
+    },
+    "classification": {
+      "type": "string",
+      "description": "Classification of the content in this contribution. Optional by default; required on every inbox file when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
+      "enum": [
+        "UNCLASSIFIED",
+        "FOUO",
+        "CUI"
+      ]
+    },
+    "sentinel_override": {
+      "type": "object",
+      "description": "Audit record of a user-approved override of pre-push Sentinel pattern match(es). Recorded by the session agent during the pre-push scan after explicit user approval. Parliament Sentinel reads this field and skips quarantine for the listed pattern names while still scanning for new patterns. See `protocol/sensitive-data-patterns.md` § Override audit trail.",
+      "required": [
+        "reviewed_by",
+        "reviewed_at",
+        "patterns",
+        "justification"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reviewed_by": {
+          "type": "string",
+          "description": "Git user (from `git config user.name`) who approved the override."
+        },
+        "reviewed_at": {
+          "type": "string",
+          "description": "ISO-8601 UTC timestamp when the override was recorded.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "patterns": {
+          "type": "array",
+          "description": "Pattern names from `protocol/sensitive-data-patterns.md` that were overridden. Each name corresponds to a row in the Credentials or PII tables.",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^(credential|pii)\\.[a-z][a-z0-9-]*$"
+          }
+        },
+        "justification": {
+          "type": "string",
+          "description": "Brief reason supplied by the user explaining why the match is a false positive.",
+          "minLength": 10
+        },
+        "matches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Recommended. The matched line excerpts (as reported by the hook) this override covers. When present, the override is excerpt-bound: it suppresses a listed pattern only on lines containing one of these strings, so editing the matched line or a new match elsewhere blocks again. Omitting it keeps the legacy per-file scope."
+        }
+      }
+    }
+  }
+}

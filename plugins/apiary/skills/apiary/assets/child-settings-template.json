@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add _inbox/*)",
+      "Bash(git add sources/*)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(gh pr create *)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_response.stdout // empty' | grep -oE 'https://[^ ]+/pull/[0-9]+' | head -1 | { read -r url; [ -n \"$url\" ] && gh pr edit \"$url\" --add-reviewer {CODEOWNERS_CSV} 2>/dev/null || true; }",
+            "timeout": 15,
+            "statusMessage": "Adding reviewers ({CODEOWNERS_CSV})..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/sentinel-patterns.schema.json",
+  "title": "Apiary Sentinel Patterns",
+  "description": "Machine-readable source of truth for credential and PII regex patterns. Compiled into the pre-push hook by assets/generate-hook.sh and read at runtime by Parliament Sentinel. Human-readable docs in protocol/sensitive-data-patterns.md.",
+  "regex_flavor": "ere",
+  "patterns": [
+    {
+      "name": "credential.password-literal",
+      "category": "credential",
+      "regex": "(?i)\\bpassword[[:space:]]*[:=][[:space:]]*[\"'`]?[^[:space:]\"'`]{4,}",
+      "notes": "Catches 'password: foo', 'Password=', 'password = \"...\"'. Min 4 chars after assignment to reduce noise."
+    },
+    {
+      "name": "credential.api-key-literal",
+      "category": "credential",
+      "regex": "(?i)\\bapi[-_]?key[[:space:]]*[:=][[:space:]]*[\"'`]?[A-Za-z0-9_-]{16,}",
+      "notes": "API key assignments with >=16-char value."
+    },
+    {
+      "name": "credential.token-literal",
+      "category": "credential",
+      "regex": "(?i)\\b(auth|access|bearer|secret)[-_]?token[[:space:]]*[:=][[:space:]]*[\"'`]?[A-Za-z0-9_.-]{20,}",
+      "notes": "Bearer/auth/access/secret tokens with >=20-char value. Bracket class rewritten: the old [A-Za-z0-9_\\-.] made backslash literal inside POSIX brackets, so '\\-.' parsed as a decreasing range, grep errored, and the error was swallowed — the pattern never matched anything."
+    },
+    {
+      "name": "credential.aws-access-key",
+      "category": "credential",
+      "regex": "\\bAKIA[0-9A-Z]{16}\\b",
+      "notes": "AWS access key ID."
+    },
+    {
+      "name": "credential.aws-secret-key",
+      "category": "credential",
+      "regex": "(?i)\\baws[-_]?secret[-_]?access[-_]?key[[:space:]]*[:=][[:space:]]*[\"'`]?[A-Za-z0-9/+=]{40}",
+      "notes": "AWS secret access key (40-char)."
+    },
+    {
+      "name": "credential.private-key-block",
+      "category": "credential",
+      "regex": "-----BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----",
+      "notes": "PEM/PKCS private key headers."
+    },
+    {
+      "name": "credential.gcp-key-json",
+      "category": "credential",
+      "regex": "\"private_key_id\"[[:space:]]*:[[:space:]]*\"[a-f0-9]{40}\"",
+      "notes": "GCP service-account key JSON fingerprint."
+    },
+    {
+      "name": "credential.connection-string",
+      "category": "credential",
+      "regex": "(?i)\\b(jdbc|postgres|postgresql|mysql|mongodb\\+?srv?|redis)://[^[:space:]@]+:[^[:space:]@]+@",
+      "notes": "URL-form connection string with embedded password (scheme://user:pass@host). Rewritten from \\s to [[:space:]]: inside a POSIX bracket expression \\s is LITERAL backslash+s (both GNU and BSD grep), so the old class silently excluded the letter 's' from values — a connection string whose password contained an 's' was never matched."
+    },
+    {
+      "name": "credential.github-pat",
+      "category": "credential",
+      "regex": "\\bghp_[A-Za-z0-9]{36}\\b",
+      "notes": "GitHub personal access token (classic format)."
+    },
+    {
+      "name": "credential.slack-token",
+      "category": "credential",
+      "regex": "\\bxox[abprse]-[A-Za-z0-9-]{10,}",
+      "notes": "Slack API tokens, including xoxe- refresh tokens."
+    },
+    {
+      "name": "pii.ssn",
+      "category": "pii",
+      "regex": "\\b[0-9]{3}-[0-9]{2}-[0-9]{4}\\b",
+      "notes": "US Social Security number."
+    },
+    {
+      "name": "pii.us-phone",
+      "category": "pii",
+      "regex": "\\b(\\+?1[-. ]?)?\\(?[2-9][0-9]{2}\\)?[-. ][0-9]{3}[-. ][0-9]{4}\\b",
+      "notes": "US phone number. Excludes 1xx and 0xx area codes."
+    },
+    {
+      "name": "credential.github-token-fine-grained",
+      "category": "credential",
+      "regex": "\\bgithub_pat_[A-Za-z0-9_]{22,}\\b",
+      "notes": "GitHub fine-grained personal access token."
+    },
+    {
+      "name": "credential.github-token-oauth",
+      "category": "credential",
+      "regex": "\\bgh[osur]_[A-Za-z0-9]{36}\\b",
+      "notes": "GitHub OAuth (gho_), server-to-server (ghs_), user-to-server (ghu_), and refresh (ghr_) tokens."
+    },
+    {
+      "name": "credential.azure-account-key",
+      "category": "credential",
+      "regex": "(?i)\\bAccountKey=[A-Za-z0-9+/=]{40,}",
+      "notes": "Azure storage connection-string account key."
+    },
+    {
+      "name": "credential.azure-sas-sig",
+      "category": "credential",
+      "regex": "[?&]sig=[A-Za-z0-9%+/=]{32,}",
+      "notes": "Azure SAS token signature in a URL. False-positive risk: some legitimately-shared links carry sig= — but a SAS-bearing link IS a bearer credential; use the override flow for genuinely public samples."
+    },
+    {
+      "name": "credential.jwt",
+      "category": "credential",
+      "regex": "\\beyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}",
+      "notes": "Signed JWT (three base64url segments, header starting {\"). Docs examples should use a truncated token or the override flow."
+    },
+    {
+      "name": "credential.bearer-header",
+      "category": "credential",
+      "regex": "(?i)\\bauthorization:[[:space:]]*bearer[[:space:]]+[A-Za-z0-9_./+=-]{20,}",
+      "notes": "Authorization: Bearer header with a literal token value."
+    }
+  ]
+}

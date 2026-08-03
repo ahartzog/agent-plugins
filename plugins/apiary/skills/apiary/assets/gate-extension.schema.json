@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/gate-extension.schema.json",
+  "title": "Hive Mind Gate Extension Frontmatter",
+  "description": "Required frontmatter on every gate-extension file under the path declared by `extensions.gates` in hive.yml. A gate extension declares one additional pre-push check that runs AFTER the built-in Sentinel pattern scan has passed. Gates are additive only — they cannot suppress a built-in match, and they cannot disable the Sentinel. `assets/generate-hook.sh` bakes declared gates into the generated pre-push hook at generation time, so the emitted hook keeps zero runtime dependencies of its own.",
+  "type": "object",
+  "required": ["layer", "type", "gate", "command", "description", "last_updated", "codeowners"],
+  "additionalProperties": true,
+  "properties": {
+    "layer": {
+      "type": "string",
+      "const": "PROTOCOL",
+      "description": "Always `PROTOCOL`. Gate extensions govern what may be pushed, so they are protocol surface — changes go via CODEOWNERS PR, never the inbox or Parliament."
+    },
+    "type": {
+      "type": "string",
+      "const": "gate-extension",
+      "description": "Discriminator. The hook generator loads only files carrying this type from the declared gates path; anything else in the directory is ignored."
+    },
+    "gate": {
+      "type": "string",
+      "description": "Short name for this gate, shown to the contributor in pass/block output (e.g. `llm-compliance-review`). Must match the filename stem.",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "minLength": 2,
+      "maxLength": 48
+    },
+    "command": {
+      "type": "string",
+      "description": "Shell command to run, resolved relative to the Hive root. The candidate file list is appended as positional arguments (\"$@\") — the same list the pattern scan saw. The command receives HIVE_ROOT and APIARY_SENTINEL_PASSED=1 in its environment. Exit 0 allows the push; any non-zero exit blocks it (subject to `on_error`). Keep the command in-repo (e.g. `python3 scripts/compliance_gate.py`) so it is reviewable alongside the gate declaration.",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "One line: what this gate checks and why the built-in pattern scan is insufficient for it. This is the justification a reviewer reads — 'catches program-specific content that names no program, which no regex can match' is the shape wanted.",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 date of most recent update.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "codeowners": {
+      "type": "array",
+      "description": "GitHub usernames who approve changes to this gate. A gate is a security control; changing it should require the same review as changing the Sentinel patterns.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "on_error": {
+      "type": "string",
+      "enum": ["block", "warn"],
+      "default": "block",
+      "description": "What happens when the gate cannot run or exits non-zero. `block` (default) fails closed: the push is refused. `warn` fails open: the failure is reported and the push proceeds. Default to `block` — a gate that degrades to 'allow' is worse than no gate once contributors trust it. Use `warn` only for advisory checks, and say why in `description`.",
+      "$comment": "Any value other than the literal string 'warn' is normalized to 'block' by the generator, so a typo fails closed rather than open."
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Wall-clock limit for the gate command. 0 means no limit. A timeout is treated as a non-zero exit and therefore honors `on_error`. Requires `timeout(1)`; when absent the gate runs unbounded. Set this on any gate making a network or model call so a hung dependency cannot wedge every contributor's push."
+    },
+    "required_tools": {
+      "type": "array",
+      "description": "Executables that must be on PATH for the gate to run, checked before invocation so a missing dependency produces an actionable message instead of an opaque non-zero exit. Missing tools honor `on_error`. Declare everything beyond bash/grep/git — e.g. [python3, claude].",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9._-]+$"
+      },
+      "uniqueItems": true
+    },
+    "classification": {
+      "type": "string",
+      "description": "Classification of the content in this file. Optional by default; required when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
+      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
+    }
+  }
+}

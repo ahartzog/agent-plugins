@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/workflow-extension.schema.json",
+  "title": "Hive Mind Workflow Extension Frontmatter",
+  "description": "Required frontmatter on every workflow-extension file under the path declared by `extensions.workflows` in hive.yml. Validates the structural contract only; the body conventions (dispatch-table row, disambiguation, routing-vs-mechanics split) are specified in `references/authoring-workflow-extensions.md` and checked by Audit mode Step 5.",
+  "type": "object",
+  "required": ["layer", "type", "workflow", "description", "last_updated", "codeowners"],
+  "additionalProperties": true,
+  "properties": {
+    "layer": {
+      "type": "string",
+      "const": "PROTOCOL",
+      "description": "Always `PROTOCOL`. Workflow extensions govern agent routing, so they are protocol surface — changes go via CODEOWNERS PR, never the inbox or Parliament."
+    },
+    "type": {
+      "type": "string",
+      "const": "workflow-extension",
+      "description": "Discriminator. Operate mode Step 4 loads only files carrying this type from the declared extensions path; anything else in the directory is ignored with a warning."
+    },
+    "workflow": {
+      "type": "string",
+      "description": "Dispatch-table name for this workflow. Must match the filename stem (e.g. `standup` in `standup.md`) and must not collide with an upstream workflow name (ask, status, contribute, parliament, audit, brief, deposit) — extensions are additive, never overrides.",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "minLength": 2,
+      "maxLength": 48,
+      "not": {
+        "enum": ["ask", "status", "contribute", "parliament", "audit", "brief", "deposit"]
+      }
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line summary: what the workflow does and which knowledge file it delegates mechanics to. Used by agents to decide whether to load this file.",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 date of most recent update.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "codeowners": {
+      "type": "array",
+      "description": "GitHub usernames who approve changes to this extension. Usually a subset of the Hive's `hive.yml` codeowners — the person who owns the workflow, not the whole Hive.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "classification": {
+      "type": "string",
+      "description": "Classification of the content in this file. Optional by default; required when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
+      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
+    },
+    "delegates_to": {
+      "type": "array",
+      "description": "Optional explicit list of `knowledge/**` paths this extension delegates mechanics to. Makes the routing-vs-mechanics split machine-checkable: Audit can flag a delegated path that no longer exists.",
+      "items": {
+        "type": "string",
+        "pattern": "^knowledge/.+\\.md$"
+      },
+      "uniqueItems": true
+    }
+  }
+}

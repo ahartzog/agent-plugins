@@ -1,0 +1,87 @@
+# Hive Mind Identity — managed by the Apiary (Hive Parent Protocol)
+# See: /apiary for the upstream skill
+
+hive_slug: {HIVE_SLUG}       # kebab-case identity (matches the child skill name, e.g. /orbit → "orbit")
+description: "{DESCRIPTION}"
+upstream_version: "{APIARY_VERSION}"   # Apiary version that scaffolded this Hive — substituted at create time
+remote: "{GIT_REMOTE}"       # git remote URL — used by Apiary for clone/pull/push
+default_branch: master       # branch name for push, rebase, and sync operations
+persona: PROTOCOL/agent-definition.md
+codeowners: [{CODEOWNERS}]
+slack_channel: "{SLACK_CHANNEL}"
+
+# What knowledge belongs in this Hive (and what does not). Shown in the Hive Mind
+# Registry and the README "What Lives Here" section; used for cross-hive routing.
+purpose: "{HIVE_PURPOSE}"
+
+# Canonical Hive Mind Registry page this Hive is listed in (backlinked from the README).
+confluence_registry: "{REGISTRY_URL}"
+
+# Federation opt-outs. Both default to true; omit this block entirely to participate
+# normally. Independent of each other:
+#   register           - let the Apiculturist publish/maintain this Hive's registry row.
+#                        false = stay unlisted. Does NOT delete an already-published row;
+#                        retraction is a deliberate manual step.
+#   cross_hive_routing - let this Hive suggest that a mis-filed contribution belongs in a
+#                        sibling Hive. false = never route outward.
+# Setting both false makes the Hive self-contained: Parliament skips the Apiculturist and
+# never contacts Confluence. Neither switch is a security control — classification is
+# enforced by the direction guard (custodian-workflow.md §2.1 step 5).
+# federation:
+#   register: true
+#   cross_hive_routing: true
+
+# Cached roster of peer Hives, seeded from the registry at create time and reconciled by
+# the Apiculturist on every Parliament run. Used by Parliament to suggest re-filing
+# mis-placed contributions.
+# `classification` is REQUIRED per sibling — the cross-hive guard never suggests
+# content toward a Hive with a lower ceiling. Empty list is valid.
+siblings: []
+#  - slug: vault-hive
+#    purpose: "CUI Service & International program knowledge"
+#    repo: "restricted-org/vault-hive"
+#    classification: CUI       # UNCLASSIFIED or CUI (FOUO = obsolete, legacy-only, treated as CUI)
+
+# Hive-local additions to upstream protocol. Additive only — extensions cannot
+# remove or override upstream behavior. Leave null to use upstream defaults.
+extensions:
+  # Directory of workflow-extension files — Hive-local named workflows merged into
+  # the dispatch table. Set to PROTOCOL/extensions/workflows/ when you add one.
+  # How to author one: references/authoring-workflow-extensions.md
+  # (schema: assets/workflow-extension.schema.json,
+  #  scaffold: assets/workflow-extension-template.md)
+  workflows: null
+  # Directory of gate-extension files — Hive-specific pre-push hardening layers
+  # (LLM compliance review, classification scan, domain lint) baked into the
+  # generated pre-push hook. Gates run only AFTER the built-in Sentinel pattern
+  # scan passes, so they can raise this Hive's bar but never lower it. Gate
+  # commands may need runtimes beyond bash/grep/git — that toolchain is the
+  # Hive's own dependency. Set to PROTOCOL/extensions/gates/ when you add one.
+  # How to author one: references/authoring-gate-extensions.md
+  # (schema: assets/gate-extension.schema.json,
+  #  scaffold: assets/gate-extension-template.md)
+  gates: null
+  knowledge_schema: null  # future: PROTOCOL/extensions/schema.yml
+  triage_routing: null    # future: PROTOCOL/extensions/triage.yml
+
+auto_merge:
+  tribunal_passed: true
+  mechanism: pending   # TBD: GHE auto-merge label, CI gate, or bot
+
+# Sources — primary source material deposit configuration.
+# Sources bypass Parliament (they are ground truth, not claims).
+# See protocol/sources-policy.md for the full model.
+sources:
+  subdirectories:
+    - meeting-transcripts    # default, always scaffolded
+  # Additional subdirectories can be added by codeowners:
+  #   - documents
+  #   - recordings
+
+# Classification ceiling. Omit for the default UNCLASSIFIED-only behavior.
+# Uncomment and fill in if this Hive is authorized to store classified content.
+# Ensure the hosting storage tier matches the declared max_level.
+# classification:
+#   max_level: CUI             # UNCLASSIFIED or CUI (FOUO is obsolete per DoDI 5200.48 — not a ceiling for new content)
+#   marking_required: true     # enforces frontmatter classification + in-body banner discipline
+#   storage_tier: "ghe-cui"    # documentation-only reminder

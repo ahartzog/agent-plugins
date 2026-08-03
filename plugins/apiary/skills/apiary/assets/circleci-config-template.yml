@@ -1,0 +1,59 @@
+version: 2.1
+
+# Minimal CircleCI config for {HIVE_SLUG}.
+#
+# A Hive repo provisioned through meridian/owners gets a CircleCI project, which
+# ERRORS on every PR if no config exists ("No configuration was found in your
+# project"). The org-default required status check is
+# `ci/circleci_enterprise: gatekeeper`, emitted per-job — so a job literally named
+# `gatekeeper` must exist.
+#
+# Two jobs:
+#   - inbox-size-check: fails if _inbox/ has more than 10 pending items, forcing
+#     someone to run Parliament and drain the inbox before merging more.
+#   - gatekeeper: a no-op stand-in for the code-scan gate that sibling code repos
+#     run. Hives have no executable code, so this prints "all good" and exits 0,
+#     giving the org-required check something to report against.
+
+jobs:
+  inbox-size-check:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      - run:
+          name: Count pending inbox items
+          command: |
+            # Pending = regular files directly under _inbox/ that are not
+            # special files (leading underscore) and not .gitkeep. Items in
+            # _inbox/_completed/ and _inbox/_quarantine/ are excluded because
+            # they have already been processed by Parliament.
+            PENDING=$(find _inbox -maxdepth 1 -type f \
+              ! -name '.gitkeep' \
+              ! -name '_*' \
+              | wc -l)
+            echo "Pending inbox items: $PENDING"
+            if [ "$PENDING" -gt 10 ]; then
+              echo
+              echo "ERROR: _inbox/ has $PENDING pending items (limit: 10)."
+              echo "Run Parliament to process the inbox before merging more"
+              echo "contributions:  /{HIVE_SLUG} parliament"
+              exit 1
+            fi
+            echo "OK: inbox size within limit."
+
+  gatekeeper:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Gatekeeper scan (no-op)
+          command: |
+            echo "gatekeeper scan: {HIVE_SLUG} is a content-only repo, no code to scan."
+            echo "all good."
+
+workflows:
+  checks:
+    jobs:
+      - inbox-size-check
+      - gatekeeper

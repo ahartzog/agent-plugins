@@ -1,0 +1,40 @@
+{
+  "name": "apiary",
+  "version": "2.21.0",
+  "description": "Hive Parent Protocol (HPP) — manage a collection of Hive Mind knowledge bases. Create new Hives, operate Parliament pipelines, upgrade protocols, and audit health.",
+  "author": {
+    "name": "Alek Hartzog",
+    "email": "ahartzog@gmail.com"
+  },
+  "homepage": "https://github.com/ahartzog/agent-plugins",
+  "repository": "https://github.com/ahartzog/agent-plugins",
+  "license": "MIT",
+  "keywords": [
+    "apiary",
+    "hive-mind",
+    "hive-parent-protocol",
+    "hpp",
+    "knowledge-management",
+    "parliament",
+    "sentinel",
+    "collective-intelligence",
+    "domain-agent"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Apiary",
+    "shortDescription": "Hive Parent Protocol (HPP) — manage a collection of Hive Mind knowledge bases.",
+    "developerName": "Alek Hartzog",
+    "category": "Engineering",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "brandColor": "#6366F1",
+    "defaultPrompt": [
+      "Help me use Apiary",
+      "Create something with Apiary",
+      "Show me examples for Apiary"
+    ]
+  }
+}

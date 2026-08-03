@@ -1,0 +1,31 @@
+{
+  "name": "ahartzog",
+  "owner": {
+    "name": "Alek Hartzog",
+    "email": "ahartzog@gmail.com"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for agent memory and verification — second-brain domain-agent lifecycle, apiary multi-contributor knowledge bases, and scout-generator-critic-mediator adversarial review",
+    "version": "2.0.0"
+  },
+  "plugins": [
+    {
+      "name": "second-brain",
+      "description": "Create, adopt, audit, and improve domain agents with persistent knowledge files and five self-reinforcement loops. Agents bootstrap the single-sourced operating protocol via operate mode. Use for /second-brain operate|create|adopt|audit|improve|add-workflow|wrap.",
+      "source": "./plugins/second-brain",
+      "strict": false
+    },
+    {
+      "name": "apiary",
+      "description": "Hive Parent Protocol — multi-contributor git-backed knowledge bases with Parliament triage and Sentinel scanning. Use for /apiary create|operate|audit|upgrade.",
+      "source": "./plugins/apiary",
+      "strict": false
+    },
+    {
+      "name": "scout-generator-critic-mediator",
+      "description": "Composable multi-agent verification — scout, generate, critique, mediate, with structured checklists and confidence scoring. Use for /sgcm (full loop) or /gcm|cm|m (narrower levels).",
+      "source": "./plugins/scout-generator-critic-mediator",
+      "strict": false
+    }
+  ]
+}
