@@ -161,14 +161,17 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
    - Answer from general knowledge, **explicitly flagged as ungrounded** — say the Hive has no
      knowledge file covering this.
    - Write an inbox contribution capturing the coverage gap, tagged `[process]` for a missing
-     knowledge area or `[link]` when you can name the resource that should be indexed —
-     autonomously, per `protocol/workflows.md`; do not ask permission.
+     knowledge area (description starts `coverage-gap:`) or `[link]` when you can name the
+     resource that should be indexed (description starts `routing-gap:`) — autonomously, per
+     `protocol/workflows.md`; do not ask permission. The prefixes are what let Parliament mine
+     gaps into Loop B telemetry.
    - If a knowledge file *did* answer but no reference-library entry pointed at it, that is a
      routing gap, not a knowledge gap: contribute a `[link]` entry proposing the row.
 
    Record the same way when routing reached an entry but the material stayed out of reach — a
    locator that would not resolve (no store root declared, dead link) or a store whose tool is not
-   installed. Tag it `[link]`, name the locator and what was missing. An unrecorded unreachable
+   installed. Tag it `[link]`, description starting `unreachable:`, name the locator and what was
+   missing. An unrecorded unreachable
    pointer is repaired by nobody. This step is the RLDP's contribution to Loop B (Discovery)
    (`protocol/learning-loops.md`).
 

@@ -1,6 +1,6 @@
 {
   "name": "apiary",
-  "version": "2.21.0",
+  "version": "2.22.0",
   "description": "Hive Parent Protocol (HPP) — manage a collection of Hive Mind knowledge bases. Create new Hives, operate Parliament pipelines, upgrade protocols, and audit health.",
   "author": {
     "name": "Alek Hartzog",

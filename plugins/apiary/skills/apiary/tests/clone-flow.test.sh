@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Hermetic git: the user's global/system config must not leak into fixture
+# repos — a globally-installed hook suite (core.hooksPath, e.g. ggshield)
+# would otherwise intercept fixture pushes and fail setup unauthenticated.
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null
+export GIT_AUTHOR_NAME=apiary-test GIT_AUTHOR_EMAIL=test@example.invalid
+export GIT_COMMITTER_NAME=apiary-test GIT_COMMITTER_EMAIL=test@example.invalid
 # Exercises the git-flow scenarios from mode-operate.md Step 0.
 # Tests against a local bare repo using file:// protocol (required for
 # --depth/--filter to work with local repos). Uses a temp HOME so it
