@@ -109,29 +109,6 @@ top_field_from_hive_yml() {
 }
 
 # ---------------------------------------------------------------------------
-# class_from_hive_yml FILE — echo classification.max_level (nested one level
-#   under `classification:`). Generation-time only, same approach as
-#   gates_dir_from_hive_yml. Empty when the block is absent (= UNCLASSIFIED).
-# ---------------------------------------------------------------------------
-class_from_hive_yml() {
-  local hive_yml="$1"
-  [[ -f "$hive_yml" ]] || return 0
-  awk '
-    /^classification:[[:space:]]*$/ { incls=1; next }
-    incls && /^[^[:space:]#]/       { exit }
-    incls && /^[[:space:]]+max_level:[[:space:]]*/ {
-      line=$0
-      sub(/^[[:space:]]+max_level:[[:space:]]*/, "", line)
-      sub(/[[:space:]]*#.*$/, "", line)
-      sub(/[[:space:]]+$/, "", line)
-      gsub(/^["'"'"']|["'"'"']$/, "", line)
-      if (line != "" && line != "null" && line != "~") print line
-      exit
-    }
-  ' "$hive_yml" 2>/dev/null || true
-}
-
-# ---------------------------------------------------------------------------
 # Discover gate extensions: *.md files carrying `type: gate-extension`.
 # Malformed entries are skipped with a warning rather than silently dropped.
 #
@@ -150,15 +127,6 @@ GATES=()
 DEFAULT_BRANCH=""
 if [[ -n "$HIVE_ROOT_ARG" ]]; then
   DEFAULT_BRANCH="$(top_field_from_hive_yml "$HIVE_ROOT_ARG/hive.yml" default_branch)"
-fi
-
-# The Hive's classification ceiling, baked in (uppercased) so the emitted hook
-# can run the banner scan without parsing YAML at push time. Empty (= treat as
-# UNCLASSIFIED) when generated without a HIVE_ROOT or when hive.yml omits the
-# classification block.
-CLASS_MAX_LEVEL=""
-if [[ -n "$HIVE_ROOT_ARG" ]]; then
-  CLASS_MAX_LEVEL="$(class_from_hive_yml "$HIVE_ROOT_ARG/hive.yml" | tr '[:lower:]' '[:upper:]')"
 fi
 
 if [[ -n "$HIVE_ROOT_ARG" ]]; then
@@ -264,18 +232,16 @@ printf 'GATES=('
 for g in "${GATES[@]+"${GATES[@]}"}"; do printf ' %q' "$g"; done
 printf ' )\n'
 printf 'GATE_COUNT=%d\n' "${#GATES[@]}"
-printf 'DEFAULT_BRANCH=%q\n' "$DEFAULT_BRANCH"
-printf 'CLASS_MAX_LEVEL=%q\n\n' "$CLASS_MAX_LEVEL"
+printf 'DEFAULT_BRANCH=%q\n\n' "$DEFAULT_BRANCH"
 
 # Emit the static body of the hook
 cat <<'HOOK_BODY'
 # ---------------------------------------------------------------------------
 # split_frontmatter FILE
 #   Sets BODY_LINES (array of body lines), BODY_START_LINE (1-based absolute
-#   line number where body begins), FM_SCAN_LINES (frontmatter lines as
+#   line number where body begins), and FM_SCAN_LINES (frontmatter lines as
 #   "ABS_LINENO<TAB>CONTENT" — scanned for credential/PII patterns too, since a
-#   secret in a frontmatter scalar leaks exactly like one in the body), and
-#   HAS_CLASSIFICATION_FM (1 if frontmatter carries a `classification:` field).
+#   secret in a frontmatter scalar leaks exactly like one in the body).
 #   The `sentinel_override:` block is excluded from FM_SCAN_LINES so an
 #   override's own recorded excerpts cannot re-trigger the scan.
 # ---------------------------------------------------------------------------
@@ -284,7 +250,6 @@ split_frontmatter() {
   BODY_LINES=()
   BODY_START_LINE=1
   FM_SCAN_LINES=()
-  HAS_CLASSIFICATION_FM=0
 
   local lineno=0
   local fm_start=0
@@ -314,7 +279,6 @@ split_frontmatter() {
           continue
         fi
       fi
-      [[ "$line" == "classification:"* ]] && HAS_CLASSIFICATION_FM=1
       FM_SCAN_LINES+=("$(printf '%d\t%s' "$lineno" "$line")")
       continue
     fi
@@ -323,14 +287,11 @@ split_frontmatter() {
     fi
   done < "$file"
 
-  # No frontmatter found (or never closed) — entire file is body. Reset the
-  # classification flag too: a malformed frontmatter block must not count as a
-  # marking (fail closed, matching what the schema validator would say).
+  # No frontmatter found (or never closed) — entire file is body.
   if [[ $fm_end -eq 0 ]]; then
     BODY_LINES=()
     BODY_START_LINE=1
     FM_SCAN_LINES=()
-    HAS_CLASSIFICATION_FM=0
     while IFS= read -r line || [[ -n "$line" ]]; do
       BODY_LINES+=("$line")
     done < "$file"
@@ -476,14 +437,12 @@ parse_override_matches() {
 #   Returns 2 if file not found.
 # ---------------------------------------------------------------------------
 # _covered PATTERN LINE — 0 when this match is covered by the file's override.
-#   classification.* findings are never coverable (Sentinel is non-negotiable).
 #   Overrides carrying a matches: list are excerpt-bound: they cover a pattern
 #   only on a line containing a recorded excerpt, so re-editing the matched
 #   line (or a new match of the same pattern elsewhere) blocks again. Overrides
 #   without matches: keep the legacy file-wide behavior.
 _covered() {
   local pat="$1" line="$2" ov m
-  case "$pat" in classification.*) return 1 ;; esac
   local named=1
   for ov in "${OV_PATTERNS[@]+"${OV_PATTERNS[@]}"}"; do
     [[ "$ov" == "$pat" ]] && named=0 && break
@@ -518,42 +477,6 @@ _scan_line() {
   done
 }
 
-# _classification_check FILE ABS_LINE CONTENT — banner-shaped markers only.
-#   Case-sensitive: banners are uppercase by convention, and case-insensitive
-#   matching would flag prose ("circuit" contains "cui"). A banner is a line
-#   that IS the marker (optionally //CAVEATED), or the long-form phrase
-#   anywhere in a line. Filename-embedded markers like "(CUI) document.docx"
-#   are deliberately NOT blocked here: path-only references are the sanctioned
-#   way to point at classified material (security-policy.md § Session Agent
-#   Behavior); Parliament judges those in context at Layer 3. Frontmatter/
-#   banner MISMATCH checks are also Layer 3's — this layer only enforces the
-#   two unambiguous cases (marker in a no-marker Hive; unmarked marker in a
-#   marking-required Hive; anything above CUI anywhere).
-_classification_check() {
-  local file="$1" abs_line="$2" line="$3"
-  local excerpt="${line#"${line%%[![:space:]]*}"}"
-  [[ ${#excerpt} -gt 80 ]] && excerpt="${excerpt:0:77}..."
-
-  # Above any Hive's ceiling — always blocked, never overridable.
-  if printf '%s\n' "$line" | grep -qE -- '^[[:space:]]*(TOP SECRET|SECRET)([[:space:]]*$|//)'; then
-    MATCHES+=("$(printf '%s\t%s\t%d\t%s' "$file" "classification.above-ceiling" "$abs_line" "$excerpt")")
-    return
-  fi
-
-  if printf '%s\n' "$line" | grep -qE -- '^[[:space:]]*(CUI|FOUO)([[:space:]]*$|//)|CONTROLLED UNCLASSIFIED INFORMATION|UNCLASSIFIED//FOR OFFICIAL USE ONLY'; then
-    case "$CLASS_MAX_LEVEL" in
-      CUI|FOUO)
-        if [[ ${HAS_CLASSIFICATION_FM:-0} -eq 0 ]]; then
-          MATCHES+=("$(printf '%s\t%s\t%d\t%s' "$file" "classification.unmarked" "$abs_line" "$excerpt")")
-        fi
-        ;;
-      *)
-        MATCHES+=("$(printf '%s\t%s\t%d\t%s' "$file" "classification.marker" "$abs_line" "$excerpt")")
-        ;;
-    esac
-  fi
-}
-
 scan_file() {
   local file="$1"
   if [[ ! -f "$file" ]]; then
@@ -579,13 +502,12 @@ scan_file() {
     _scan_line "$file" "${rec%%$'\t'*}" "${rec#*$'\t'}"
   done
 
-  # Body lines: pattern scan + classification-banner scan.
+  # Body lines: pattern scan.
   local idx=0
   for line in "${BODY_LINES[@]+"${BODY_LINES[@]}"}"; do
     ((idx++)) || true
     local abs_line=$(( BODY_START_LINE + idx - 1 ))
     _scan_line "$file" "$abs_line" "$line"
-    _classification_check "$file" "$abs_line" "$line"
   done
 }
 
@@ -621,9 +543,7 @@ report() {
 Push blocked. The agent must diagnose each match: redact real sensitive
 content in place (the common case), or — only if the regex is genuinely
 wrong — get explicit user confirmation and record a `sentinel_override`
-in the file's frontmatter. classification.* findings cannot be overridden:
-remove the marker or re-home the content per protocol/security-policy.md
-§ Classification Discipline. See protocol/sensitive-data-patterns.md and
+in the file's frontmatter. See protocol/sensitive-data-patterns.md and
 references/pre-push-sentinel.md.
 BLOCKMSG
 }

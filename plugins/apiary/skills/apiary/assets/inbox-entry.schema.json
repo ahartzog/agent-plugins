@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/inbox-entry.schema.json",
+  "$id": "https://github.com/ahartzog/agent-plugins/apiary/inbox-entry.schema.json",
   "title": "Hive Mind Inbox Entry Frontmatter",
   "description": "Required frontmatter on every `_inbox/*.md` contribution. Parliament Sentinel rejects files whose frontmatter fails this schema before any other processing.",
   "$comment": "Parliament Step 2.0 (Frontmatter Normalizer, see protocol/custodian-workflow.md) recognizes common alt-field aliases and adds canonical fields alongside before validation. Aliases: contributor/contributed_by -> author; session_date -> date; type:<value> -> tag:<canonical-value>. The normalizer is additive only — it never deletes or overwrites fields the author wrote. Contributors should still write canonical fields by default; assets/inbox-template.md is the reference shape.",
@@ -61,15 +61,6 @@
     "session_id": {
       "type": "string",
       "description": "Optional Claude Code session identifier for attribution chain."
-    },
-    "classification": {
-      "type": "string",
-      "description": "Classification of the content in this contribution. Optional by default; required on every inbox file when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
-      "enum": [
-        "UNCLASSIFIED",
-        "FOUO",
-        "CUI"
-      ]
     },
     "sentinel_override": {
       "type": "object",

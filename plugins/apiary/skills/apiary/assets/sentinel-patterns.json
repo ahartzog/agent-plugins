@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/sentinel-patterns.schema.json",
+  "$id": "https://github.com/ahartzog/agent-plugins/apiary/sentinel-patterns.schema.json",
   "title": "Apiary Sentinel Patterns",
   "description": "Machine-readable source of truth for credential and PII regex patterns. Compiled into the pre-push hook by assets/generate-hook.sh and read at runtime by Parliament Sentinel. Human-readable docs in protocol/sensitive-data-patterns.md.",
   "regex_flavor": "ere",
