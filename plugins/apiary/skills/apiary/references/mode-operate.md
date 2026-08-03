@@ -65,7 +65,15 @@ else
 fi
 
 # --- Sync to the remote default branch (HALT if not fast-forwardable) ---
-git fetch origin "$DEFAULT_BRANCH" --depth 1 --quiet
+# NO --depth on this fetch. The clone is shallow, and `fetch --depth 1` RE-shallows to the new tip
+# instead of extending history toward the local one: the fetched tip and local HEAD then share no
+# ancestor inside the shallow boundary, `merge --ff-only` fails "refusing to merge unrelated
+# histories", and this block HALTs the session claiming unpushed local commits — on a clone with
+# none. Reproduced at every depth (remote ahead by 1, 2, or 3 commits), so it fired on essentially
+# every returning session whose remote had moved. A plain fetch keeps the repo shallow, syncs
+# correctly, AND still refuses a genuinely diverged clone, which is the property this guard exists
+# for. Do not "optimize" this back to --depth 1.
+git fetch origin "$DEFAULT_BRANCH" --quiet
 git merge --ff-only "origin/$DEFAULT_BRANCH" 2>/dev/null || {
   echo "ERROR: Hive clone cannot fast-forward to origin/$DEFAULT_BRANCH." >&2
   echo "Likely cause: local commits on $DEFAULT_BRANCH that were never pushed." >&2

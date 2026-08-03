@@ -643,6 +643,53 @@ else
   fi
 fi
 
+# --- Scenario C2: returning-session ff-sync against a SHALLOW clone (the harness-divergence bug) ---
+# This scenario exists because run_step0() above is an ADAPTED copy: it fetched without --depth
+# while the shipped Step 0 fetched with `--depth 1`. Scenario 2 therefore passed for years while
+# the shipped script HALTed every returning session whose remote had advanced. This runs the real
+# shipped flags against a real shallow clone, and asserts the guard still refuses a diverged clone.
+echo ""
+echo "=== Scenario C2: ff-sync on a shallow clone (shipped fetch flags) ==="
+C2="$TEST_ROOT/c2"; mkdir -p "$C2"
+git init -q -b master "$C2/work"
+( cd "$C2/work" && echo a > f && git add -A && git commit -q -m c1 \
+    && git init -q --bare "$C2/bare.git" && git remote add origin "file://$C2/bare.git" \
+    && git push -q origin master )
+git clone -q --depth 1 --sparse --filter=blob:none "file://$C2/bare.git" "$C2/clone" 2>/dev/null
+git -C "$C2/clone" sparse-checkout set --no-cone /f 2>/dev/null
+( cd "$C2/work" && for i in 2 3 4; do echo "line$i" >> f; git commit -qam "c$i"; done && git push -q origin master )
+
+# Drift guard: the shipped sync fetch must NOT carry --depth, and this is the reason.
+SYNC_FETCH=$(grep -F 'git fetch origin "$DEFAULT_BRANCH"' "$MODE_OPERATE" | head -1)
+if [[ -n "$SYNC_FETCH" && "$SYNC_FETCH" != *"--depth"* ]]; then
+  echo "PASS: shipped sync fetch carries no --depth (re-shallowing breaks ff-merge)"; PASS=$((PASS + 1))
+else
+  echo "FAIL: shipped sync fetch is '$SYNC_FETCH' — a --depth here re-shallows to the new tip and"
+  echo "      makes merge --ff-only fail 'unrelated histories', HALTing every returning session"
+  FAIL=$((FAIL + 1))
+fi
+
+if ( cd "$C2/clone" && git fetch origin master --quiet 2>/dev/null && git merge --ff-only origin/master >/dev/null 2>&1 ) \
+   && grep -q line4 "$C2/clone/f"; then
+  echo "PASS: returning session ff-syncs a shallow clone to an advanced remote"; PASS=$((PASS + 1))
+else
+  echo "FAIL: shallow clone could not ff-sync to the advanced remote"; FAIL=$((FAIL + 1))
+fi
+if [ -f "$C2/clone/.git/shallow" ]; then
+  echo "PASS: clone stayed shallow (no accidental full-history download)"; PASS=$((PASS + 1))
+else
+  echo "FAIL: clone was unshallowed — the sync fetch pulled full history"; FAIL=$((FAIL + 1))
+fi
+# The guard must still fire on a genuinely diverged clone, or the fix traded a false HALT for
+# silent data loss (unpushed inbox entries eaten by a fast-forward that should have refused).
+( cd "$C2/clone" && echo "unpushed local work" >> f && git commit -qam "local" )
+( cd "$C2/work" && echo remote5 >> f && git commit -qam c5 && git push -q origin master )
+if ( cd "$C2/clone" && git fetch origin master --quiet 2>/dev/null && git merge --ff-only origin/master >/dev/null 2>&1 ); then
+  echo "FAIL: ff-merge accepted a diverged clone — unpushed inbox work would be lost"; FAIL=$((FAIL + 1))
+else
+  echo "PASS: ff-only still REFUSES a diverged clone (unpushed work preserved)"; PASS=$((PASS + 1))
+fi
+
 # --- Scenario C1: Step 0 sparse-checkout covers every path the session reads or writes ---
 echo ""
 echo "=== Scenario C1: Step 0 sparse-checkout coverage ==="

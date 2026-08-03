@@ -124,6 +124,13 @@ worth taking**, called out first.
 - **§Prefer gains a freshness tiebreak** — between otherwise-comparable candidates, prefer the
   healthier `decay`/`review_by` posture; a stale winner still wins but gets caveated.
 
+- **Step 0's returning-session sync no longer HALTs when the remote has advanced.** The sync fetch
+  carried `--depth 1` against an already-shallow clone, which re-shallows to the new tip instead of
+  extending history toward the local one — `merge --ff-only` then failed "refusing to merge
+  unrelated histories" and the session HALTed claiming unpushed local commits it did not have. If
+  your operators have been running `reset --hard` on advice from that error, they were resetting a
+  clone that was never diverged. Nothing to do: the fix ships in the plugin.
+
 - **Step 0 resolves `{DEFAULT_BRANCH}` itself.** A Hive with `default_branch: main` no longer
   false-HALTs a returning session with `HALT_ORPHANED_BRANCH` — the branch-normalize check needed
   the value before the script reads `hive.yml`, and a session that has never read `hive.yml` could
