@@ -45,6 +45,8 @@ Optional files (note if missing, don't fail):
    - Verify it has a `## Scope` header
    - Verify `type: reference-library` in frontmatter
    - For every source path — whether in the **Source cell** of a `Topic | Source | Triggers` table (the default format) or after a `**Source:**` label (block form) — verify the target file exists AND, if a section is given after `§`, that the section header exists in that file. Flag broken pointers (missing file or missing section). **Extract source paths format-agnostically, and prefix-tolerantly.** Table cells are written relative to `knowledge/` (`program/overview.md`); block `**Source:**` labels historically carry the full `knowledge/…` prefix. Both are valid: pull `.md` path tokens from the Source cell/label only (not from Topic or Triggers text, which would flag prose `.md` mentions as broken pointers), match `` `?(?:knowledge/)?[^ |`]+\.md `` , and resolve any non-`knowledge/`-prefixed path against `knowledge/` before checking existence. Without this, a tabular library (relative paths) reads as every-entry-broken and every-file-uncovered.
+
+     **Resolve a `sources/`-prefixed token against the Hive root, not `knowledge/`.** `sources/` is a top-level directory outside `knowledge/` (`protocol/sources-policy.md`), and that policy prescribes a router row written verbatim as `sources/index.md`. Resolved against `knowledge/` it becomes `knowledge/sources/index.md` and every Hive that followed the policy gets reported as having a broken pointer — while `protocol/routing-protocol.md` §Resolve, which now resolves the same token from the Hive root, reaches it fine. Match the read path exactly: try the Hive root first, fall back to `knowledge/`, and only then flag. This applies to `sources/` alone — no other top-level directory is a sanctioned Ask read target.
    - **Also extract directory pointers** — Source tokens ending in `/` (e.g. `people/profiles/`), matched as `` `?(?:knowledge/)?[^ |`]+/ `` . Verify the directory exists and contains at least one `.md`; flag an empty or missing directory as a broken pointer. These are a canonical Source form (`protocol/knowledge-schema.md` § Reference Library Entry Format) and are load-bearing for the coverage check below — a `.md`-only regex misses them and reports every file in a pointed-to directory as an orphan.
 
      **Two extraction guards:**
@@ -106,6 +108,24 @@ For each knowledge file in `knowledge/`:
    - `decay: fast` → stale after 14 days
    - `decay: medium` → stale after 60 days
    - `decay: slow` → stale after 180 days
+
+**Decay from `[effective:]` where a fact carries one.** `last_updated` is a *file-write* date, so a
+file touched for an unrelated reason reads as fresh while the facts inside it age, and a backfilled
+fact reads as fresh on the day it is recorded even when it describes a state from months earlier.
+Run this over **every** knowledge file, not only the ones step 3 flagged — the whole point is the
+file whose `last_updated` looks current. For each fact carrying `[effective: YYYY-MM-DD]`
+(`protocol/knowledge-schema.md` § Inline Annotations), measure that fact's age from the
+`[effective:]` date against the file's `decay` threshold and report the overdue ones separately:
+
+- File **not** flagged by step 3 (its `last_updated` is current): **INFO: {N} fact(s) in {file} are
+  past the `{decay}` threshold measured from `[effective:]`, though the file's `last_updated` is
+  current.** This is the case the check exists for.
+- File **already** flagged by step 3: fold the count into that finding — **…and {N} of its facts are
+  older still, measured from `[effective:]`** — rather than emitting a second, contradictory line.
+
+This is the per-fact half of the same check; the file-level flag from step 3 stays as-is, so a Hive
+that has adopted no annotations sees byte-identical output. Do not infer an `[effective:]` date for a fact that lacks one; an
+un-annotated fact is measured by `last_updated`, exactly as today.
 
 ### Step 2b: Catalog Staleness Check
 
@@ -379,11 +399,13 @@ Sources are discoverable through **either** the manifest (`sources/index.md`) **
 1. **Orphaned sources:** List every source file under `sources/` (any doc-type subdir; exclude `index.md`). For each, check whether it is referenced by (a) a row in `sources/index.md`, OR (b) a `sources:`/`source:` frontmatter field in any `_inbox/*.md` or `knowledge/**/*.md` file. Flag those referenced by **neither** as `WARN: orphaned source — not in index and not cited by any knowledge/inbox entry; invisible to Ask`.
 2. **Stale index rows:** For each row in `sources/index.md`, verify the referenced file exists. Flag missing files as `WARN: stale index entry — source file missing`.
 3. **Missing manifest:** If `sources/` contains any source files but there is no `sources/index.md`, flag as `WARN: no source manifest — native-deposited sources are invisible to Ask` (only WARN, not ERROR: extract-ingested binaries may still be discoverable via citation).
+4. **Manifest is routed to (the read-side gate).** If `sources/index.md` exists, verify some `knowledge/**/reference-library.md` carries a Source token resolving to it (the row `protocol/sources-policy.md` § Reference-Library Pointer prescribes). Flag its absence as `WARN: source manifest exists but no reference-library entry points at it — Ask cannot discover sources, so every deposit is write-only`. Checks 1–3 verify sources are *indexed*; without this one, a perfectly maintained index can still be unreachable from a question — the Goal 9 read side, and the exact failure the `sources/` read path was added to close (`protocol/routing-protocol.md` §Resolve, §Extract).
 
 Severity:
 - Orphaned sources = WARN (discoverability gap)
 - Stale rows = WARN (cosmetic, no data loss)
 - Missing manifest = WARN
+- Manifest not routed to = WARN (write-only sources — indexed but unreachable)
 
 For an LFS-tracked binary, the audit checks the pointer/path, not the file content (content lives in LFS). Do not attempt to open binary sources during audit.
 

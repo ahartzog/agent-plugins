@@ -99,10 +99,48 @@ Frontmatter is **per-file**; some provenance and staleness signals attach to a *
 | Annotation | Purpose | Required? |
 |---|---|---|
 | `[learned: YYYY-MM-DD]` | When the fact entered the system | Required on every new fact |
+| `[effective: YYYY-MM-DD]` | **When the fact became true in the world** — distinct from when it was learned | Optional; apply whenever the two dates differ |
 | `[review-by: YYYY-MM-DD]` | When the fact should be re-verified | Required for `decay: fast`, recommended otherwise |
 | `[decided: <who>, YYYY-MM-DD]` | **Epistemic provenance** — a decision was made, by `<who>` (human name or agent id) | Optional; apply whenever a *choice* was made (not for observed/inferred facts) |
 | `[superseded: YYYY-MM-DD, reason]` | Marks a fact as replaced | Used when updating, not deleting |
 | `[disputed: YYYY-MM-DD]` | Marks a fact with contradicting claims | Added by Loop D (Escalation) / Parliament contradiction handling |
+
+### `[effective:]` — world-validity, as distinct from ingestion time
+
+`[learned:]` records when a fact **entered the Hive**. Every freshness judgment downstream then
+runs on that clock: `§Prefer`'s status rule ranks "the most recent" candidate, and Audit's
+staleness check measures from file-write dates. For most facts the two clocks agree closely enough
+that nothing breaks. For the facts that matter most in a status question, they do not:
+
+- A fact backfilled today about a decision made last quarter is the **oldest** fact in the set and
+  the **newest** by `[learned:]`. Ranked on ingestion, it wins — and the answer is wrong.
+- A fact written eight months ago that is still true reads as stale on both clocks, and gets
+  caveated or demoted in favor of something newer but less accurate.
+
+`[effective:]` states the one thing that resolves both: **when this became true in the world.**
+
+- **Means:** the fact holds as of this date. It is not a claim about when anyone learned it, wrote
+  it down, or verified it.
+- **Apply when** the two dates differ meaningfully — backfilled history, a decision recorded after
+  the fact, a status that changed on a date other than the day it was noticed, anything imported
+  from a source dated earlier than the deposit. When they are the same day, `[learned:]` alone is
+  enough; do not add noise.
+- **A fact may carry both**, and normally does: `[effective: 2026-05-01] [learned: 2026-08-03]`
+  reads "true since May, we found out in August."
+- **Never infer one.** If the world-validity date is not stated by the source, leave the annotation
+  off. A guessed `[effective:]` is worse than none, because §Prefer ranks on it mechanically — the
+  same rule `[decided:]` holds for `<who>`.
+- **Absence means "unknown, use `[learned:]`"** — never "effective on the learned date." The
+  fallback is a ranking convenience, not an assertion about the world.
+
+**Optional by construction.** Existing facts carry no `[effective:]` and keep ranking exactly as
+they do today; nothing needs backfilling and no file becomes invalid. Because it is inline rather
+than frontmatter, `assets/knowledge-entry.schema.json` needs no new property — the same reasoning
+that keeps `[decided:]` inline (a `register` file holds many rows, each with its own dates).
+
+Consumers: `protocol/routing-protocol.md` §Prefer ranks status questions on it when present;
+`references/mode-audit.md` Step 2 decays from it when present. Both fall back to the existing
+clock when it is absent, so adoption can be gradual and per-fact.
 
 ### `[decided:]` — epistemic provenance
 

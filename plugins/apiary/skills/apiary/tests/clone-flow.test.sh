@@ -580,6 +580,201 @@ else
   echo "  purged leak absent from queue tip: OK"
 fi
 
+# --- Scenario C0: Step 0 default-branch self-resolution ---
+# Extracts `resolve_default_branch` from mode-operate.md ITSELF rather than re-copying it here.
+# A copied snippet can pass while the shipped script is broken — which is exactly the class of
+# defect this scenario exists to catch (a `main`-defaulted Hive false-HALTing on a healthy clone).
+echo ""
+echo "=== Scenario C0: Step 0 default-branch self-resolution ==="
+MODE_OPERATE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../references/mode-operate.md"
+RESOLVER_SRC=$(awk '/^resolve_default_branch\(\) \{/,/^\}$/' "$MODE_OPERATE")
+if [ -z "$RESOLVER_SRC" ] || ! printf '%s' "$RESOLVER_SRC" | grep -q 'symbolic-ref'; then
+  echo "FAIL: could not extract resolve_default_branch() from mode-operate.md Step 0"
+  echo "  (renamed, reshaped, or removed — this test binds to the shipped script by design)"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: resolve_default_branch() extracted from the shipped Step 0 script"
+  PASS=$((PASS + 1))
+  eval "$RESOLVER_SRC"
+
+  # C0a — hive.yml is authoritative, including the template's comment/quote style.
+  C0_DIR="$TEST_ROOT/dbr-yml"; mkdir -p "$C0_DIR"
+  printf 'hive_slug: x\ndefault_branch: "main"   # renamed 2026-05\n' > "$C0_DIR/hive.yml"
+  got=$(cd "$C0_DIR" && resolve_default_branch)
+  if [ "$got" = "main" ]; then
+    echo "PASS: resolves 'main' from hive.yml (through quotes + inline comment)"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: hive.yml resolution returned '$got', expected 'main'"; FAIL=$((FAIL + 1))
+  fi
+
+  # C0b — no default_branch key: fall back to the remote's published HEAD.
+  C0_BARE="$TEST_ROOT/dbr-remote.git"; C0_WORK="$TEST_ROOT/dbr-work"
+  mkdir -p "$C0_WORK"
+  ( cd "$C0_WORK" && git init -q -b main && printf 'hive_slug: x\n' > hive.yml \
+      && git add -A && git commit -q -m seed )
+  git clone -q --bare "$C0_WORK" "$C0_BARE"
+  git -C "$C0_BARE" symbolic-ref HEAD refs/heads/main
+  C0_CLONE="$TEST_ROOT/dbr-clone"
+  git clone -q --depth 1 --sparse --filter=blob:none "file://$C0_BARE" "$C0_CLONE" 2>/dev/null
+  got=$(cd "$C0_CLONE" && resolve_default_branch)
+  if [ "$got" = "main" ]; then
+    echo "PASS: falls back to origin/HEAD on a --depth 1 --sparse --filter clone"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: origin/HEAD fallback returned '$got', expected 'main'"; FAIL=$((FAIL + 1))
+  fi
+
+  # C0c — neither signal available: the documented pre-2.x default, never empty.
+  C0_EMPTY="$TEST_ROOT/dbr-empty"; mkdir -p "$C0_EMPTY"
+  got=$(cd "$C0_EMPTY" && resolve_default_branch)
+  if [ "$got" = "master" ]; then
+    echo "PASS: final fallback is 'master' (never empty)"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: final fallback returned '$got', expected 'master'"; FAIL=$((FAIL + 1))
+  fi
+
+fi
+
+# --- Scenario C0e: run the REAL Step 0 script end-to-end against a `main`-defaulted Hive ---
+# Asserting only on the extracted resolver is not enough: a mutation test proved that reverting
+# the branch-normalize comparison to the literal `{DEFAULT_BRANCH}` placeholder AND deleting both
+# `DEFAULT_BRANCH=$(resolve_default_branch)` call sites still left every C0a-C0d check green,
+# because none of them executed the shipped control flow. This scenario extracts the entire Step 0
+# bash block from mode-operate.md, substitutes only the placeholders the protocol says a session
+# substitutes ({HIVE_SLUG}, {REMOTE}, {APIARY_ROOT}), and runs it. If `{DEFAULT_BRANCH}` is ever
+# reintroduced into executable Step 0 code, this fails.
+echo ""
+echo "=== Scenario C0e: real Step 0 executed end-to-end (main-defaulted Hive) ==="
+APIARY_PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+C0E="$TEST_ROOT/c0e"; mkdir -p "$C0E/home"
+git init -q -b main "$C0E/up"
+mkdir -p "$C0E/up/PROTOCOL" "$C0E/up/knowledge" "$C0E/up/_inbox"
+echo "# persona fixture" > "$C0E/up/PROTOCOL/agent-definition.md"
+echo "# knowledge" > "$C0E/up/knowledge/seed.md"
+echo "keep" > "$C0E/up/_inbox/.gitkeep"
+printf 'hive_slug: c0e\ndefault_branch: main\npersona: PROTOCOL/agent-definition.md\n' > "$C0E/up/hive.yml"
+git -C "$C0E/up" add -A && git -C "$C0E/up" commit -q -m seed
+git clone -q --bare "$C0E/up" "$C0E/bare.git"
+git -C "$C0E/bare.git" symbolic-ref HEAD refs/heads/main
+git -C "$C0E/up" remote add origin "file://$C0E/bare.git"
+
+STEP0_SRC="$TEST_ROOT/step0-real.sh"
+python3 - "$MODE_OPERATE" "file://$C0E/bare.git" "$APIARY_PLUGIN_ROOT" > "$STEP0_SRC" <<'PYEOF'
+import re, sys
+md, remote, apiary_root = open(sys.argv[1]).read(), sys.argv[2], sys.argv[3]
+seg = md.split('## Step 0', 1)[1]
+block = re.search(r'```bash\n(.*?)```', seg, re.S).group(1)
+block = block.replace('{HIVE_SLUG}', 'c0e').replace('{REMOTE}', remote).replace('{APIARY_ROOT}', apiary_root)
+sys.stdout.write(block)
+PYEOF
+
+run_real_step0() { HOME="$C0E/home" bash "$STEP0_SRC" 2>&1; }
+
+# Any surviving {PLACEHOLDER} in executable code is itself the regression.
+if grep -vE '^[[:space:]]*#' "$STEP0_SRC" | grep -q '{DEFAULT_BRANCH}'; then
+  echo "FAIL: {DEFAULT_BRANCH} still appears in EXECUTABLE Step 0 code after substitution"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: no {DEFAULT_BRANCH} placeholder in executable Step 0 code"; PASS=$((PASS + 1))
+fi
+
+rc=0; output=$(run_real_step0) || rc=$?
+check "real Step 0 completes on first install of a 'main' Hive" 0 "$rc" "DEFAULT_BRANCH_RESOLVED:main" "$output"
+if [[ "$output" == *"HALT_ORPHANED_BRANCH"* ]]; then
+  echo "FAIL: first install HALTed on a healthy 'main' clone"; FAIL=$((FAIL + 1))
+else
+  echo "PASS: first install did not HALT"; PASS=$((PASS + 1))
+fi
+
+# Returning session, remote advanced — the case the --depth 1 sync fetch used to break.
+echo "more" >> "$C0E/up/knowledge/seed.md"
+git -C "$C0E/up" commit -qam advance && git -C "$C0E/up" push -q origin main
+rc=0; output=$(run_real_step0) || rc=$?
+check "real Step 0 re-runs cleanly on a returning session (remote ahead)" 0 "$rc" "DEFAULT_BRANCH_RESOLVED:main" "$output"
+if grep -q "more" "$C0E/home/.claude-hive/c0e/knowledge/seed.md" 2>/dev/null; then
+  echo "PASS: returning session actually synced the new remote content"; PASS=$((PASS + 1))
+else
+  echo "FAIL: returning session did not sync new remote content"; FAIL=$((FAIL + 1))
+fi
+
+# Sparse set must be applied to an EXISTING clone, not only at clone time.
+if git -C "$C0E/home/.claude-hive/c0e" sparse-checkout list 2>/dev/null | grep -q '_metrics/'; then
+  echo "PASS: sparse set is (re)applied on every invocation, not just first clone"; PASS=$((PASS + 1))
+else
+  echo "FAIL: _metrics/ absent from the sparse set on a returning session — pre-existing"
+  echo "      clones would never widen, so session logs stay uncommittable"
+  FAIL=$((FAIL + 1))
+fi
+
+# And the halt path still fires for a genuinely orphaned branch.
+git -C "$C0E/home/.claude-hive/c0e" checkout -q -b stray
+rc=0; output=$(run_real_step0) || rc=$?
+check "real Step 0 HALTs on a genuinely orphaned branch" 1 "$rc" "HALT_ORPHANED_BRANCH" "$output"
+if [[ "$output" == *"not 'main'"* ]]; then
+  echo "PASS: HALT message names the resolved default ('main'), not a guess"; PASS=$((PASS + 1))
+else
+  echo "FAIL: HALT message did not name the resolved default branch"; FAIL=$((FAIL + 1))
+fi
+
+# --- Scenario C2: returning-session ff-sync against a SHALLOW clone (the harness-divergence bug) ---
+# This scenario exists because run_step0() above is an ADAPTED copy: it fetched without --depth
+# while the shipped Step 0 fetched with `--depth 1`. Scenario 2 therefore passed for years while
+# the shipped script HALTed every returning session whose remote had advanced. This runs the real
+# shipped flags against a real shallow clone, and asserts the guard still refuses a diverged clone.
+echo ""
+echo "=== Scenario C2: ff-sync on a shallow clone (shipped fetch flags) ==="
+C2="$TEST_ROOT/c2"; mkdir -p "$C2"
+git init -q -b master "$C2/work"
+( cd "$C2/work" && echo a > f && git add -A && git commit -q -m c1 \
+    && git init -q --bare "$C2/bare.git" && git remote add origin "file://$C2/bare.git" \
+    && git push -q origin master )
+git clone -q --depth 1 --sparse --filter=blob:none "file://$C2/bare.git" "$C2/clone" 2>/dev/null
+git -C "$C2/clone" sparse-checkout set --no-cone /f 2>/dev/null
+( cd "$C2/work" && for i in 2 3 4; do echo "line$i" >> f; git commit -qam "c$i"; done && git push -q origin master )
+
+# Drift guard: the shipped sync fetch must NOT carry --depth, and this is the reason.
+SYNC_FETCH=$(grep -F 'git fetch origin "$DEFAULT_BRANCH"' "$MODE_OPERATE" | head -1)
+if [[ -n "$SYNC_FETCH" && "$SYNC_FETCH" != *"--depth"* ]]; then
+  echo "PASS: shipped sync fetch carries no --depth (re-shallowing breaks ff-merge)"; PASS=$((PASS + 1))
+else
+  echo "FAIL: shipped sync fetch is '$SYNC_FETCH' — a --depth here re-shallows to the new tip and"
+  echo "      makes merge --ff-only fail 'unrelated histories', HALTing every returning session"
+  FAIL=$((FAIL + 1))
+fi
+
+if ( cd "$C2/clone" && git fetch origin master --quiet 2>/dev/null && git merge --ff-only origin/master >/dev/null 2>&1 ) \
+   && grep -q line4 "$C2/clone/f"; then
+  echo "PASS: returning session ff-syncs a shallow clone to an advanced remote"; PASS=$((PASS + 1))
+else
+  echo "FAIL: shallow clone could not ff-sync to the advanced remote"; FAIL=$((FAIL + 1))
+fi
+if [ -f "$C2/clone/.git/shallow" ]; then
+  echo "PASS: clone stayed shallow (no accidental full-history download)"; PASS=$((PASS + 1))
+else
+  echo "FAIL: clone was unshallowed — the sync fetch pulled full history"; FAIL=$((FAIL + 1))
+fi
+# The guard must still fire on a genuinely diverged clone, or the fix traded a false HALT for
+# silent data loss (unpushed inbox entries eaten by a fast-forward that should have refused).
+( cd "$C2/clone" && echo "unpushed local work" >> f && git commit -qam "local" )
+( cd "$C2/work" && echo remote5 >> f && git commit -qam c5 && git push -q origin master )
+if ( cd "$C2/clone" && git fetch origin master --quiet 2>/dev/null && git merge --ff-only origin/master >/dev/null 2>&1 ); then
+  echo "FAIL: ff-merge accepted a diverged clone — unpushed inbox work would be lost"; FAIL=$((FAIL + 1))
+else
+  echo "PASS: ff-only still REFUSES a diverged clone (unpushed work preserved)"; PASS=$((PASS + 1))
+fi
+
+# --- Scenario C1: Step 0 sparse-checkout covers every path the session reads or writes ---
+echo ""
+echo "=== Scenario C1: Step 0 sparse-checkout coverage ==="
+SPARSE_LINE=$(grep -A1 'git sparse-checkout set --no-cone' "$MODE_OPERATE" | tr '\n' ' ')
+for p in 'PROTOCOL/' 'knowledge/' 'sources/' '/hive.yml' '/CLAUDE.md' '/README.md' \
+         '_inbox/' '_custodian/' '_metrics/' '.signal/' '.claude/'; do
+  if [[ "$SPARSE_LINE" == *"$p"* ]]; then
+    echo "PASS: sparse set includes $p"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: sparse set is missing $p — the session reads or writes it"; FAIL=$((FAIL + 1))
+  fi
+done
+
 echo ""
 echo "==============================="
 echo "Summary: $PASS passed, $FAIL failed"

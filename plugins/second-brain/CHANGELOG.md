@@ -4,6 +4,13 @@ All notable changes to the **second-brain** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for what counts as a change and how to pick a bump level.
 
+## [2.1.0] — 2026-08-03
+
+### Added
+- **New optional inline annotation `[effective: YYYY-MM-DD]`** in `protocol/knowledge-schema.md` — when a fact became true **in the world**, as distinct from `[learned:]` (when it entered the knowledge base). The two clocks diverge exactly where it hurts: a fact backfilled today about something that changed last quarter is the newest by `[learned:]` and the oldest in reality, so "the most recent fact" returns the wrong answer confidently; and a fact written months ago that is still true reads as stale and gets displaced by something newer but less accurate. Optional by construction — existing facts carry none and behave exactly as before, so nothing needs backfilling and no file becomes invalid. Never inferred: if the source does not state the world-validity date, leave it off.
+
+  Added under the **shared-taxonomy contract** with the Apiary (`plugins/apiary` 2.24.0), where the same annotation lands in the same release; the definition is deliberately identical. The consumers differ and the schema says so: the Apiary additionally ranks retrieval candidates on it (its RLDP §Prefer) and decays audit findings from it — mechanics a single-user Second Brain has no counterpart for. Here it serves answer ranking and staleness judgment.
+
 ## [2.0.1] — 2026-08-03
 
 ### Changed

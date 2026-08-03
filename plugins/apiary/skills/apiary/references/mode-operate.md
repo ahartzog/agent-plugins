@@ -18,13 +18,31 @@ Run the single script below in one tool call. It does the full git flow (clone-o
 ```bash
 HIVE_DIR="${HOME}/.claude-hive/{HIVE_SLUG}"
 mkdir -p "$(dirname "$HIVE_DIR")"
+
+# Resolve the default branch INSIDE the script, the same way PERSONA_PATH already is. The
+# branch-normalize check below needs the value before the script reaches `cat hive.yml`, so a
+# literal `{DEFAULT_BRANCH}` placeholder can only carry whatever the session guessed — and a
+# returning session on a `main`-defaulted Hive guesses `master` (the documented default) and
+# false-HALTs with HALT_ORPHANED_BRANCH on a perfectly healthy clone.
+# Order: hive.yml (authoritative) → the remote's published HEAD (set by `git clone`, and it
+# survives --depth 1 --sparse --filter=blob:none) → `master` (the pre-2.x default).
+resolve_default_branch() {
+  local db
+  db=$(grep -E '^default_branch:' hive.yml 2>/dev/null | head -1 \
+       | sed -E 's/^default_branch:[[:space:]]*//; s/[[:space:]]+#.*$//; s/["'"'"']//g; s/[[:space:]]+$//' \
+       | tr -d '\r')
+  [ -n "$db" ] || db=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##')
+  echo "${db:-master}"
+}
+
 if [ -d "$HIVE_DIR/.git" ]; then
   cd "$HIVE_DIR"
+  DEFAULT_BRANCH=$(resolve_default_branch)
   # Normalize to default branch before syncing. HALT if on a feature branch so
   # Orphaned Branch Recovery can preserve unpushed work *before* we switch away.
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  if [ "$CURRENT_BRANCH" != "{DEFAULT_BRANCH}" ]; then
-    echo "HALT_ORPHANED_BRANCH: clone is on '$CURRENT_BRANCH', not '{DEFAULT_BRANCH}'." >&2
+  if [ "$CURRENT_BRANCH" != "$DEFAULT_BRANCH" ]; then
+    echo "HALT_ORPHANED_BRANCH: clone is on '$CURRENT_BRANCH', not '$DEFAULT_BRANCH'." >&2
     echo "Run Orphaned Branch Recovery, then re-run Step 0." >&2
     exit 1
   fi
@@ -38,19 +56,41 @@ else
   git clone --depth 1 --sparse --filter=blob:none \
     {REMOTE} "$HIVE_DIR"
   cd "$HIVE_DIR"
-  git sparse-checkout set --no-cone PROTOCOL/ knowledge/ sources/ /hive.yml _inbox/ _custodian/ .claude/
+  DEFAULT_BRANCH=$(resolve_default_branch)
 fi
 
+# --- Sparse set: applied on EVERY invocation, not only on first clone ---
+# `git sparse-checkout set` is idempotent, so running it unconditionally costs nothing on a clone
+# that already matches — and it is the only thing that widens an EXISTING clone. Scoping it to the
+# fresh-clone arm (as it was) means a Hive cloned by an older Apiary keeps that version's patterns
+# forever: `git add _metrics/<file>` then fails with "matched paths that exist outside of your
+# sparse-checkout definition", so the session log can never be committed, and audit finds no
+# CLAUDE.md or README.md on disk. `/CLAUDE.md` and `/README.md` are anchored root files audit
+# reads; `_metrics/` is written by every session (Ask step 5); `.signal/` holds the Signal config
+# audit checks.
+git sparse-checkout set --no-cone PROTOCOL/ knowledge/ sources/ /hive.yml /CLAUDE.md /README.md \
+  _inbox/ _custodian/ _metrics/ .signal/ .claude/ 2>/dev/null \
+  || echo "WARN_SPARSE_SET_FAILED: could not apply the sparse-checkout patterns." >&2
+
 # --- Sync to the remote default branch (HALT if not fast-forwardable) ---
-git fetch origin {DEFAULT_BRANCH} --depth 1 --quiet
-git merge --ff-only origin/{DEFAULT_BRANCH} 2>/dev/null || {
-  echo "ERROR: Hive clone cannot fast-forward to origin/{DEFAULT_BRANCH}." >&2
-  echo "Likely cause: local commits on {DEFAULT_BRANCH} that were never pushed." >&2
+# NO --depth on this fetch. The clone is shallow, and `fetch --depth 1` RE-shallows to the new tip
+# instead of extending history toward the local one: the fetched tip and local HEAD then share no
+# ancestor inside the shallow boundary, `merge --ff-only` fails "refusing to merge unrelated
+# histories", and this block HALTs the session claiming unpushed local commits — on a clone with
+# none. Reproduced at every depth (remote ahead by 1, 2, or 3 commits), so it fired on essentially
+# every returning session whose remote had moved. A plain fetch keeps the repo shallow, syncs
+# correctly, AND still refuses a genuinely diverged clone, which is the property this guard exists
+# for. Do not "optimize" this back to --depth 1.
+git fetch origin "$DEFAULT_BRANCH" --quiet
+git merge --ff-only "origin/$DEFAULT_BRANCH" 2>/dev/null || {
+  echo "ERROR: Hive clone cannot fast-forward to origin/$DEFAULT_BRANCH." >&2
+  echo "Likely cause: local commits on $DEFAULT_BRANCH that were never pushed." >&2
   echo "Before resetting, salvage any unpushed inbox work — run Diverged Default-Branch" >&2
-  echo "Recovery (mode-operate.md), then: git -C $HIVE_DIR reset --hard origin/{DEFAULT_BRANCH}" >&2
+  echo "Recovery (mode-operate.md), then: git -C $HIVE_DIR reset --hard origin/$DEFAULT_BRANCH" >&2
   echo "SESSION HALTED — do not use stale data."
   exit 1
 }
+echo "DEFAULT_BRANCH_RESOLVED:$DEFAULT_BRANCH"
 
 # --- Queue-branch transport: register + fetch the inbox queue ref (self-resolving from hive.yml) ---
 # The sed strips trailing inline comments and whitespace as well as quotes: a value like
@@ -64,7 +104,7 @@ if [ "${INBOX_TRANSPORT:-default-branch}" = "branch" ]; then
   # ever creates origin/{INBOX_BRANCH}, and the push worktree cannot --track it.
   git config --get-all remote.origin.fetch | grep -qF "refs/heads/${INBOX_BRANCH}:" \
     || git config --add remote.origin.fetch "+refs/heads/${INBOX_BRANCH}:refs/remotes/origin/${INBOX_BRANCH}"
-  # Tolerant, separate fetch: combining it with the {DEFAULT_BRANCH} fetch above would fail the
+  # Tolerant, separate fetch: combining it with the "$DEFAULT_BRANCH" fetch above would fail the
   # WHOLE fetch when the queue does not exist yet (nobody has pushed) — that is not a HALT state.
   # On failure, distinguish "no queue yet" from "offline with a cached ref": conflating them
   # would make Status report an empty queue when the network is simply down.
@@ -120,9 +160,11 @@ cat "$PERSONA_PATH" 2>/dev/null || echo "(persona file not found at $PERSONA_PAT
 echo "===END==="
 ```
 
-**Bootstrap order:** On first clone, `hive.yml` is not yet on disk. Read `{REMOTE}`, `{HIVE_SLUG}`, and `{DEFAULT_BRANCH}` from the child skill stub's `## Identity` block (the `Git remote:`, `Hive slug:` fields; `{DEFAULT_BRANCH}` defaults to `master`). After the clone, all subsequent invocations read these from the emitted `hive.yml`.
+**Bootstrap order:** Only `{HIVE_SLUG}` and `{REMOTE}` are substituted into this script — read them from the child skill stub's `## Identity` block (`Hive slug:`, `Git remote:`). **`{DEFAULT_BRANCH}` is deliberately NOT substituted here**: the script resolves it itself (`resolve_default_branch`), because the branch-normalize check needs the value before the script reaches `cat hive.yml`, and a session that has never read `hive.yml` can only guess. The resolved value is echoed as `DEFAULT_BRANCH_RESOLVED:<branch>` — parse it and use it as `{DEFAULT_BRANCH}` for every later step (Pre-Push Guard, push procedures, recovery). Later blocks keep the `{DEFAULT_BRANCH}` placeholder form because identity is loaded by the time they run.
 
-**Branch normalization:** The clone must be on `{DEFAULT_BRANCH}` before syncing. If a previous session left the repo on a feature branch, the script halts with `HALT_ORPHANED_BRANCH`; run the Orphaned Branch Recovery procedure below to preserve any work, then re-run the Step 0 script. Read `{DEFAULT_BRANCH}` from `hive.yml.default_branch` (defaults to `master`); on first clone, the default branch is used automatically by `git clone`.
+**Branch normalization:** The clone must be on the default branch before syncing. If a previous session left the repo on a feature branch, the script halts with `HALT_ORPHANED_BRANCH`; run the Orphaned Branch Recovery procedure below to preserve any work, then re-run the Step 0 script. The HALT message names **both** the branch found and the resolved default (`clone is on 'X', not 'Y'`), so recovery has the value it needs even though the halt prevented `hive.yml` from being emitted.
+
+**Why self-resolution, not a placeholder:** a returning session on a Hive whose `hive.yml` says `default_branch: main` has no way to know that before Step 0 runs. Substituting the documented default (`master`) makes the equality test fail against a perfectly healthy clone, and the session HALTs into Orphaned Branch Recovery for a branch that was never orphaned. Resolution order — `hive.yml` (authoritative, present on every invocation after the first), then `refs/remotes/origin/HEAD` (written by `git clone`; verified to survive `--depth 1 --sparse --filter=blob:none`), then `master`.
 
 **Sentinel hook:** Regenerating on every invocation keeps the hook in lockstep with the installed Apiary version. The generator reads patterns from `assets/sentinel-patterns.json` (single source of truth) and compiles them into a self-contained hook (bash + grep + git only) that respects per-file `sentinel_override` frontmatter. See `protocol/sensitive-data-patterns.md` for the pattern list and override semantics. If the script prints `WARN_SENTINEL_ASSETS_MISSING`, the assets path could not be resolved this session — surface that and resolve it before any push, since the hook is the push-time enforcement gate.
 
@@ -134,7 +176,11 @@ echo "===END==="
 
 From the single tool result:
 - **`{HIVE_ROOT}`** = `$HOME/.claude-hive/{HIVE_SLUG}` — use for all later steps.
-- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (default `master`), `persona`, `codeowners`, `slack_channel`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `confluence_registry` → `{REGISTRY_URL}`, `siblings` → `{SIBLINGS}` (cached roster of peer Hives, each `{slug, purpose, repo, classification}`), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`).
+- **`{DEFAULT_BRANCH}`** = the `DEFAULT_BRANCH_RESOLVED:` line. Prefer it over re-deriving from `hive.yml` — it is what the script actually synced against.
+- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `slack_channel`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `confluence_registry` → `{REGISTRY_URL}`, `siblings` → `{SIBLINGS}` (cached roster of peer Hives, each `{slug, purpose, repo, classification}`), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the three groups this list previously omitted even though later steps dispatch on them**:
+  - **Push modes** — `push_mode` (default `direct`), `inbox_push_mode`, `parliament_push_mode`, `sources_push_mode`. § Push Procedure below resolves `inbox_push_mode` → `push_mode` → `direct`, and `sources-policy.md` § Push Discipline does the same for deposits. Not parsing them meant the Push Procedure dispatched on values the session had never read.
+  - **Classification** — the `classification` block: `classification.max_level` (`UNCLASSIFIED` | `FOUO` | `CUI`; an absent block means `UNCLASSIFIED` with no marking discipline) and `classification.marking_required`. The always-on invariant "never store content above the Hive's classification ceiling" cannot be held without the ceiling, and `marking_required` decides whether inbox and source frontmatter must carry a `classification` field at all (`sources-policy.md` § Frontmatter Schema).
+  - **Federation** — the `federation` block: `cross_hive_routing` and `register` (both default `true`). § Contribution Handling's cross-hive advisory and `workflows.md` § Contribute skip entirely when `cross_hive_routing` is `false`; absent the field, the advisory fires on a Hive that opted out.
 - **Persona** — the `===PERSONA:…===` section is the agent-definition. Adopt its name, voice, and routing rules. **If it contains a `## Greeting Banner` section, that is the greeting — see Step 1.**
 
 ### Orphaned Branch Recovery

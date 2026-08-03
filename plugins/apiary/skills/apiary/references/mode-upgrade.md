@@ -69,6 +69,81 @@ If upgrade was triggered automatically by `operate`, resume the original workflo
 Minor/patch changes require no migration — they ship live through the installed plugin. This log
 records what changed so operators reading `/apiary upgrade` output have an anchor.
 
+### 2.24.0 — Ask quality: restatement, routing trace, `sources/` read path, bi-temporal validity
+
+No `hive.yml` change and no required field — every item below is additive or a fix, and a Hive that
+does nothing still gets the Step 0 and `sources/` repairs automatically. **One optional action is
+worth taking**, called out first.
+
+- **Action (one router row): make deposited sources reachable.** `sources/` was addressable but
+  unreachable from a question. The RLDP §Resolve now carries a **Hive-root locator row** — a
+  `sources/…` token resolves from the Hive root instead of `knowledge/` — which repairs the read
+  path, but only for Hives that actually carry the router row `protocol/sources-policy.md`
+  § Reference-Library Pointer prescribes:
+
+  ```
+  | Deposited sources | `sources/index.md` | meeting transcript, what did we decide, who said, exact wording, verbatim |
+  ```
+
+  Add it to any `knowledge/**/reference-library.md` if your Hive deposits sources. Audit's Source
+  Index Integrity check now flags its absence (`WARN: source manifest exists but no
+  reference-library entry points at it`), so `/apiary audit` will tell you whether you need it.
+  If your Hive has no `sources/` content, nothing to do.
+
+  *Why this was broken:* the prescribed row is written `sources/index.md`, and the old §Resolve rule
+  resolved every local token against `knowledge/` — so it became `knowledge/sources/index.md`, which
+  exists in no Hive. Audit Step 1b applied the same rule and independently reported the row as a
+  broken pointer. Both sides are fixed; Step 1b now resolves a `sources/`-prefixed token from the
+  Hive root, matching the read path exactly.
+
+- **§Extract falls through to the verbatim original when the wording *is* the answer.** Exact
+  values, requirement text, quotes, who-said-what: a curated `knowledge/` paraphrase is no longer
+  quoted as if it were the source. Where a source and a knowledge file disagree, the source wins
+  and the divergence becomes a `[correction]` contribution.
+
+- **§Match restates the query before scanning triggers.** 2–4 alternate phrasings (synonyms,
+  document vocabulary, entity names) on one line, scanned alongside the raw question. Triggers are
+  written in the author's vocabulary and questions arrive in the asker's; this was the protocol's
+  weakest step and it failed silently. Explicitly bounded: restatement, **not** decomposition or
+  HyDE.
+
+- **§Answer closes with a one-line routing trace**, and every citation must name a locator in its
+  `opened:` list. This is the cheapest citation check available — an answer citing a document it
+  never opened is now mechanically detectable — and it makes the answered-from-opened ratio
+  available to Loop B. Deliberately one line: it runs on every Ask.
+
+- **§Answer warns on a past-due cited file** — *per `x.md` (unverified since 2026-03-04)* —
+  attached to the citation rather than as a separate caveat, so the warning travels with the fact.
+
+- **New optional inline annotation `[effective: YYYY-MM-DD]`** — when a fact became true *in the
+  world*, as distinct from `[learned:]` (when it entered the Hive). §Prefer ranks status questions
+  on it when present; audit Step 2 decays individual facts from it when present. Both fall back to
+  the existing clock when absent, so adoption is gradual and per-fact and no file becomes invalid.
+  Mirrored into the Second Brain schema under the shared-taxonomy contract.
+
+- **§Prefer gains a freshness tiebreak** — between otherwise-comparable candidates, prefer the
+  healthier `decay`/`review_by` posture; a stale winner still wins but gets caveated.
+
+- **Step 0's returning-session sync no longer HALTs when the remote has advanced.** The sync fetch
+  carried `--depth 1` against an already-shallow clone, which re-shallows to the new tip instead of
+  extending history toward the local one — `merge --ff-only` then failed "refusing to merge
+  unrelated histories" and the session HALTed claiming unpushed local commits it did not have. If
+  your operators have been running `reset --hard` on advice from that error, they were resetting a
+  clone that was never diverged. Nothing to do: the fix ships in the plugin.
+
+- **Step 0 resolves `{DEFAULT_BRANCH}` itself.** A Hive with `default_branch: main` no longer
+  false-HALTs a returning session with `HALT_ORPHANED_BRANCH` — the branch-normalize check needed
+  the value before the script reads `hive.yml`, and a session that has never read `hive.yml` could
+  only guess `master`. Resolution order: `hive.yml` → `refs/remotes/origin/HEAD` → `master`. The
+  sparse-checkout set gains `/CLAUDE.md`, `/README.md`, `_metrics/`, and `.signal/` — all four were
+  read or written by sessions and audit without ever being checked out — and it is now applied on
+  **every** invocation rather than only at clone time, so your existing `~/.claude-hive/{slug}`
+  clones widen on their next session instead of keeping their original patterns forever. (If a
+  session ever failed to commit its `_metrics/` log with *"matched paths that exist outside of your
+  sparse-checkout definition"*, that was this.) The Identity parse list gains the push modes, the
+  `classification` block, and the `federation` block, which later steps in the same file already
+  dispatched on.
+
 ### 2.23.0 — inbox queue-branch transport (recommended default for new Hives)
 
 - **New optional `hive.yml` fields `inbox_transport` (`default-branch` | `branch`) and

@@ -11,8 +11,8 @@ last_updated: 2026-06-01
 
 Fixture routing index for the Apiary's own golden test suite (`tests/golden/cases.md`). Covers
 ground segment architecture, document catalogs (formal/working authority conflicts, store-relative
-and ID-addressed locators), and personnel profiles — synthetic content only, used to exercise the
-Reference Library Discovery Protocol (`protocol/routing-protocol.md`).
+and ID-addressed locators), personnel profiles, and deposited primary sources — synthetic content
+only, used to exercise the Reference Library Discovery Protocol (`protocol/routing-protocol.md`).
 
 ## Ground Segment
 
@@ -21,6 +21,13 @@ Reference Library Discovery Protocol (`protocol/routing-protocol.md`).
 | Ground segment architecture | `program/overview.md` | ground segment, subsystems, mission planning console, T&C front end, RF link, ground station, architecture overview |
 | Ground segment document catalog | `ground-segment/document-catalog.md` | ICD, interface control document, ground segment design, space-to-ground interface, link budget requirements, power budget, MTP, CDR ground segment design, flight dynamics handoff |
 | Legacy ground interface catalog | `ground-segment/broken-catalog.md` | legacy ground interface, pre-2025 command format, old interface register |
+| Link budget session notes | `ground-segment/link-budget-notes.md` | link margin, downlink margin, margin number, elevation mask, downlink data rate, link budget working session |
+
+## Deposited Sources
+
+| Topic | Source | Triggers |
+|---|---|---|
+| Deposited sources | `sources/index.md` | meeting transcript, transcript, what did we decide, who said, exact wording, verbatim, exactly what was said, committed value, quote |
 
 ## Program Documents
 

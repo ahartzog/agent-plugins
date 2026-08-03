@@ -458,3 +458,79 @@ contribution satisfies the criterion. Does not invent a schedule, a document, or
 **Fail:** Fabricates a schedule or cites a document the fixture does not contain. Answers from
 general knowledge without the ungrounded flag. Silently gives up without recording (or naming) the
 gap. Reports the `covers` text of an unrelated row as if it covered thermal vacuum testing.
+
+---
+
+## Case 15 — `sources/` read path: exact-value question falls through to the verbatim original
+
+**Governing:** `routing-protocol.md` §Resolve (the **Hive-root path** locator row — `sources/…`
+resolves from the Hive root, not `knowledge/`) and §Extract ("Fall through to the verbatim original
+when the wording *is* the answer").
+
+**Fixture:** `sources/index.md` (manifest) → `sources/meeting-transcripts/2026-07-15-jrivera-link-budget-sync.md`
+(verbatim transcript, states **4.7 dB**), plus `knowledge/ground-segment/link-budget-notes.md` — a
+curated paraphrase of the same session that rounds the figure to "roughly 5 dB" and names the
+transcript in its `sources[]` frontmatter. The reference-library carries the row
+`sources/index.md`, written exactly as `protocol/sources-policy.md` § Reference-Library Pointer
+prescribes.
+
+**Why this case exists:** the prescribed router row is `sources/index.md`. Under the pre-2.24.0
+§Resolve rule — "Local file … relative to `knowledge/`" — that token resolved to
+`knowledge/sources/index.md`, which does not exist in any Hive. The Hive's highest-fidelity
+material was addressable and unreachable, and Audit Step 1b independently reported the same row as
+a broken pointer. This case pins the fix on both sides.
+
+**Question:** "What exactly did the team commit to for downlink link margin — quote the number
+from the session."
+
+**Prompt:**
+> Using the Reference Library Discovery Protocol, answer: "What exactly did the team commit to for
+> downlink link margin — quote the number from the session." The knowledge tree is ./knowledge here.
+> State which file you quoted from.
+
+**The prompt must NOT name `./sources`.** Telling the agent where deposited sources live pre-resolves
+the exact locator the §Resolve Hive-root row exists to resolve — the case would then pass with that
+row deleted, which is the one thing it is here to detect. The agent has to reach `sources/` the way
+a real session does: match the router row, then resolve `sources/index.md` from the Hive root.
+
+**Pass:** Resolves `sources/index.md` from the **Hive root** (not `knowledge/sources/index.md`),
+reaches the transcript, and answers **4.7 dB**, citing the transcript path. Recognizing that the
+paraphrase in `link-budget-notes.md` rounds the value, and saying so, is a stronger pass.
+
+**Fail:** Answers "roughly 5 dB" from `link-budget-notes.md` and presents it as the committed
+figure — the precision-loss failure this clause exists to prevent. Reports `sources/index.md` as a
+broken or missing pointer. Resolves the row against `knowledge/` and declares the sources
+unreachable. Quotes "4.7 dB" without having opened the transcript (an unopened citation — §Answer
+forbids it, and the trace makes it detectable).
+
+---
+
+## Case 16 — Routing trace: every citation names an opened locator
+
+**Governing:** `routing-protocol.md` §Answer ("Close with the routing trace — one line", "Every
+citation in the answer must name a locator that appears in `opened:`", "An empty `opened:` means
+§On no match must have fired") and §Match ("Record the restatement in §Answer's trace").
+
+**Fixture:** the whole fixture tree; any answerable question exercises it. Case 1's one-hop local
+question is used so the trace is asserted independently of retrieval difficulty.
+
+**Question:** "How is the ground segment structured — what are its subsystems?"
+
+**Prompt:**
+> Using the Reference Library Discovery Protocol, answer: "How is the ground segment structured —
+> what are its subsystems?" The knowledge tree is ./knowledge here. End your answer with the
+> routing trace the protocol requires.
+
+**Pass:** Answer ends with a single-line `trace:` carrying the restatement, the library/match
+counts, and an `opened:` list; `program/overview.md` appears in `opened:` and is the file cited in
+the answer body. Every citation in the body resolves to something in `opened:`.
+
+This route is one-hop and local — it reaches no catalog rows, so §Prefer's sufficiency test is
+never asked and the trace correctly carries **no** `sufficiency:` field. Emitting one here is a
+fabricated verdict, not a completeness bonus (§Answer, "Omit a field the route never produced").
+Case 13 is where the sufficiency verdict genuinely binds.
+
+**Fail:** No trace line. A trace whose `opened:` list omits a file the answer cites — that is the
+unopened-citation defect the rule exists to catch, and it is a **harder** fail than omitting the
+trace entirely, because the answer looks sourced. A trace expanded into a multi-paragraph narration
+of each step (the cost this was deliberately bounded to one line to avoid).
