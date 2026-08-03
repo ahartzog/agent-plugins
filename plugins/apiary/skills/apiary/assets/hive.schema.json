@@ -76,6 +76,18 @@
       "enum": ["direct", "pr"],
       "description": "Overrides `push_mode` for the native Deposit workflow's `sources/` writes only (see `protocol/sources-policy.md`). Set to `direct` to push source deposits straight to {DEFAULT_BRANCH} (sources are ground truth, not deliberated by Parliament) even while inbox/Parliament publish via `pr`. Falls back to `push_mode`, then `direct`, when unset."
     },
+    "inbox_transport": {
+      "type": "string",
+      "enum": ["default-branch", "branch"],
+      "default": "default-branch",
+      "description": "Where session inbox contributions travel. `default-branch` (default) pushes inbox commits to {DEFAULT_BRANCH} — the historical behavior. `branch` pushes them to a dedicated long-lived queue branch (`inbox_branch`, default `inbox`) that is never PR-gated; Parliament is the only bridge to {DEFAULT_BRANCH}, which can then carry full vanilla protection (required PR + codeowner review on everything, no policy-bot or CODEOWNERS narrowing). Under `branch`, `inbox_push_mode` is ignored (the queue is direct-push by construction) while `parliament_push_mode` must resolve to `pr` when {DEFAULT_BRANCH} is protected. Transport resolution precedes push-mode resolution — see `references/mode-operate.md` § Push Procedure. Design + migration: `references/inbox-transport-design.md`, `references/mode-upgrade.md` § 2.23.0."
+    },
+    "inbox_branch": {
+      "type": "string",
+      "default": "inbox",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9/_-]*$",
+      "description": "Name of the inbox queue branch. Only meaningful when `inbox_transport: branch`. Sessions bootstrap it on first push as an orphan branch (no shared history with {DEFAULT_BRANCH}); protect it against deletion and force push only — never require PRs on it (see `protocol/security-policy.md` § Repository Protection Model, transport=branch variant)."
+    },
     "purpose": {
       "type": "string",
       "description": "What knowledge belongs in this Hive (and what does not). Shown in the Hive Mind Registry and the README 'What Lives Here' section. Distinct from `description` (a one-line summary): `purpose` is the contribution-scoping guidance used for cross-hive routing.",

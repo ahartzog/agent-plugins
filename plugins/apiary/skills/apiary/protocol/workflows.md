@@ -56,7 +56,7 @@ Full category taxonomy: `PROTOCOL/triage-policy.md`.
 **Behavior:**
 1. Read the Hive's primary status knowledge file (consult `PROTOCOL/agent-definition.md` for the correct file mapping).
 2. Read the Hive's projects/work-items knowledge file.
-3. Check recent inbox items in `_inbox/` for pending contributions that haven't been merged yet (these may contain fresher status than the knowledge base).
+3. Check recent inbox items in `_inbox/` for pending contributions that haven't been merged yet (these may contain fresher status than the knowledge base). Under `hive.yml.inbox_transport: branch`, pending entries live on the queue ref, not the local `_inbox/` — list them with `git ls-tree -r --name-only origin/{INBOX_BRANCH} -- _inbox/` and read one with `git show origin/{INBOX_BRANCH}:_inbox/<file>` (Step 0 already fetched the ref); also check the local `.inbox-worktree/_inbox/` if present (this machine's not-yet-pushed work) and any legacy pending files still in the clone's `_inbox/`. If Step 0 reported `INBOX_QUEUE_STALE` (offline), or a `git show` fails on a lazy blob fetch, answer from what is locally available and say so — "pending-contribution state as of the last successful sync" — rather than reporting the queue as empty.
 4. Read linked trackers from the relevant knowledge file if the question is tracker-specific.
 5. Synthesize a current-state briefing: what's on track, what's blocked, what's been decided recently, what needs attention.
 6. Flag any information with stale `[learned:]` dates and recommend re-verification.

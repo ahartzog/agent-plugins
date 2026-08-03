@@ -65,6 +65,18 @@ Two related caveats:
 - `timeout_seconds` is only enforceable if `timeout(1)` is installed. When it is absent the gate runs **unbounded**; the hook says so on stderr rather than pretending the limit applied. Add `timeout` to `required_tools` if a bounded run is load-bearing for you.
 - Gates are independent of each other and of the candidate-file list, so they are a reasonable target for concurrent execution if this ever becomes a real pain point. It is deliberately not done today — sequential output is far easier to read, and no Hive yet has enough gates for it to matter.
 
+## Working directory
+
+Gates execute with the **pushing worktree** as cwd. On the default inbox transport that is the
+Hive clone root, so a repo-relative `command:` (`python3 scripts/compliance_gate.py`) resolves. But
+under `hive.yml.inbox_transport: branch`, inbox pushes happen from the queue worktree
+(`.inbox-worktree/`), whose checkout contains **only pending `_inbox/` files** — no `PROTOCOL/`,
+no `scripts/`, no `knowledge/`. A gate that resolves its executable via a repo-relative path, or
+reads Hive files at runtime, fails closed on every queue push (`on_error: block` is the default).
+If your Hive uses the branch transport, resolve the gate's executable via PATH or an absolute
+path, and treat any Hive file the gate needs as an explicit input to fetch, not a cwd assumption.
+The built-in Sentinel pattern scan is self-contained and unaffected either way.
+
 ## Dependencies are yours
 
 Design goal 9 keeps the *Apiary* free of runtime dependencies for contributors: the generated hook needs only bash, grep, and git. Gates are the documented exception, on the same footing as opt-in connectors — if your gate needs `python3` and a model CLI, that is your Hive's dependency to declare in `required_tools`, install, and document in your Hive's `CLAUDE.md`.

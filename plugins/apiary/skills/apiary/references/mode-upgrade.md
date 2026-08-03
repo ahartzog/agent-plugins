@@ -69,6 +69,63 @@ If upgrade was triggered automatically by `operate`, resume the original workflo
 Minor/patch changes require no migration — they ship live through the installed plugin. This log
 records what changed so operators reading `/apiary upgrade` output have an anchor.
 
+### 2.23.0 — inbox queue-branch transport (opt-in)
+
+- **New optional `hive.yml` fields `inbox_transport` (`default-branch` (default) | `branch`) and
+  `inbox_branch` (default `inbox`).** Under `branch`, sessions push inbox entries to a dedicated,
+  never-PR-gated queue branch; Parliament is the only bridge to the default branch, which can then
+  carry full vanilla protection (required PR + codeowner review on everything — no policy-bot, no
+  CODEOWNERS narrowing). Unreviewed content never enters default-branch history, and queue history
+  is cheaply rewritable for incident response. Design: `references/inbox-transport-design.md`.
+- **No action required.** A Hive without `inbox_transport` behaves exactly as before, byte for
+  byte. The fields are optional; nothing is migrated automatically.
+- **Opt-in migration (per-Hive, reversible, no flag day):**
+  0. **Pre-flight — refname collision check.** `git ls-remote --heads origin '<inbox_branch>/*'`
+     (default `inbox/*`). Any hit is a legacy pr-mode inbox branch: git cannot create the ref
+     `inbox` while `inbox/…` branches exist, so every session's bootstrap would be rejected.
+     Merge/close those PRs and delete their branches first, or pick a non-colliding
+     `inbox_branch` (e.g. `inbox-queue`).
+  1. Set `inbox_transport: branch` in `hive.yml` via the normal protected-path PR — and in the
+     same PR add `.parliament/` and `.inbox-worktree/` to the Hive's `.gitignore` (keeps the
+     queue-push worktree out of any broad `git add`). New sessions start queueing on their next
+     invocation — the first push bootstraps the queue branch as an orphan root.
+  2. Run Parliament. During the cutover it drains **both** legacy `_inbox/` files still on the
+     default branch and the queue — the coexistence window has no deadline, so sessions running a
+     stale `hive.yml` (or an older Apiary) keep landing on the default branch and keep being
+     drained.
+  3. **Before protecting the default branch, gate on straggler extinction, not just queue
+     health:** announce the cutover, then verify a quiet window with
+     `git log --since=<window> origin/<default_branch> -- _inbox/` — authors still landing legacy
+     inbox commits are stragglers on an old Apiary or a stale clone; chase them before flipping.
+     Then apply vanilla branch protection, set `parliament_push_mode: pr` (and
+     `sources_push_mode: pr` if the Hive uses native Deposit). Protecting the default branch is
+     deliberately **last** — flipping it first would strand legacy-transport sessions mid-window.
+     **Straggler net:** in the same change, set `inbox_push_mode: pr`. Current clients ignore it
+     under the branch transport, but a pre-2.23.0 client — which cannot see `inbox_transport` —
+     resolves inbox mode to `pr` and opens a visible, reviewable PR instead of having its direct
+     push invisibly rejected (the contribution would otherwise be lost with only a generic
+     warning). Audit Step 4b reports the field as intentional during the window; remove it once
+     the fleet is confirmed on ≥2.23.0.
+  3b. **Tear down the legacy pr-mode apparatus, if this Hive ever ran it** (same change as the
+     protection flip): delete `.policy.yml`'s inbox-only zero-approval rule (or the file), remove
+     policy-bot from the required status checks / revert the owners-bot flags
+     (`required-approving-review-count` back to ≥1, native code-owner review re-enabled), and
+     restore `CODEOWNERS` coverage by deleting the ownerless `_inbox/` line. Left in place, that
+     machinery lets an inbox-only PR auto-merge into the "protected" default branch with zero
+     review — silently voiding the transport's no-unreviewed-history guarantee. Audit Step 4b
+     FAILs on leftovers.
+  4. Add the "Inbox Queue Safety" ruleset (block deletion + force push on the queue branch only).
+  5. **Rollback (order matters):** FIRST relax the default-branch protection — or stand up the
+     full pr-mode apparatus (`references/push-mode-pr-setup.md`) and set `inbox_push_mode: pr` —
+     and only THEN revert `inbox_transport`. Reverting first leaves sessions resolving to a
+     direct push that the still-protected branch rejects: capture wedges and contributions are
+     lost (audit Step 4b check 1b catches this state). Finally run Parliament once to drain the
+     queue. No knowledge or attribution is destroyed in either direction.
+- Under the branch transport, `inbox_push_mode` is ignored by current clients (audit Step 4b
+  flags it as dead config outside a migration window), and the Parliament lock becomes an atomic
+  `parliament/lock` ref — which also fixes the non-atomic `pr`-mode concurrent-run detection for
+  Hives on this transport.
+
 ### 2.22.0 — Loop B telemetry, restatement dedup, two design proposals
 
 - **Loop B gains telemetry parity with C/D:** gap contributions carry `coverage-gap:` /

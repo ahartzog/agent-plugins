@@ -96,6 +96,25 @@ cd "$PARLIAMENT_DIR"
 
 Read `{HIVE_SLUG}` and `{REMOTE}` from `hive.yml`. The Parliament working directory is always wiped and re-cloned fresh at the start of each run.
 
+**Queue-branch transport** (`hive.yml.inbox_transport: branch` — see
+`references/inbox-transport-design.md`): additionally fetch the queue ref, **unshallow**, so §1.3
+can read entries and record per-file attribution (queue history is short-lived by construction, so
+this is cheap). Resolve `{INBOX_BRANCH}` from `hive.yml.inbox_branch`, default `inbox`:
+
+```bash
+# Register the queue refspec first — the depth-1 clone is single-branch, so without this,
+# later plain fetches of the queue (e.g. §6.3's drain retry) would NOT update
+# origin/{INBOX_BRANCH} and the drain would rebase against a stale ref.
+git config --get-all remote.origin.fetch | grep -qF "refs/heads/{INBOX_BRANCH}:" \
+  || git config --add remote.origin.fetch "+refs/heads/{INBOX_BRANCH}:refs/remotes/origin/{INBOX_BRANCH}"
+git fetch origin "{INBOX_BRANCH}" 2>/dev/null \
+  || echo "QUEUE_ABSENT (no session has pushed yet — legacy _inbox/ only this run)"
+# Also fetch live parliament run branches: a prior run's _completed/ records may still be
+# waiting in an unmerged housekeeping PR, and §1.3's guard must see them to avoid
+# reprocessing that run's contributions (the lock ref is excluded; it is not a run branch).
+git fetch origin "+refs/heads/parliament/*:refs/remotes/origin/parliament/*" 2>/dev/null || true
+```
+
 ### 1.0 Sync to Default Branch (mandatory, before lock)
 
 Before acquiring the lock or creating a branch, sync the local repo to the current remote master. This prevents the parliament branch from diverging from work already merged by other runs or contributors.
@@ -123,6 +142,37 @@ Check for `.parliament-running` at repo root.
 
 **Push mode:** Parliament resolves its push mode as `hive.yml.parliament_push_mode` if set, else `hive.yml.push_mode`, else `direct`. (The per-flow override lets a Hive gate knowledge/ merges behind a `pr` while inbox contributions push direct — see `assets/hive.schema.json`.) The lock push goes direct to `{DEFAULT_BRANCH}` when the resolved mode is `direct`. When it resolves to `pr`, the runbook creates a Parliament feature branch (`parliament/YYYY-MM-DD-HHMM`) instead and the lock file is tracked on that branch only. In `pr` mode, concurrent-run detection relies on existence of a live `parliament/*` branch on the remote rather than a committed lock file on `{DEFAULT_BRANCH}`.
 
+**Queue-branch transport — the lock is an atomic lock ref instead.** Under
+`hive.yml.inbox_transport: branch`, a committed `.parliament-running` file cannot reach a fully
+protected `{DEFAULT_BRANCH}` at all, so the lock is the fixed-name ref
+`refs/heads/parliament/lock`, using git's ref-update atomicity as the mutex (no check-then-act
+window — rationale and verification: `references/inbox-transport-design.md` § The Parliament lock):
+
+- **Acquire** (one atomic operation — succeeds iff the lock is absent, because every lock commit
+  is an unrelated orphan and any push onto an existing lock is rejected non-fast-forward):
+
+  ```bash
+  LOCK_COMMIT=$(git commit-tree "$(git hash-object -t tree /dev/null)" \
+    -m "parliament lock: runner {RUNNER_ID} $(date -u +%Y-%m-%dT%H:%M:%SZ)")
+  git push origin "${LOCK_COMMIT}:refs/heads/parliament/lock" \
+    || { # held — read the holder and check staleness
+         git fetch origin "+refs/heads/parliament/lock:refs/remotes/origin/parliament/lock"
+         # committer date of the lock commit = acquisition time
+         LOCK_AGE_MIN=$(( ( $(date +%s) - $(git log -1 --format=%ct origin/parliament/lock) ) / 60 )); }
+  ```
+
+- **Held, age < `lock_timeout_minutes`:** exit cleanly — "Parliament already running."
+- **Held, age ≥ `lock_timeout_minutes`:** presumed orphaned. Steal with a compare-and-swap so two
+  stealers cannot both win: `git push --force-with-lease=refs/heads/parliament/lock:$(git
+  rev-parse origin/parliament/lock) origin "${LOCK_COMMIT}:refs/heads/parliament/lock"` — if
+  another runner replaced the lock since it was read, the lease fails and this runner exits
+  cleanly. Log the overwrite warning as in the legacy path.
+- **Release:** delete the ref in §6.3 cleanup: `git push origin :refs/heads/parliament/lock`. A
+  crashed run leaves the ref for the stale-timeout path.
+
+The `.parliament-running` file and `parliament/*`-branch detection are not used under this
+transport. Legacy transports keep their existing lock mechanics unchanged.
+
 ### 1.2 Timeout Scanner
 
 Before scanning for ready files, run the timeout transition on active sessions.
@@ -133,8 +183,66 @@ For each `_inbox/*.md` with `status: active`:
 2. If age ≥ `timeout_minutes` (from `config.yml`), flip `status: active` → `status: ready`.
 3. Commit and push each flipped file: `timeout: session file {filename} → ready`.
 
+**Queue-branch transport:** run the same age evaluation on the **materialized copies** (§1.3) and
+flip them in the working tree only — never write the flip back to the queue. A still-`active` queue
+file short of the timeout is left on the queue untouched (not collected into the work set, never
+deleted by §6.3 — only processed files are); its next state transition is a later run's timeout or
+its session's own update.
 
 ### 1.3 Collect Ready Files
+
+**Queue-branch transport — materialize the queue first.** When `hive.yml.inbox_transport` is
+`branch`, copy every pending queue entry into the clone's `_inbox/` working tree so the rest of
+the pipeline (§1.2's flip, §2.0 normalizer, Archivist, critics, §6 cleanup) runs **transport-blind**:
+
+```bash
+mkdir -p _inbox
+# Run-scoped consumption manifest — inside the (wiped-per-run) Parliament dir and truncated
+# here. A shared or append-only path would let stale or cross-Hive lines feed wrong
+# queue_commit/queue_author values into §6.1's attribution records.
+MANIFEST="$PARLIAMENT_DIR/.queue-manifest"
+: > "$MANIFEST"
+for f in $(git ls-tree -r --name-only "origin/{INBOX_BRANCH}" -- _inbox/); do
+  case "$f" in _inbox/_completed/*|_inbox/_quarantine/*) continue ;; esac
+  base=$(basename "$f")
+  # Guard 1 (REDELETE_ONLY): a record already on {DEFAULT_BRANCH} — completed OR quarantined —
+  # means a prior run fully dispositioned this file and its housekeeping PR merged; the only
+  # remaining work is deletion (§6.3).
+  if [ -e "_inbox/_completed/$base" ] || [ -e "_inbox/_quarantine/$base" ]; then
+    echo "REDELETE_ONLY: $f" ; continue
+  fi
+  # Guard 2 (PENDING_REVIEW): a record on a live parliament/* branch means a prior run
+  # dispositioned this file and its housekeeping PR is still open. Do not reprocess (duplicate
+  # deliberation, duplicate quarantine notifications, duplicate knowledge edits) and do not
+  # delete yet (the record is not yet on the default branch). Skip it entirely this run. A
+  # codeowner who closes a housekeeping PR unmerged should delete its parliament/* branch —
+  # that returns these files to pending, the rejection semantics of the legacy transport.
+  PENDING=0
+  for pb in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/parliament/*' | grep -v '/lock$'); do
+    if git ls-tree -r --name-only "$pb" -- _inbox/_completed/ _inbox/_quarantine/ 2>/dev/null | grep -qF "/$base"; then
+      PENDING=1; break
+    fi
+  done
+  [ "$PENDING" = "1" ] && { echo "PENDING_REVIEW: $f (skipped — records await PR merge)" ; continue ; }
+  git show "origin/{INBOX_BRANCH}:$f" > "$f"
+  # Consumption manifest — attribution captured NOW, before any queue deletion (§6.1 writes it
+  # into the reconciliation note; security-policy § Attribution Chain depends on it).
+  git log -1 --format="$f|%H|%an <%ae>|%aI" "origin/{INBOX_BRANCH}" -- "$f" >> "$MANIFEST"
+done
+```
+
+**Queue hygiene (janitor):** while enumerating, also list every queue path that does **not**
+match the conforming shape `_inbox/<name>.md` (top level, `.md`) — nested directories, non-md
+files, or paths outside `_inbox/`. These were pushed by non-Apiary tooling (the session push
+stages only `_inbox/*.md`, and the pre-push scan covers only that shape): run
+`generate-hook.sh scan` over each (quarantine on match, per §0), log them in the run report, and
+include them in §6.3's drain commit — Parliament is the queue's only janitor, so anything it
+leaves accumulates forever on an unreviewed surface.
+
+The work set is the **union** of materialized queue entries and any legacy `_inbox/*.md` files
+still on `{DEFAULT_BRANCH}` (contributions from sessions that predate the transport flip, or from
+tooling that still pushes the old path). Draining both every run is what makes migration a
+coexistence window rather than a flag day (`references/mode-upgrade.md` § 2.23.0).
 
 Scan `_inbox/*.md` for `status: ready`. Collect into the initial work set. **Do not skip to Cleanup yet** — Step 2.0 (Frontmatter Normalizer) runs next and may rescue additional files by adding `status: ready` to alt-schema contributions. The early-exit check happens after Step 2.0.
 
@@ -451,8 +559,25 @@ processed: {ISO timestamp}
 path: fast | deliberation
 pr: "#{number}"
 verdict: merged | needs-review | rejected | escalated   # needs-review = in a pending CODEOWNER-gated PR; §6.2's merge-state rebuild reconciles it on a later run
+queue_commit: {sha}                    # queue-branch transport only — last queue commit touching the file,
+queue_author: "{Name} <{email}>"       # both copied from §1.3's consumption manifest BEFORE any queue deletion
 ---
 ```
+
+The two `queue_*` fields are what let the attribution chain survive queue truncation
+(`security-policy.md` § Attribution Chain): once §6.3 deletes the file from the queue — and
+whenever the queue is later re-rooted for incident response — this record is the durable carrier
+of the original commit and author. **Ordering invariant: a queue file may be deleted only after
+the `_inbox/_completed/` record carrying its content and attribution is reachable from
+`origin/{DEFAULT_BRANCH}`** — i.e. the housekeeping push landed (`direct` Parliament mode) or the
+housekeeping PR **merged** (`pr` mode). A record that exists only on an open `parliament/*`
+branch is not durable enough to delete against: that branch is unprotected, deletable, and a
+closed-unmerged housekeeping PR is a sanctioned codeowner action — deleting the queue copy while
+the only other copy is still revocable would let a rejection destroy the contribution outright.
+In practice this means `pr`-mode runs drain the *previous* run's files (§1.3's `REDELETE_ONLY`
+set), not their own — the queue lags Parliament by one review cycle, which audit Step 4b's
+depth/age INFO already surfaces. Under the `default-branch` transport the two fields are
+omitted — git history itself serves the chain.
 
 Followed by `## Incorporated`, `## Deliberated`, and `## Rejected` sections — one line per contribution in each:
 
@@ -521,6 +646,53 @@ This single commit covers: run report, completed file moves, any Apiculturist-re
 
 When the resolved Parliament push mode is `pr`, Parliament commits land on a `parliament/YYYY-MM-DD-HHMM` branch and open a single PR carrying run report + completed-file moves + knowledge updates. This is the recommended mode for gating `knowledge/` merges behind codeowner review, independent of how inbox contributions push. See `references/push-mode-pr-setup.md` "Runtime Procedure: Parliament Housekeeping" for the full block.
 
+Under the queue-branch transport, `pr` is effectively **required** once `{DEFAULT_BRANCH}` carries
+its full vanilla protection — a direct housekeeping push to a protected branch is exactly what the
+protection rejects. Audit Step 4b enforces the pairing.
+
+#### Queue deletion (queue-branch transport only)
+
+Drain the queue with an ordinary, pathspec-limited commit — **never the whole `_inbox/` tree, and
+never a force push**. What may be drained follows §6.1's ordering invariant (records must be
+reachable from `origin/{DEFAULT_BRANCH}`):
+
+- **`direct` Parliament mode:** the housekeeping push just landed the records on
+  `{DEFAULT_BRANCH}` — drain this run's processed files immediately, plus any `REDELETE_ONLY`
+  files from §1.3.
+- **`pr` Parliament mode** (the normal pairing under this transport): this run's records are on
+  an unmerged PR, so its files **stay on the queue** (they will be skipped as `PENDING_REVIEW`
+  next run and drained as `REDELETE_ONLY` once the PR merges). Drain only the `REDELETE_ONLY`
+  set — files whose records already merged to `{DEFAULT_BRANCH}` in a prior cycle. If a
+  fast-path-only run's batch PR auto-merged during this run, its files qualify immediately.
+- **Either mode:** also drain the janitor's non-conforming paths (§1.3 Queue hygiene) — junk has
+  no record to wait on.
+
+If the drain set is empty (first run after cutover, or every record still awaits review), skip
+the drain entirely — an idle skip is the designed steady-state, not an error:
+
+```bash
+# §6.1 moved every PROCESSED materialized copy into _inbox/_completed/; any copy still sitting
+# at _inbox/*.md is an unprocessed pending entry (e.g. active-under-timeout). Remove those
+# working copies first — the same paths exist as tracked files on the queue branch, and the
+# checkout below refuses to overwrite untracked files.
+for f in $(git ls-tree -r --name-only "origin/{INBOX_BRANCH}" -- _inbox/); do rm -f "./$f"; done
+git checkout -B "{INBOX_BRANCH}" "origin/{INBOX_BRANCH}"
+git rm -q -- {the drain set per the mode rules above…}
+git commit -m "parliament: drain queue — {N} drained (run YYYY-MM-DD-HHMM)"
+for attempt in 1 2; do
+  git push origin "{INBOX_BRANCH}" && break
+  # A session pushed mid-run — replay the deletions on top of its new entry; the entry survives.
+  git fetch origin "{INBOX_BRANCH}" --quiet
+  git rebase "origin/{INBOX_BRANCH}" --quiet || { git rebase --abort; break; }
+done
+git checkout -
+```
+
+If the push still fails after the retry: log `queue drain failed — {N} files remain; next run
+re-deletes via the §1.3 idempotency guard` in the run report and move on. Nothing is lost or
+reprocessed — the guard skips already-completed filenames and re-queues only their deletion. Then
+release the lock ref (§1.1: `git push origin :refs/heads/parliament/lock`).
+
 ---
 
 ## Error Handling
@@ -532,6 +704,9 @@ When the resolved Parliament push mode is `pr`, Parliament commits land on a `pa
 | Knowledge file missing for a target | Log as a coverage gap in the run report; do not create new files without Cartographer + Opus review |
 | Git push failure during PR creation | Retry once; if still failing, abort run and release lock |
 | Classification markings fail Hive policy (see Sentinel disposition table) | Quarantine to `_inbox/_quarantine/`, log incident, do not process further |
+| Queue drain push fails after rebase-retry (queue-branch transport, §6.3) | Log in run report; leave the queue as-is; release the lock. §1.3's idempotency guard makes the next run re-delete without reprocessing |
+| Queue ref unreachable at §0.5 (queue-branch transport) | Proceed with legacy `_inbox/` only; log `QUEUE_ABSENT` in the run report — an empty queue is normal before the first session push |
+| Lock ref steal loses the CAS race (queue-branch transport, §1.1) | Exit cleanly — another runner won; do not retry within this invocation |
 
 ---
 

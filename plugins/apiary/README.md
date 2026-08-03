@@ -102,6 +102,8 @@ flowchart LR
 
 The contributor experience: *you talk to the agent; everything else is invisible until it needs a human.* Sessions never write `knowledge/` — a protocol invariant reinforced by tooling: the settings template pre-approves only `_inbox/`/`sources/` staging, and `knowledge/` changes arrive via Parliament PRs (or human direct-PRs), codeowner-gated wherever branch protection is configured.
 
+**Where the inbox rides is configurable** (`hive.yml.inbox_transport`). By default inbox commits push to the default branch alongside everything else. A Hive that wants its default branch fully protected — required PR + codeowner review on *everything*, no bots — sets `inbox_transport: branch`: sessions push to a dedicated, never-PR-gated queue branch, Parliament is the only bridge, and processed entries are drained from the queue after their attribution is preserved in `_inbox/_completed/`. Capture friction is identical (one direct push); what changes is that unreviewed content never enters default-branch history, and queue history can be cheaply rewritten for incident response. Design and migration: `skills/apiary/references/inbox-transport-design.md`.
+
 ## How a question finds its answer (the RLDP)
 
 Retrieval is **LLM-navigated indexes over grep** — no embeddings, no vector DB, by design (contributors need nothing beyond git; and 2025-26 research has since validated plain-index navigation as the *better-performing* choice at this scale, not just the cheaper one). The Reference Library Discovery Protocol (`protocol/routing-protocol.md`) is the canonical spec; this is its shape:

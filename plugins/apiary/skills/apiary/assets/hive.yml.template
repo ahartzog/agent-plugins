@@ -68,6 +68,22 @@ auto_merge:
   tribunal_passed: true
   mechanism: pending   # TBD: GHE auto-merge label, CI gate, or bot
 
+# Inbox transport. Omit for the default: inbox contributions push to default_branch.
+# Set `inbox_transport: branch` to route them to a dedicated, never-PR-gated queue
+# branch instead, so default_branch can carry full vanilla protection (required PR +
+# codeowner review on everything) while capture stays one direct push. Parliament is
+# the only bridge from the queue to default_branch. Sessions bootstrap the queue
+# branch on first push; protect it against deletion + force push ONLY (no required
+# PRs — that would wedge capture). Under `branch`, inbox_push_mode is ignored, and
+# parliament_push_mode must be `pr` once default_branch is protected.
+# Design + migration guide: references/inbox-transport-design.md,
+# references/mode-upgrade.md § 2.23.0.
+# Values: inbox_transport = default-branch (default) | branch;
+#         inbox_branch = queue branch name, only read when transport is `branch`.
+# Uncomment these two lines as-is to opt in (keep them free of trailing comments):
+# inbox_transport: branch
+# inbox_branch: inbox
+
 # Sources — primary source material deposit configuration.
 # Sources bypass Parliament (they are ground truth, not claims).
 # See protocol/sources-policy.md for the full model.
