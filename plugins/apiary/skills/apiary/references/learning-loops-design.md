@@ -104,6 +104,46 @@ When `threshold_met: true`, the Brief workflow generates a `[meta]` inbox stub p
 
 ---
 
+### Loop B (Discovery) Telemetry Schema
+
+Parliament rebuilds `_custodian/reports/loop-b-gaps.json` on every run (idempotent — recomputed
+from the rolling 90-day window of gap-prefixed contributions, never incremented). Dedup key: the
+gap kind plus normalized description (lowercased, whitespace-collapsed, locator URLs canonicalized).
+
+```json
+{
+  "window_start": "2026-05-05",
+  "window_end": "2026-08-03",
+  "gaps": [
+    {
+      "kind": "coverage-gap",
+      "summary": "thermal vacuum test schedule",
+      "count": 4,
+      "first_seen": "2026-06-11",
+      "last_seen": "2026-07-30",
+      "sessions": ["2026-06-11-jdoe-...", "2026-07-30-asmith-..."]
+    },
+    {
+      "kind": "unreachable",
+      "summary": "ground-segment/broken-catalog.md row 'Legacy Command Format Register' — no store root",
+      "count": 2,
+      "first_seen": "2026-07-01",
+      "last_seen": "2026-07-28",
+      "sessions": ["..."]
+    }
+  ],
+  "totals": { "coverage-gap": 6, "routing-gap": 3, "unreachable": 2 },
+  "last_updated": "2026-08-03T14:30:00Z",
+  "parliament_run_id": "parliament-2026-08-03-001"
+}
+```
+
+`kind` ∈ {`coverage-gap`, `routing-gap`, `unreachable`} — the three §On no match prefixes. A
+repeated gap (count ≥ 2) is the highest-value signal in the file: two sessions hit the same wall,
+and the third will too. Brief ranks its "top unanswered questions" from this file; the audit-fix
+remediation pass drafts trigger additions from `routing-gap` entries; `unreachable` entries are
+the store-root/tool debts worth burning down first.
+
 ## Loop D (Escalation): Why Contradiction Velocity
 
 Loops A/B/C are all additive-or-tune. No existing loop handles "this fact keeps getting challenged." Without Loop D (Escalation), a contested fact can survive indefinitely if each individual contradiction is evaluated in isolation — the pattern is only visible when you look across contributions. [learned: 2026-04-17]

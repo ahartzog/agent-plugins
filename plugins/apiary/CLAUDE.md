@@ -30,9 +30,12 @@ golden suite and report the transcript summary, not just "cases pass":
 APIARY_GOLDEN_LLM_JUDGE=1 bash golden-routing.test.sh
 ```
 
-**None of this runs in CI today** (tracked in [BACKLOG.md](BACKLOG.md) § Deterministic Enforcement — "Wire the
-Apiary's own `.test.sh` suites into CircleCI"). Until that lands, this file is the only thing
-standing between a protocol regression and a merged PR — do not skip it because "CI will catch it."
+**CI status:** the deterministic suites run on every PR via `.github/workflows/apiary-tests.yml`
+(make it a required check in branch protection if it isn't yet), and the behavioral half runs
+weekly / on demand / when a maintainer labels a same-repo PR `golden-behavioral`
+(`.github/workflows/apiary-golden-behavioral.yml`; needs the `ANTHROPIC_API_KEY` repo secret).
+Still run the suites locally before pushing — CI confirms, it does not replace the discipline —
+and for routing-file changes paste the Part B transcript summary into the PR body either way.
 
 ## Do not confuse test fixtures with real Hive state
 

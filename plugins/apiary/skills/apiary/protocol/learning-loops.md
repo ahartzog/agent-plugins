@@ -69,6 +69,14 @@ Rationale: `references/external-retrieval-search-design.md` § Why promotion req
 
 **The session's share.** A session does not write `knowledge/` at all — not facts, not locators. What it *can* and MUST do without waiting for Parliament is write inbox contributions, and it owes two of them. First, record a routing gap the moment it observes one: a question the reference-library failed to route, or a knowledge file it only found by other means — a `[link]` or `[process]` contribution, written autonomously under the same discipline as any other Loop B write. Do not defer it on the assumption Parliament will notice; Parliament sees contributions, not the questions that failed. Second, discharge the promotion gate above: a `[link]` contribution carrying the catalog row for every search-discovered document it opened. Both are session-owned completion gates; neither is a `knowledge/` write.
 
+**Telemetry:** `_custodian/reports/loop-b-gaps.json` — schema in
+`references/learning-loops-design.md`; written by Parliament §6.2 as an idempotent rebuild from
+gap-prefixed contributions (`coverage-gap:` / `routing-gap:` / `unreachable:`, per
+`routing-protocol.md` §On no match) in `_inbox/` and `_inbox/_completed/`. Audit Step 3 and Brief
+read it — the ranked gap backlog is the leading indicator of routing decay, and DESIGN-GOALS'
+"fix the instrument before the thing it measures" makes this file the prerequisite for any further
+RLDP tuning.
+
 **Discoverability is Design Goal 9.** An artifact is not "contributed" until it is reachable — see `design-goals.md` §9, which requires every content surface to name its index, its write path, and its audit check. Audit enforces the read side (`mode-audit.md` Step 1b coverage check, § Source Index Integrity); this loop is the write side.
 
 ---

@@ -229,13 +229,10 @@ Before routing, the Archivist processes every contribution in every ready file:
 
    This guard is defense-in-depth atop Sentinel (§0), which independently hard-quarantines any classification marker (including a legacy FOUO banner) that actually lands in a lower-ceiling Hive's inbox.
 
-After Archivist pre-processing, route each contribution:
-
-| Tag | Path |
-|-----|------|
-| `[link]`, `[person]`, `[tracker]` | Fast path |
-| `[status]`, `[correction]`, `[architecture]`, `[contradiction]`, `[process]`, `[strategy]` | Deliberation path |
-| `[meta]` | Deliberation path **+ CODEOWNERS** — tag for CODEOWNER review regardless of Chancellor verdict (`triage-policy.md` § Contribution Categories). A `[meta]` contribution targets the protocol layer, not `knowledge/`, so it is a skill-refinement signal that must reach a human even when Chancellor returns MERGE. |
+After Archivist pre-processing, route each contribution per the canonical category table in
+`triage-policy.md` § Contribution Categories: `[link]` / `[person]` / `[tracker]` → §3 Fast Path;
+every other tag → §4 Deliberation; `[meta]` additionally always reaches CODEOWNERS regardless of
+Chancellor verdict (it targets the protocol layer, not `knowledge/`).
 
 ---
 
@@ -259,7 +256,7 @@ Fast-path contributions auto-merge after CI passes. No human review required.
 
 **Tags:** `[status]`, `[correction]`, `[architecture]`, `[contradiction]`, `[process]`, `[strategy]`, `[meta]`
 
-`[meta]` carries one addition: it is always tagged for CODEOWNERS review, whatever the Chancellor decides (see §2.1 routing table and §4.3). It is the Hive's channel for reporting defects in the protocol itself, so it must never merge silently.
+`[meta]` carries one addition: it is always tagged for CODEOWNERS review, whatever the Chancellor decides (see §2.1's routing pointer and §4.3). It is the Hive's channel for reporting defects in the protocol itself, so it must never merge silently.
 
 ### 4.1 Parallel Independent Evaluation
 
@@ -494,6 +491,11 @@ Write a run report to `_custodian/reports/YYYY-MM-DD-HHMMZ-parliament-run.md`. I
   stub.
 - `_custodian/reports/loop-d-disputes.json` — every `[contradiction]` processed this run (§4.1.05),
   with fact, count, window, and PR URL for fired escalations.
+- `_custodian/reports/loop-b-gaps.json` — same idempotent-rebuild discipline as Loop C: scan
+  `_inbox/` and `_inbox/_completed/` for entries whose description starts `coverage-gap:`,
+  `routing-gap:`, or `unreachable:` (the §On no match prefixes) within the rolling 90-day window;
+  dedup by kind + normalized description; write counts, first/last seen, and contributing session
+  files (schema: `references/learning-loops-design.md` § Loop B Telemetry Schema).
 
 Append session and Parliament metrics to `_metrics/week-YYYY-WNN.md` (current week's log file).
 

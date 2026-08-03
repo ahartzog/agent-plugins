@@ -131,6 +131,10 @@ For each `type: index` knowledge file:
 - Compare against knowledge file `last_updated` dates
 - Flag if inbox shows activity but knowledge files haven't been updated
 - **Findability half of the loop:** carry forward the Step 1b coverage result. Genuinely uncovered knowledge files (not covered by a file *or* directory pointer) are Loop B failures, not just routing warnings — content was captured but never made reachable. Report as `Loop B: {N} uncovered file(s) — captured but unreachable by Ask`.
+- Read `_custodian/reports/loop-b-gaps.json` if present: report the top 5 gaps by count (a
+  count ≥ 2 means multiple sessions hit the same wall) and the `unreachable` total (store-root /
+  tool debt). If absent on a Hive whose Parliament has run since 2.22.0: **WARN: no Loop B
+  telemetry — recorded gaps are not being aggregated, so the gap backlog is invisible.**
 - Check `_inbox/` and `_inbox/_completed/` for routing-gap contributions (`[link]`/`[process]` entries naming a question the reference-library could not answer, or a locator that would not resolve, per `protocol/routing-protocol.md` §On no match). **Zero such entries in a Hive that also has uncovered files is a signal the loop is not firing** — sessions are hitting gaps and not recording them. Report as INFO with both counts side by side.
 
 **Unratified agent decisions (epistemic provenance):**

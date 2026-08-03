@@ -69,6 +69,17 @@ If upgrade was triggered automatically by `operate`, resume the original workflo
 Minor/patch changes require no migration — they ship live through the installed plugin. This log
 records what changed so operators reading `/apiary upgrade` output have an anchor.
 
+### 2.22.0 — Loop B telemetry, restatement dedup, two design proposals
+
+- **Loop B gains telemetry parity with C/D:** gap contributions carry `coverage-gap:` /
+  `routing-gap:` / `unreachable:` prefixes; Parliament rebuilds `loop-b-gaps.json`; audit and
+  Brief consume it. **Migration: none** — unprefixed legacy gap entries simply do not aggregate;
+  they age out of the 90-day window naturally.
+- Co-loaded restatements deduped to single owning surfaces (workflows §Ask, cross-hive guard,
+  custodian routing table, mode-operate loop enforcement). No semantic change.
+- Design proposals added (not yet protocol): configurable deliberation-MERGE disposition;
+  `/apiary audit --fix` remediation pass.
+
 ### 2.21.0 — compact RLDP rendering
 
 - `protocol/routing-protocol.md` compressed ~31% (277 → 189 lines) by moving design rationale to

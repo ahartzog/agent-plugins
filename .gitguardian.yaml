@@ -1,0 +1,8 @@
+version: 2
+
+secret:
+  ignored_paths:
+    # These files exist to exercise apiary's pre-push sentinel, which is itself a
+    # secret scanner. Every "credential" in them is a synthetic fixture chosen to
+    # trip a regex — there is nothing live here to rotate.
+    - 'plugins/apiary/skills/apiary/tests/**'

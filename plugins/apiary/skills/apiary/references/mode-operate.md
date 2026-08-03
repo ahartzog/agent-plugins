@@ -219,7 +219,7 @@ When Parliament workflow is triggered, follow the Parliament Operational Runbook
 
 **Artifact contribution is a task-completion gate.** Before marking any task complete, evaluate internally: *did this session produce something a future user of this Hive would benefit from knowing?* If yes, write the inbox entry and push — do not ask the user for confirmation. Inbox writes are low-cost and Parliament reviews everything before it reaches knowledge files.
 
-**Cross-hive advisory (non-blocking).** Requires `federation.cross_hive_routing` (default `true`); if it is `false`, skip this advisory entirely. `{SIBLINGS}` is whatever `hive.yml` already holds — never fetch it at session time, and if it is empty this advisory simply does not fire. If a contribution clearly falls outside this Hive's `{HIVE_PURPOSE}` and matches a sibling's purpose in `{SIBLINGS}` better, you may say so and point the user to the better-matching `/sibling-slug` — *after* still capturing it here (Parliament does the authoritative routing). Never withhold or redirect a contribution on this basis at session time; this is a gentle pointer, not a gate. **Classification direction:** determine the content's marking the same way Parliament does (frontmatter `classification:` if present, else inferred from an in-body banner, else treat as UNCLASSIFIED), and never point toward a sibling whose ceiling (`siblings[].classification`) is below that marking. The authoritative guard lives in `custodian-workflow.md` §2.1 step 5.
+**Cross-hive advisory (non-blocking).** Requires `federation.cross_hive_routing` (default `true`); if it is `false`, skip this advisory entirely. `{SIBLINGS}` is whatever `hive.yml` already holds — never fetch it at session time, and if it is empty this advisory simply does not fire. If a contribution clearly falls outside this Hive's `{HIVE_PURPOSE}` and matches a sibling's purpose in `{SIBLINGS}` better, you may say so and point the user to the better-matching `/sibling-slug` — *after* still capturing it here (Parliament does the authoritative routing). Never withhold or redirect a contribution on this basis at session time; this is a gentle pointer, not a gate. **Classification direction:** before naming a sibling, apply the direction guard — `custodian-workflow.md` §2.1 step 5 (authoritative); never point controlled content toward a lower-ceiling sibling.
 
 ### Pre-Push Guard
 
@@ -270,11 +270,7 @@ See `references/push-mode-pr-setup.md` for the full runtime procedure (prerequis
 
 ## Learning Loop Enforcement
 
-Per `protocol/learning-loops.md` — all four loops, evaluated before any workflow completes:
+Per `protocol/learning-loops.md` (canonical — load it when deciding whether something must be captured), evaluated before any workflow completes. The session-side contract in two lines:
 
-- **Loop A (Correction)**: Every user correction → knowledge via inbox
-- **Loop B (Discovery)**: Every session discovery or produced artifact → knowledge via inbox, **and every routing gap you hit → an inbox entry naming it**. A question the reference-library could not route, or a knowledge file you found by other means, is a `[link]`/`[process]` contribution. Capture without findability is not a completed loop.
-- **Loop C (Calibration)**: Approval ratios tune the triage policy — when a human overrides a Parliament flag, that signal belongs in `_custodian/reports/loop-c-counters.json` (Parliament writes it; a session only contributes the `[meta]` observation if it notices a miscalibration).
-- **Loop D (Escalation)**: A `[contradiction]` against a fact that already has a recent contradiction escalates to `[disputed]`. Sessions do not run Loop D (Escalation) — Parliament does — but tag genuine conflicts `[contradiction]` rather than `[correction]` when you cannot cite a source, or the loop never sees them.
-
-Loops A (Correction) and B (Discovery) fire in-session. C (Calibration) and D (Escalation) fire in Parliament; a session's job is to emit the signal they consume.
+- **In-session (Loops A/B):** every user correction, every reusable artifact, and **every routing gap you hit** becomes an inbox contribution before the session ends. Capture without findability is not a completed loop.
+- **Parliament-side (Loops C/D):** a session's only job is emitting the signals they consume — `[meta]` observations for miscalibration, and `[contradiction]` (not `[correction]`) for conflicts you cannot source.

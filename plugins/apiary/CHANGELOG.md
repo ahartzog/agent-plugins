@@ -4,6 +4,20 @@ All notable changes to the **apiary** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for change and versioning discipline, and this plugin's [CONTRIBUTING.md](CONTRIBUTING.md) for the mandatory scenario verification.
 
+## [2.22.0] — 2026-08-03
+
+### Added
+- **Loop B telemetry** (`_custodian/reports/loop-b-gaps.json`) — the loop that captures user-visible routing failure finally gets the counters Loops C and D already had. §On no match contributions now carry deterministic mining prefixes (`coverage-gap:` / `routing-gap:` / `unreachable:`); Parliament §6.2 rebuilds the deduped 90-day gap backlog idempotently; audit Step 3 reports the top repeated gaps; Brief ranks its "what are we failing to answer" section from the file instead of re-deriving it. Schema in `references/learning-loops-design.md`.
+- **Two design docs** (proposals, not yet implemented): `references/merge-disposition-design.md` — a `triage.deliberation_merge: auto | review` knob making the clean-MERGE human gate configurable and wiring it into Loop C as an evidence-based graduation/demotion path; `references/audit-fix-design.md` — the consolidation/"dreaming" pass shaped as `/apiary audit --fix` (audit's findings become the remediation work queue), with the Goal-4 carve-out question stated for decision.
+
+- **CI, two tiers:** `.github/workflows/apiary-tests.yml` runs all seven deterministic suites on every apiary PR (intended required check); `.github/workflows/apiary-golden-behavioral.yml` runs golden Part B with a real headless Claude session (weekly / on demand / maintainer-labeled same-repo PRs; transcripts as artifacts; model pinned via the new `APIARY_GOLDEN_CLAUDE_ARGS` hook in `golden-routing.test.sh`).
+
+### Fixed
+- **Test suites are hermetic against user git config:** fixture repos now run with `GIT_CONFIG_GLOBAL`/`GIT_CONFIG_SYSTEM` nulled and a pinned test identity — a globally-installed hook suite (e.g. ggshield via `core.hooksPath`) was intercepting fixture pushes and failing setup for any contributor who has one.
+
+### Changed
+- **BACKLOG consolidated into the canonical work ledger:** every open recommendation from the 2026-08 multi-agent audit is now a formal item with provenance and a confidence tag, organized into Held-decisions / Designed / enforcement / retrieval / loops / guardrails / profiles / open-sourcing themes; delivered items marked; the protocol-toggles sketch superseded by the profiles reframe (its Sentinel-disable line contradicted design-goals §4). A clean-slate session can now start from BACKLOG.md alone.
+- **Restatement dedup:** workflows §Ask's paragraph-length RLDP summary → one governing pointer; SKILL.md and the Contribute/Parliament/mode-operate cross-hive passages now defer to custodian §2.1 step 5 as the guard's single authoritative statement; custodian §2.1's tag→path table → pointer to triage-policy's canonical category table; mode-operate's Learning Loop Enforcement compressed to the two-line session-side contract. Roughly ~500 tokens off every Ask and ~1k off every Parliament run, and each rule now has exactly one owning surface (the "restated rule will drift" lesson, applied).
 ## [2.21.0] — 2026-08-03
 
 ### Changed

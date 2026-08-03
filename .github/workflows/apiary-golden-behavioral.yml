@@ -1,0 +1,62 @@
+# Tier 2 — golden Part B: the behavioral half, executed by a real headless
+# Claude session against the fixture Hive. Deliberately NOT a merge gate
+# (non-deterministic, keyword-judged — see golden-routing.test.sh's header);
+# runs as a weekly trendline, on demand, or when a maintainer labels a
+# same-repo PR 'golden-behavioral' (the CONTRIBUTING rule for routing-file
+# changes, made enforceable).
+#
+# SECURITY: this job carries ANTHROPIC_API_KEY. The `if:` guard below must
+# keep it away from fork PRs; do not convert to pull_request_target.
+name: apiary-golden-behavioral
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+  pull_request:
+    types: [labeled]
+    paths:
+      - 'plugins/apiary/**'
+
+concurrency:
+  group: apiary-golden-behavioral
+  cancel-in-progress: false
+
+jobs:
+  part-b:
+    if: >
+      github.event_name != 'pull_request' ||
+      (github.event.label.name == 'golden-behavioral' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # --bare: skip hooks/plugins/skills for a reproducible contract;
+      # pin the model so the trendline measures the protocol, not model drift.
+      APIARY_GOLDEN_CLAUDE_ARGS: "--bare --model sonnet --max-turns 30"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Claude Code CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install test deps
+        run: pip install jsonschema
+      - name: Guard — secret present
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY repo secret is not set — Part B cannot run."
+            exit 1
+          fi
+      - name: golden-routing Part A + Part B (LLM-judged)
+        run: |
+          cd plugins/apiary/skills/apiary/tests
+          APIARY_GOLDEN_LLM_JUDGE=1 APIARY_GOLDEN_LLM_TIMEOUT=180 bash golden-routing.test.sh
+      - name: Upload transcripts (read anything flagged FAIL — the judge is heuristic)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-transcripts-${{ github.run_id }}
+          path: /tmp/tmp.*/case-*.txt
+          if-no-files-found: ignore
+          retention-days: 30
