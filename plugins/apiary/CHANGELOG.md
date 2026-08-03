@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this pl
 - **Test suites are hermetic against user git config:** fixture repos now run with `GIT_CONFIG_GLOBAL`/`GIT_CONFIG_SYSTEM` nulled and a pinned test identity — a globally-installed hook suite (e.g. ggshield via `core.hooksPath`) was intercepting fixture pushes and failing setup for any contributor who has one.
 
 ### Changed
+- **BACKLOG consolidated into the canonical work ledger:** every open recommendation from the 2026-08 multi-agent audit is now a formal item with provenance and a confidence tag, organized into Held-decisions / Designed / enforcement / retrieval / loops / guardrails / profiles / open-sourcing themes; delivered items marked; the protocol-toggles sketch superseded by the profiles reframe (its Sentinel-disable line contradicted design-goals §4). A clean-slate session can now start from BACKLOG.md alone.
 - **Restatement dedup:** workflows §Ask's paragraph-length RLDP summary → one governing pointer; SKILL.md and the Contribute/Parliament/mode-operate cross-hive passages now defer to custodian §2.1 step 5 as the guard's single authoritative statement; custodian §2.1's tag→path table → pointer to triage-policy's canonical category table; mode-operate's Learning Loop Enforcement compressed to the two-line session-side contract. Roughly ~500 tokens off every Ask and ~1k off every Parliament run, and each rule now has exactly one owning surface (the "restated rule will drift" lesson, applied).
 ## [2.21.0] — 2026-08-03
 
