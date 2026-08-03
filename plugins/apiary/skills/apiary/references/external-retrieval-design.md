@@ -168,3 +168,42 @@ hits it can still produce a plausible answer from the summary. Nothing downstrea
 because Parliament sees contributions and never the questions that failed. So §On no match covers
 the unreachable case alongside the no-match case — the session is the only observer, which makes
 recording it the session's obligation under Loop B (Discovery).
+
+## Why there is no vector store, and what would change that
+
+The RLDP retrieves by glob, trigger match, and grep. No embeddings, no index build, no vector
+database. That was originally a **concession** — a Hive is a git repo that must work on a laptop
+with bash and git, and standing up an index per Hive across 30+ instances was not affordable. The
+concession framing is now out of date, and this section records why, because the first "let's add
+a vector DB" proposal will otherwise be argued against a rationale nobody believes anymore.
+
+The evidence that landed since:
+
+- **Anthropic removed vector search from Claude Code in favor of grep-based agentic search** —
+  measured as better on the code-retrieval task, not merely cheaper, and shipped as the default in
+  a product where retrieval quality is the product.
+- **"Is Grep All You Need?" and the agentic-search ablations** report parity-to-advantage for
+  iterative grep-and-read against embedding retrieval on corpora in the low thousands of
+  documents, with the crossover driven by corpus size rather than task difficulty.
+- **~94.5% of full-RAG quality at zero infrastructure** is the repeatedly-measured figure for
+  structured-index-plus-grep at this scale. The remaining ~5.5% is dominated by *paraphrase* misses
+  — the asker and the author used different words for the same thing.
+
+Two consequences for this protocol. First, vectorless is the **better** architecture at Hive scale,
+not a compromise it tolerates; a proposal to add embeddings has to beat grep, not merely match it.
+Second — and this is the actionable half — the known residual failure mode is paraphrase, which is
+precisely what §Match's restatement step attacks and what a `covers` column on catalog rows
+attacks. Those are the cheap interventions that buy most of the gap, and they need no index.
+
+**The revisit trigger, stated so it is falsifiable.** Reopen this decision when **both** hold:
+
+1. A single Hive passes roughly **1–2k indexed documents** — the scale at which the ablations put
+   the crossover; and
+2. `_custodian/reports/loop-b-gaps.json` shows recorded misses dominated by **paraphrase failures**
+   (the asker's words never met the author's) rather than **coverage gaps** (the material was never
+   indexed at all).
+
+Condition 2 is the load-bearing one. A vector store fixes vocabulary mismatch; it does nothing for
+material the Hive never indexed, and coverage gaps are what the telemetry has actually been
+recording. Adding an index against a coverage-dominated gap profile would spend real infrastructure
+on the wrong failure — so measure the profile before proposing the substrate.

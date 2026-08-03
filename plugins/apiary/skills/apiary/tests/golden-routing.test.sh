@@ -173,6 +173,58 @@ check "  ...yet has a row pointing at a second, undeclared store (github.com)" \
   "$(grep_row "$MIXED_CATALOG" 'github.com/example-org')"
 
 echo ""
+echo "--- Case 15: sources/ read path (Hive-root locator + verbatim fall-through) ---"
+SRC_INDEX="$GOLDEN_DIR/sources/index.md"
+SRC_TRANSCRIPT="$GOLDEN_DIR/sources/meeting-transcripts/2026-07-15-jrivera-link-budget-sync.md"
+LB_NOTES="$KNOWLEDGE_DIR/ground-segment/link-budget-notes.md"
+check "sources/index.md exists at the HIVE ROOT (not under knowledge/)" \
+  "$([[ -f "$SRC_INDEX" ]] && echo 0 || echo 1)"
+# The trap this whole feature exists to fix: the prescribed router token is `sources/index.md`,
+# and the pre-2.24.0 §Resolve rule sent it to knowledge/sources/index.md. Assert that path is
+# absent, so a future "helpful" fixture cannot mask the regression by creating it.
+check "  ...and knowledge/sources/index.md does NOT exist (the mis-resolution target)" \
+  "$([[ ! -e "$KNOWLEDGE_DIR/sources/index.md" ]] && echo 0 || echo 1)"
+check "reference-library.md carries the prescribed \`sources/index.md\` router row" \
+  "$(grep -qF '`sources/index.md`' "$KNOWLEDGE_DIR/reference-library.md" && echo 0 || echo 1)"
+check "source index row points at the deposited transcript" \
+  "$(grep -qF 'meeting-transcripts/2026-07-15-jrivera-link-budget-sync.md' "$SRC_INDEX" && echo 0 || echo 1)"
+check "transcript exists and states the exact committed value (4.7 dB)" \
+  "$([[ -f "$SRC_TRANSCRIPT" ]] && grep -qF '4.7 dB' "$SRC_TRANSCRIPT" && echo 0 || echo 1)"
+check "knowledge paraphrase is topically responsive (mentions link margin)" \
+  "$(grep -qi 'link margin' "$LB_NOTES" && echo 0 || echo 1)"
+# Without this the case is untestable: if the paraphrase also carried 4.7, answering from the
+# wrong file would be indistinguishable from answering from the source.
+check "  ...but does NOT contain 4.7 — answering from it is detectably wrong" \
+  "$(grep -qF '4.7' "$LB_NOTES" && echo 1 || echo 0)"
+check "  ...and cites the transcript in sources[] (Goal 9 discoverability, second mechanism)" \
+  "$(grep -qF 'sources/meeting-transcripts/2026-07-15-jrivera-link-budget-sync.md' "$LB_NOTES" && echo 0 || echo 1)"
+
+echo ""
+echo "--- Protocol clauses the new cases bind to (drift guard) ---"
+PROTO_DIR="$SCRIPT_DIR/../protocol"
+RP="$PROTO_DIR/routing-protocol.md"
+check "§Resolve has a Hive-root locator row for sources/" \
+  "$(grep -qF 'Hive-root path' "$RP" && echo 0 || echo 1)"
+check "§Extract has the verbatim fall-through clause" \
+  "$(grep -qi 'Fall through to the verbatim original' "$RP" && echo 0 || echo 1)"
+check "§Match has the restatement step" \
+  "$(grep -qi 'Restate the query before scanning' "$RP" && echo 0 || echo 1)"
+check "  ...and bounds it against decomposition/HyDE" \
+  "$(grep -qi 'restatement, not decomposition' "$RP" && echo 0 || echo 1)"
+check "§Answer requires the one-line routing trace" \
+  "$(grep -qi 'Close with the routing trace' "$RP" && echo 0 || echo 1)"
+check "  ...and ties every citation to the opened list" \
+  "$(grep -qF 'must name a locator that appears in `opened:`' "$RP" && echo 0 || echo 1)"
+check "§Answer warns the reader on a past-due cited file" \
+  "$(grep -qi 'unverified since' "$RP" && echo 0 || echo 1)"
+check "§Prefer ranks status questions on [effective:] when present" \
+  "$(grep -qF 'most recently *true*' "$RP" && echo 0 || echo 1)"
+check "knowledge-schema documents [effective:] as an optional inline annotation" \
+  "$(grep -qF '[effective: YYYY-MM-DD]' "$PROTO_DIR/knowledge-schema.md" && echo 0 || echo 1)"
+check "fixture paraphrase actually carries [effective:] annotations" \
+  "$(grep -qF '[effective: 2026-07-15]' "$LB_NOTES" && echo 0 || echo 1)"
+
+echo ""
 echo "--- hive.yml.fixture sanity (no real remote/registry leaked into a fixture) ---"
 check "hive.yml.fixture federation is fully opted out (fixture must never touch Confluence/registry)" \
   "$(grep -A2 '^federation:' "$GOLDEN_DIR/hive.yml.fixture" | grep -qF 'register: false' && echo 0 || echo 1)"
@@ -269,6 +321,20 @@ else
       'Using the Reference Library Discovery Protocol, answer: "What'"'"'s the thermal vacuum test schedule for the ground segment radios?" The knowledge tree is ./knowledge here. You have no store-search tool installed in this exercise. If you cannot fully answer, say exactly what you did instead and what you recorded.' \
       'ungrounded|no knowledge|not cover|no coverage|does not cover' \
       'gap|\[process\]|inbox contribution'
+
+    # Case 15 asserts the exact value AND the source path. The paraphrase in
+    # knowledge/ground-segment/link-budget-notes.md deliberately says "roughly 5 dB", so a
+    # transcript-sourced answer and a paraphrase-sourced answer are textually distinguishable.
+    judge_case 15 \
+      'Using the Reference Library Discovery Protocol, answer: "What exactly did the team commit to for downlink link margin — quote the number from the session." The knowledge tree is ./knowledge here and deposited sources are under ./sources. State which file you quoted from.' \
+      '4\.7' \
+      'sources/meeting-transcripts|link-budget-sync|transcript'
+
+    judge_case 16 \
+      'Using the Reference Library Discovery Protocol, answer: "How is the ground segment structured — what are its subsystems?" The knowledge tree is ./knowledge here. End your answer with the routing trace the protocol requires.' \
+      'trace:' \
+      'opened:' \
+      'overview\.md'
   fi
 fi
 

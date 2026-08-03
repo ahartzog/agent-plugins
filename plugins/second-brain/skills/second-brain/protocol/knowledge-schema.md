@@ -99,11 +99,47 @@ Knowledge file content uses inline annotations for provenance and staleness:
 | Annotation | Purpose | Required? |
 |---|---|---|
 | `[learned: YYYY-MM-DD]` | When the fact entered the system | Required on every new fact |
+| `[effective: YYYY-MM-DD]` | **When the fact became true in the world** — distinct from when it was learned | Optional; apply whenever the two dates differ |
 | `[decided: <who>, YYYY-MM-DD]` | **Epistemic provenance** — a decision was made, by `<who>` (human name or agent id) | Optional; see Provenance below |
 | `[review-by: YYYY-MM-DD]` | When the fact should be re-verified | Required for `decay: fast`, recommended otherwise |
 | `[superseded: YYYY-MM-DD, reason]` | Marks a fact as replaced | Used when updating, not deleting |
 | `[disputed: YYYY-MM-DD]` | Marks a fact with contradicting claims | Added by Loop D |
 | `[confidence: low]` | Inline flag for unverified claims | Required when presenting decisions with real stakes |
+
+### `[effective:]` — world-validity, as distinct from ingestion time
+
+`[learned:]` records when a fact **entered the knowledge base**. Every freshness judgment then runs
+on that clock — staleness checks measure from file-write dates, and "the most recent fact" means
+the most recently *written* one. Usually the two clocks agree closely enough. When they don't, the
+answer is wrong in the most confident-sounding way:
+
+- A fact backfilled today about something that changed last quarter is the **newest** by
+  `[learned:]` and the **oldest** in reality. Ranked on ingestion, it wins.
+- A fact written months ago that is still true reads as stale and gets caveated or displaced by
+  something newer but less accurate.
+
+`[effective:]` states the thing that resolves both: **when this became true in the world.**
+
+- **Means:** the fact holds as of this date — not when anyone learned it, wrote it down, or
+  verified it.
+- **Apply when** the two dates differ meaningfully: a rate that changed on a date you found out
+  about later, a policy effective at the start of a plan year, a decision recorded after the fact,
+  anything imported from a source dated earlier than the capture.
+- **A fact may carry both**, and usually does: `[effective: 2026-01-01] [learned: 2026-08-03]`
+  reads "true since January, recorded in August."
+- **Never infer one.** If the source does not state the world-validity date, leave it off. A
+  guessed `[effective:]` is worse than none — the same rule `[decided:]` holds for `<who>`.
+- **Absence means "unknown, use `[learned:]`"** — never "effective on the learned date."
+
+Optional by construction: existing facts carry none and behave exactly as they do today, so nothing
+needs backfilling. Inline rather than frontmatter for the same reason as `[decided:]` — one file
+holds many facts, each with its own dates.
+
+**Shared with the Apiary** (`plugins/apiary/skills/apiary/protocol/knowledge-schema.md`
+§ Inline Annotations) under the shared-taxonomy contract; the definition is deliberately identical.
+The consumers differ: the Apiary additionally ranks retrieval candidates on it (its RLDP §Prefer)
+and decays audit findings from it, mechanics a single-user Second Brain has no counterpart for.
+Here it serves answer ranking and staleness judgment.
 
 ### `[decided:]` — epistemic provenance
 

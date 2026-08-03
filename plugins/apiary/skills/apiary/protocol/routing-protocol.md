@@ -34,6 +34,23 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
    in block form). A trigger matches if the question is a clear instance of the situation it
    describes.
 
+   **Restate the query before scanning.** Triggers are written in the *author's* vocabulary; the
+   question arrives in the *asker's*. Matching raw phrasing against raw triggers is keyword
+   collision — and this is the step whose failure is most expensive, because a miss here ends the
+   protocol before §Prefer, §Resolve, or §Extract ever run, and it fails **silently**: the output
+   is an ungrounded answer, not an error. So first write 2–4 alternate phrasings on one line —
+   synonyms, the document-vocabulary form, and any entity, system, or acronym names the question
+   implies but does not say. Then scan triggers against the restatement set, not the raw question
+   alone.
+
+   > "who owns downlink scheduling?" → *ground segment ownership, downlink scheduler, pass
+   > planning, CODEOWNER / ops responsibility*
+
+   **This is restatement, not decomposition.** Do not split the question into sub-questions, do not
+   generate a hypothetical answer document to match against, and do not run a separate retrieval
+   pass per phrase. Those cost more than the fetch economy returns (`references/external-retrieval-design.md`);
+   one line, one scan. Record the restatement in §Answer's trace so the step is observable.
+
 4. **Prefer** — whenever more than one candidate is in hand, narrow before spending a fetch — at
    **every** point a candidate set appears:
 
@@ -60,6 +77,21 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
    - Requirements → prefer `formal`
    - Vendor ("what did Y deliver?") → prefer `delivered`, filter by `source_org` if present
 
+   **"Most recent" means most recently *true*, not most recently *written*.** A status question
+   asks about the world, so rank on `[effective: YYYY-MM-DD]` where a candidate carries it
+   (`protocol/knowledge-schema.md` § Inline Annotations) and fall back to `[learned:]` /
+   `last_updated` where it does not. The two clocks diverge in the case that matters most: a fact
+   ingested today can describe a state from last quarter, and a fact written months ago can still
+   be the current one. Ranking a backfilled note above the fact it describes is the failure this
+   rule exists to prevent. Mixed candidate sets are normal — say which clock each winner was
+   ranked on when they differ.
+
+   **Freshness tiebreak.** When candidates are otherwise comparable — same `authority`, both
+   responsive — prefer the one whose freshness posture is healthier: within its `decay` threshold
+   (`protocol/knowledge-schema.md` § Decay Semantics) and not past `review_by`. If the winner is
+   nonetheless stale, it still wins, but caveat it per §Answer's staleness rule rather than
+   presenting it as current.
+
    **Execute the ranking on paper, not in your head:** lay the candidate set out as a compact
    table (`candidate | authority | date | why it might win`) and rank in one pass. **Recency is
    decided mechanically, never judged** — extract each candidate's date into an explicit list,
@@ -77,7 +109,16 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
    | **Absolute URL** (preferred form) | `https://…sharepoint.us/…`, `https://…quip.com/NieRAn8pvonB` | fetch with the tool serving that host (`protocol/tool-tiers.md` § Store Kind → Tool — consult only when needed) |
    | Local file (default inside `knowledge/`) | `program/overview.md` | `Read` it, relative to `knowledge/` |
    | Directory pointer | `people/profiles/` (trailing slash) | every `.md` beneath it, recursively |
+   | **Hive-root path** — any locator whose first segment is `sources/` | `sources/index.md`, `sources/meeting-transcripts/2026-07-15-jrivera-sync.md` | `Read` it relative to the **Hive root**, not `knowledge/` |
    | Store-relative path | `06 - Ground Segment/ICDs/` | join to the store root the file's frontmatter `sources[]` declares, then fetch as an absolute URL |
+
+   **Why `sources/` needs its own row.** `sources/` is a top-level directory *outside* `knowledge/`
+   by deliberate design (`protocol/sources-policy.md`), and the router row that makes it reachable
+   is prescribed verbatim by that policy as `sources/index.md`. Resolved under the default rule
+   that row becomes `knowledge/sources/index.md`, which does not exist — so the Hive's
+   highest-fidelity material was addressable but unreachable. Resolve `sources/…` from the Hive
+   root; if that misses, retry once under `knowledge/` before declaring it broken (a Hive that
+   happens to keep a `knowledge/sources/` directory still resolves, and the retry costs one `Read`).
 
    A store-relative row whose file declares no store root is unresolvable: treat it as a broken
    pointer and record it per §On no match (authoring rules: `protocol/knowledge-schema.md` § Store
@@ -94,6 +135,19 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
      `covers` column plus the document name; where a row carries no `covers`, matching is by
      filename only — say so rather than reporting a filename match as a topical one.
    - Otherwise → the whole document.
+
+   **Fall through to the verbatim original when the wording *is* the answer.** A `knowledge/` file
+   is a curated paraphrase; `sources/` holds the deposited original. When the question asks for
+   exact wording, a committed value, requirement text, or who said what — "what exactly does the
+   ICD say about X", "quote the decision", "what number did they commit to" — a paraphrase must not
+   be quoted as though it were the source. Check `sources/index.md` (reachable per §Resolve's
+   Hive-root row) or the answering file's own `sources:` frontmatter, and if a deposited original
+   covers the topic, open it and quote from there, citing the source path. A binary source may need
+   `git lfs pull` first; if it cannot be materialized, say so rather than quoting the summary as
+   verbatim. **Where the source and the knowledge file disagree, the source wins** — and the
+   divergence is a `[correction]` contribution with the source path as its evidence
+   (`protocol/learning-loops.md` Loop A). Ordinary topical questions stay on the `knowledge/` path;
+   this clause fires on the wording, not on the topic.
 
    **Fetch the artifact behind a pointer when the pointer is not enough** — when the entry or row
    does not answer (an address, filename, or metadata only), or the question needs depth a summary
@@ -183,6 +237,35 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
    draft…"); when a document could not be reached, say so rather than implying the summary was the
    source. A document found by live search is cited as found-by-search, with why it was selected.
    **Never cite a search hit that was not opened.**
+
+   **Warn the reader when a cited file is past due.** A stale copy read as current is worse than
+   silence (`design-goals.md` §1). When a cited knowledge file is past its `review_by`, or its
+   `last_updated` exceeds its `decay` threshold (`protocol/knowledge-schema.md` § Decay Semantics),
+   append the posture inline to that citation — *per `ground-segment/architecture.md`
+   (unverified since 2026-03-04)*. One parenthetical on the citation itself, not a separate
+   caveat paragraph: the warning has to travel with the fact, because the fact is what gets quoted
+   onward.
+
+   **Close with the routing trace — one line.** End the answer with a compact record of how it was
+   reached:
+
+   ```
+   trace: restated "downlink ownership, pass planning" | libraries 2/5 → matched 3 → sufficiency: sufficient
+        → opened: ground-segment/architecture.md, sources/meeting-transcripts/2026-07-15-jrivera-sync.md
+   ```
+
+   Two rules make it load-bearing rather than decorative:
+   - **Every citation in the answer must name a locator that appears in `opened:`.** A citation
+     that does not is either a document that was never actually read or an invention — remove the
+     citation or open the document. This is the cheapest citation-verifier available and it costs
+     no extra call, since the opened list is already in hand.
+   - **An empty `opened:` means §On no match must have fired.** The trace is where that gate
+     becomes checkable instead of remembered.
+
+   Keep it to one line — this runs on every Ask, so the trace is deliberately a line and not the
+   step-by-step narration it could easily become. It exists to make the protocol observable: golden
+   cases can assert on its structure, and the answered-from-opened ratio is what tells Loop B
+   whether routing is improving or decaying (`protocol/learning-loops.md` § Telemetry).
 
 ## For contributors
 

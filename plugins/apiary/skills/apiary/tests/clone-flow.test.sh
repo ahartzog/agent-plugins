@@ -580,6 +580,82 @@ else
   echo "  purged leak absent from queue tip: OK"
 fi
 
+# --- Scenario C0: Step 0 default-branch self-resolution ---
+# Extracts `resolve_default_branch` from mode-operate.md ITSELF rather than re-copying it here.
+# A copied snippet can pass while the shipped script is broken — which is exactly the class of
+# defect this scenario exists to catch (a `main`-defaulted Hive false-HALTing on a healthy clone).
+echo ""
+echo "=== Scenario C0: Step 0 default-branch self-resolution ==="
+MODE_OPERATE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../references/mode-operate.md"
+RESOLVER_SRC=$(awk '/^resolve_default_branch\(\) \{/,/^\}$/' "$MODE_OPERATE")
+if [ -z "$RESOLVER_SRC" ] || ! printf '%s' "$RESOLVER_SRC" | grep -q 'symbolic-ref'; then
+  echo "FAIL: could not extract resolve_default_branch() from mode-operate.md Step 0"
+  echo "  (renamed, reshaped, or removed — this test binds to the shipped script by design)"
+  FAIL=$((FAIL + 1))
+else
+  echo "PASS: resolve_default_branch() extracted from the shipped Step 0 script"
+  PASS=$((PASS + 1))
+  eval "$RESOLVER_SRC"
+
+  # C0a — hive.yml is authoritative, including the template's comment/quote style.
+  C0_DIR="$TEST_ROOT/dbr-yml"; mkdir -p "$C0_DIR"
+  printf 'hive_slug: x\ndefault_branch: "main"   # renamed 2026-05\n' > "$C0_DIR/hive.yml"
+  got=$(cd "$C0_DIR" && resolve_default_branch)
+  if [ "$got" = "main" ]; then
+    echo "PASS: resolves 'main' from hive.yml (through quotes + inline comment)"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: hive.yml resolution returned '$got', expected 'main'"; FAIL=$((FAIL + 1))
+  fi
+
+  # C0b — no default_branch key: fall back to the remote's published HEAD.
+  C0_BARE="$TEST_ROOT/dbr-remote.git"; C0_WORK="$TEST_ROOT/dbr-work"
+  mkdir -p "$C0_WORK"
+  ( cd "$C0_WORK" && git init -q -b main && printf 'hive_slug: x\n' > hive.yml \
+      && git add -A && git commit -q -m seed )
+  git clone -q --bare "$C0_WORK" "$C0_BARE"
+  git -C "$C0_BARE" symbolic-ref HEAD refs/heads/main
+  C0_CLONE="$TEST_ROOT/dbr-clone"
+  git clone -q --depth 1 --sparse --filter=blob:none "file://$C0_BARE" "$C0_CLONE" 2>/dev/null
+  got=$(cd "$C0_CLONE" && resolve_default_branch)
+  if [ "$got" = "main" ]; then
+    echo "PASS: falls back to origin/HEAD on a --depth 1 --sparse --filter clone"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: origin/HEAD fallback returned '$got', expected 'main'"; FAIL=$((FAIL + 1))
+  fi
+
+  # C0c — neither signal available: the documented pre-2.x default, never empty.
+  C0_EMPTY="$TEST_ROOT/dbr-empty"; mkdir -p "$C0_EMPTY"
+  got=$(cd "$C0_EMPTY" && resolve_default_branch)
+  if [ "$got" = "master" ]; then
+    echo "PASS: final fallback is 'master' (never empty)"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: final fallback returned '$got', expected 'master'"; FAIL=$((FAIL + 1))
+  fi
+
+  # C0d — THE REGRESSION: a healthy `main` clone must not trip branch-normalize.
+  # Before self-resolution the session compared against a guessed `master` and HALTed here.
+  CURRENT_BRANCH=$(git -C "$C0_CLONE" rev-parse --abbrev-ref HEAD)
+  RESOLVED=$(cd "$C0_CLONE" && resolve_default_branch)
+  if [ "$CURRENT_BRANCH" = "$RESOLVED" ]; then
+    echo "PASS: healthy 'main' clone does NOT trip HALT_ORPHANED_BRANCH"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: branch-normalize would HALT: on '$CURRENT_BRANCH', resolved '$RESOLVED'"; FAIL=$((FAIL + 1))
+  fi
+fi
+
+# --- Scenario C1: Step 0 sparse-checkout covers every path the session reads or writes ---
+echo ""
+echo "=== Scenario C1: Step 0 sparse-checkout coverage ==="
+SPARSE_LINE=$(grep -A1 'git sparse-checkout set --no-cone' "$MODE_OPERATE" | tr '\n' ' ')
+for p in 'PROTOCOL/' 'knowledge/' 'sources/' '/hive.yml' '/CLAUDE.md' '/README.md' \
+         '_inbox/' '_custodian/' '_metrics/' '.signal/' '.claude/'; do
+  if [[ "$SPARSE_LINE" == *"$p"* ]]; then
+    echo "PASS: sparse set includes $p"; PASS=$((PASS + 1))
+  else
+    echo "FAIL: sparse set is missing $p — the session reads or writes it"; FAIL=$((FAIL + 1))
+  fi
+done
+
 echo ""
 echo "==============================="
 echo "Summary: $PASS passed, $FAIL failed"
