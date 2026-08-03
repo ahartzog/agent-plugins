@@ -297,7 +297,7 @@ When `git push` exits non-zero with the hook's "Pre-push Sentinel block" message
 
 ### Push Procedure
 
-**Resolve the transport first** (it precedes push-mode resolution): `{INBOX_TRANSPORT}` = `hive.yml.inbox_transport`, default `default-branch`.
+**Resolve the transport first** (it precedes push-mode resolution): `{INBOX_TRANSPORT}` = `hive.yml.inbox_transport`; an **absent field means `default-branch`** (the pre-2.23.0 compatibility semantics — an existing Hive never changes transports without an explicit `hive.yml` edit). New Hives are scaffolded with `inbox_transport: branch`, the recommended transport.
 
 - **`branch`** → inbox entries push **direct to the queue branch** `{INBOX_BRANCH}` (default `inbox`) via the Queue-Branch Push block below. `inbox_push_mode` and `push_mode` are **ignored for inbox writes** under this transport — the queue is never PR-gated, so there is no protection to navigate. (Parliament's `parliament_push_mode` is unaffected and should be `pr` when `{DEFAULT_BRANCH}` is protected.) Design and rationale: `references/inbox-transport-design.md`.
 - **`default-branch`** (default) → resolve the inbox push mode as before: `hive.yml.inbox_push_mode` if set, else `hive.yml.push_mode`, else `direct`. (The per-flow override lets a Hive push inbox entries direct while Parliament still publishes via `pr` — see `assets/hive.schema.json`.)

@@ -9,8 +9,10 @@ version: 2.1
 # `gatekeeper` must exist.
 #
 # Two jobs:
-#   - inbox-size-check: fails if _inbox/ has more than 10 pending items, forcing
-#     someone to run Parliament and drain the inbox before merging more.
+#   - inbox-size-check: fails if more than 10 pending inbox items accumulate,
+#     forcing someone to run Parliament and drain the inbox before merging more.
+#     Transport-aware: counts the queue branch when hive.yml declares
+#     inbox_transport: branch, else the checked-out _inbox/.
 #   - gatekeeper: a no-op stand-in for the code-scan gate that sibling code repos
 #     run. Hives have no executable code, so this prints "all good" and exits 0,
 #     giving the org-required check something to report against.
@@ -24,18 +26,37 @@ jobs:
       - run:
           name: Count pending inbox items
           command: |
-            # Pending = regular files directly under _inbox/ that are not
-            # special files (leading underscore) and not .gitkeep. Items in
-            # _inbox/_completed/ and _inbox/_quarantine/ are excluded because
-            # they have already been processed by Parliament.
-            PENDING=$(find _inbox -maxdepth 1 -type f \
-              ! -name '.gitkeep' \
-              ! -name '_*' \
-              | wc -l)
-            echo "Pending inbox items: $PENDING"
+            # Where do pending items live? Under inbox_transport: branch they are
+            # on the queue branch, and the default-branch checkout's _inbox/ is
+            # always empty — counting it would keep this check green forever
+            # while the queue backs up. (Same comment-tolerant parse as
+            # mode-operate.md Step 0.)
+            TRANSPORT=$(grep -E '^inbox_transport:' hive.yml | head -1 | sed -E 's/^inbox_transport:[[:space:]]*//; s/[[:space:]]+#.*$//; s/["'"'"']//g; s/[[:space:]]+$//' | tr -d '\r')
+            if [ "${TRANSPORT:-default-branch}" = "branch" ]; then
+              QUEUE=$(grep -E '^inbox_branch:' hive.yml | head -1 | sed -E 's/^inbox_branch:[[:space:]]*//; s/[[:space:]]+#.*$//; s/["'"'"']//g; s/[[:space:]]+$//' | tr -d '\r')
+              QUEUE="${QUEUE:-inbox}"
+              if git fetch origin "$QUEUE" 2>/dev/null; then
+                PENDING=$(git ls-tree -r --name-only FETCH_HEAD -- _inbox/ \
+                  | grep -Ec '^_inbox/[^/]+\.md$' || true)
+              else
+                # Queue not bootstrapped yet — nothing pending.
+                PENDING=0
+              fi
+              echo "Pending queue entries on '$QUEUE': $PENDING"
+            else
+              # Pending = regular files directly under _inbox/ that are not
+              # special files (leading underscore) and not .gitkeep. Items in
+              # _inbox/_completed/ and _inbox/_quarantine/ are excluded because
+              # they have already been processed by Parliament.
+              PENDING=$(find _inbox -maxdepth 1 -type f \
+                ! -name '.gitkeep' \
+                ! -name '_*' \
+                | wc -l)
+              echo "Pending inbox items: $PENDING"
+            fi
             if [ "$PENDING" -gt 10 ]; then
               echo
-              echo "ERROR: _inbox/ has $PENDING pending items (limit: 10)."
+              echo "ERROR: $PENDING pending inbox items (limit: 10)."
               echo "Run Parliament to process the inbox before merging more"
               echo "contributions:  /{HIVE_SLUG} parliament"
               exit 1

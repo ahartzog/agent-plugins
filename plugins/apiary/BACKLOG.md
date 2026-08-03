@@ -16,7 +16,9 @@ Most items carry provenance and a confidence tag:
 - [x] **Inbox transport redesign (queue branch) — IMPLEMENTED 2026-08-03, pending review**
   (approved 2026-08-03; shipped as **2.23.0**, PR pending). Design:
   `references/inbox-transport-design.md`. Delivered: `hive.yml.inbox_transport` +
-  `inbox_branch` (optional, default off), queue-worktree push path with orphan bootstrap,
+  `inbox_branch` (**scaffolded default for new Hives**; absent field = legacy `default-branch`
+  so existing Hives never flip without a codeowner edit — audit Step 4b offers the migration),
+  queue-worktree push path with orphan bootstrap,
   Step 0 tolerant queue-ref fetch + absolute-hooksPath fix (a relative hooksPath silently
   skipped the pre-push hook from any worktree), Parliament §1.3 materialization + §6.3
   pathspec-limited drain with the attribution ordering invariant (`queue_commit`/`queue_author`

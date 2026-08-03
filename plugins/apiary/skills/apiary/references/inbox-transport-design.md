@@ -1,6 +1,7 @@
 # Inbox Queue-Branch Transport — Design
 
-Implemented protocol as of 2.23.0 (opt-in via `hive.yml.inbox_transport: branch`). Companion to
+Implemented protocol as of 2.23.0 (`hive.yml.inbox_transport: branch` — scaffolded default for
+new Hives; opt-in for existing ones, whose absent field keeps the legacy transport). Companion to
 `protocol/operational-model.md` (the three-phase loop), `protocol/security-policy.md`
 (§ Repository Protection Model), and `protocol/custodian-workflow.md` (§1 collect, §6 cleanup).
 Loaded on demand — when flipping a Hive to the branch transport, or when asking why it works this
@@ -80,9 +81,16 @@ boundaries, because an overclaimed security property is worse than none:
    ordinary commits, so queue *history* grows for the life of the branch (bounded by inbox
    traffic; a re-root resets it) — **rewrite is incident-only.**
 
-The transport is **opt-in** (`inbox_transport: default-branch` is the default and the historical
-behavior, untouched). It changes where inbox commits go — nothing about entry format, triage,
-deliberation, or the knowledge layer.
+The transport is **the recommended default for new Hives** (create mode scaffolds
+`inbox_transport: branch`) and **strictly opt-in for existing ones**: an absent `hive.yml` field
+means `default-branch`, the pre-2.23.0 behavior, byte for byte. That split is deliberate, not
+hedging — flipping the absent-field semantics instead would be a flag day for every running Hive
+(each would silently change push targets, lock mechanics, and protection assumptions on its next
+session), which is exactly the class of remote-triggered behavior change the coexistence-window
+migration exists to avoid. Existing Hives are invited, not moved: audit Step 4b offers the
+migration as an INFO recommendation, and a codeowner executes it via `mode-upgrade.md` § 2.23.0.
+The transport changes where inbox commits go — nothing about entry format, triage, deliberation,
+or the knowledge layer.
 
 ## Rejected alternatives
 
@@ -265,8 +273,11 @@ window where it is the documented straggler net); default branch unprotected (WA
 works, but the no-unreviewed-history guarantee is not repo-enforced); queue deletion/force-push
 ruleset present (INFO if absent); queue depth, oldest-entry age, non-conforming paths, and
 dead `parliament/*` branches (INFO/WARN — the drain-cadence and hygiene signals). Under
-`default-branch`, Step 4b gains one mirror check: `direct` inbox mode on a *protected* branch is
-a FAIL (capture wedged — the state a mis-ordered rollback produces). **Step 5's hooksPath row**
+`default-branch`, Step 4b gains two additions: the mirror check — `direct` inbox mode on a
+*protected* branch is a FAIL (capture wedged — the state a mis-ordered rollback produces) — and
+an INFO that **offers the queue-transport migration** (the recommended transport; new Hives are
+scaffolded with it), evaluated before the per-flow-override INFO so audit never recommends
+config its own next run would flag as dead. **Step 5's hooksPath row**
 changes with the absolute-path fix: PASS is now the absolute `{HIVE_ROOT}/.githooks`; a relative
 `.githooks` — the pre-2.23.0 value — is ERROR under `branch` (queue pushes run no hook) and WARN
 under `default-branch`.
@@ -446,9 +457,11 @@ honored by keeping all rationale in this file; the runbooks carry rules only.
 1. **Should the lock ref replace the legacy lock for all transports?** It is strictly more atomic
    than both `.parliament-running` (committed file) and live-branch detection. Deferred: it changes
    behavior for Hives that did not opt into anything.
-2. **Queue-side CI.** With capture off master, the legacy "inbox-size-check" CI has nothing to
-   see. Audit Step 4b's depth/age INFO covers the signal for now; a scheduled check on the queue
-   ref would be the mechanical version.
+2. **Queue-side CI.** With capture off master, a checkout-based inbox count sees nothing. The
+   scaffolded `inbox-size-check` CI job is transport-aware (it fetches and counts the queue ref
+   under `branch`), but it still only *runs* when a PR fires CI — on a quiet repo the queue can
+   back up between PRs. Audit Step 4b's depth/age INFO covers that gap for now; a scheduled
+   queue check would be the mechanical version.
 3. **Should Deposit (`sources/**`) get the same treatment?** A fully protected master forces
    `sources_push_mode: pr`, which taxes a flow that is meant to be direct. A `sources` queue (or
    folding sources into this queue) is a natural follow-on with the same shape — deliberately not

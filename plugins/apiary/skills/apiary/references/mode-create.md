@@ -67,23 +67,28 @@ Store as `{GIT_REMOTE}`.
 Store as `{DEFAULT_BRANCH}`. Default to `master` if the user skips.
 
 ### Q5.35: Inbox Transport
-"How should inbox contributions travel? (default: `default-branch`)
+"How should inbox contributions travel? (default: `branch` — the queue-branch transport)
 
-- `default-branch` (default): sessions push inbox entries straight to `{DEFAULT_BRANCH}`. Simplest; right for most Hives.
-- `branch`: sessions push inbox entries to a dedicated queue branch (default name `inbox`) that is never PR-gated, and `{DEFAULT_BRANCH}` gets full vanilla protection — required PR + codeowner review on everything. Choose this when the repo's default branch is (or will be) protected, or when unreviewed content must never enter default-branch history."
+- `branch` (default): sessions push inbox entries to a dedicated queue branch (default name `inbox`) that is never PR-gated, and `{DEFAULT_BRANCH}` can carry full vanilla protection — required PR + codeowner review on everything. Unreviewed content never enters default-branch history directly, and capture friction is identical (one direct push).
+- `default-branch` (legacy): sessions push inbox entries straight to `{DEFAULT_BRANCH}`. Choose this only if you specifically want inbox commits in default-branch history, or must match the fleet's pre-2.23.0 behavior."
 
-Store as `{INBOX_TRANSPORT}`. Default to `default-branch` if the user skips — do not sell the
-`branch` option; it exists for Hives with a concrete protection requirement. If `branch`, also ask
-for the queue branch name (default `inbox`) → `{INBOX_BRANCH}`. Emit `inbox_transport:` (and
-`inbox_branch:` when non-default) in `hive.yml` **only if the user chose `branch`** — an absent
-field already means `default-branch`, matching the federation-block precedent.
+Store as `{INBOX_TRANSPORT}`. Default to `branch` if the user skips — the template already carries
+`inbox_transport: branch` / `inbox_branch: inbox`, so the default needs no edit. Ask for a queue
+branch name only if the user wants a non-default one → `{INBOX_BRANCH}` (edit the template's
+`inbox_branch:` line). If the user chooses `default-branch`, **delete both lines** from the
+generated `hive.yml` — an absent field means `default-branch`, which is also the compatibility
+semantics every pre-2.23.0 Hive keeps (the recommended-default applies to *new* Hives only; the
+runtime never flips an existing Hive whose `hive.yml` is silent).
 
-If `branch`: tell the user the queue branch is bootstrapped automatically on the first session
-push, and that after scaffolding they should (1) apply vanilla branch protection to
+Under `branch` (the default): tell the user the queue branch is bootstrapped automatically on the
+first session push, and that after scaffolding they should (1) apply vanilla branch protection to
 `{DEFAULT_BRANCH}`, (2) add a deletion/force-push-only ruleset on `{INBOX_BRANCH}`, and (3) set
-`parliament_push_mode: pr` — per `protocol/security-policy.md` § Repository Protection Model
-(transport=branch variant). Create mode does not configure repo-side protection; record these as
-manual follow-ups in the Step 8 summary.
+`parliament_push_mode: pr` **once the protection is on** (not before — `pr` mode on an
+unprotected branch strands PRs; audit Step 4b checks the pairing) — per
+`protocol/security-policy.md` § Repository Protection Model (transport=branch variant). Create
+mode does not configure repo-side protection; record these as manual follow-ups in the Step 8
+summary. The transport works unprotected in the meantime — audit reports the unrealized
+protection goal as a WARN until step (1) is done.
 
 ### Q5.5: Classification Ceiling
 "What is the highest classification this Hive is authorized to store? (`UNCLASSIFIED` / `CUI`)

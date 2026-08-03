@@ -43,10 +43,11 @@ This document describes how the Hive Mind works from the contributor's perspecti
 
 ### Phase 2: Accumulation (zero coordination)
 
-Inbox files accumulate from all sessions on the Hive's **inbox transport** — the default branch
-itself (`inbox_transport: default-branch`, the default), or a dedicated, never-PR-gated queue
-branch (`inbox_transport: branch`; see `references/inbox-transport-design.md`). Either way,
-accumulation works without conflicts because:
+Inbox files accumulate from all sessions on the Hive's **inbox transport** — a dedicated,
+never-PR-gated queue branch (`inbox_transport: branch` — the recommended transport, scaffolded
+into new Hives by default; see `references/inbox-transport-design.md`), or the default branch
+itself (`inbox_transport: default-branch` — the legacy path, and what an absent field means, so
+pre-2.23.0 Hives are unchanged). Either way, accumulation works without conflicts because:
 
 - **Unique naming:** Each file is `YYYY-MM-DD-<author>-<topic>.md` — no two sessions produce the same filename.
 - **Append-only:** Sessions create new files. They never modify existing inbox files or knowledge files.

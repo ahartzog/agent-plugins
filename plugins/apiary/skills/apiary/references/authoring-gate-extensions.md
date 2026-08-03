@@ -67,7 +67,7 @@ Two related caveats:
 
 ## Working directory
 
-Gates execute with the **pushing worktree** as cwd. On the default inbox transport that is the
+Gates execute with the **pushing worktree** as cwd. On the `default-branch` transport that is the
 Hive clone root, so a repo-relative `command:` (`python3 scripts/compliance_gate.py`) resolves. But
 under `hive.yml.inbox_transport: branch`, inbox pushes happen from the queue worktree
 (`.inbox-worktree/`), whose checkout contains **only pending `_inbox/` files** — no `PROTOCOL/`,

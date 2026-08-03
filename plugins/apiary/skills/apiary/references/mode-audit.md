@@ -193,6 +193,7 @@ out of):
    gate here wedges capture. Keep only deletion/force-push protection (see
    `protocol/security-policy.md` § Transport = branch variant).**
 2. **FAIL — Parliament cannot land.** If `{DEFAULT_BRANCH}` is protected and the resolved parliament mode is `direct`: **FAIL: `{DEFAULT_BRANCH}` requires PRs but Parliament is configured to push direct — housekeeping and knowledge merges will be rejected. Set `parliament_push_mode: pr`.** (Same check for `sources_push_mode` if the Hive uses native Deposit: a fully protected default branch needs `sources_push_mode: pr`.)
+2b. **WARN — Parliament PRs will strand (the reverse pairing).** If the resolved parliament mode is `pr` and `{DEFAULT_BRANCH}` is **unprotected**: **WARN: `parliament_push_mode: pr` on an unprotected branch — GitHub only arms auto-merge on a PR blocked by a required check/review, so housekeeping PRs sit open until a human merges them, and under the merge-gated drain the queue lags accordingly (entries stay `PENDING_REVIEW`). Fix: apply the vanilla protection (the intended end-state — see check 6), or set `parliament_push_mode: direct` until you do.** This is the state a new Hive reaches by doing create-mode follow-up (3) before (1); nothing is lost, but the queue stops draining.
 3. **FAIL — legacy `pr`-mode apparatus still live.** If the repo still carries the
    push-mode-pr-setup machinery — policy-bot in `{DEFAULT_BRANCH}`'s required status checks, a
    `.policy.yml` inbox-only zero-approval rule, or a `CODEOWNERS` file with an ownerless
@@ -227,10 +228,13 @@ out of):
    `hive.yml.auto_merge.mechanism` is `pending`: **WARN: Parliament opens PRs (`parliament_push_mode:
    pr`) but `auto_merge.mechanism: pending` means nothing auto-merges. Parliament PRs will wait for
    a manual merge. Set a real `mechanism`, or expect to merge Parliament PRs by hand.**
-3. **INFO — per-flow overrides not set.** If **both** `inbox_push_mode` and `parliament_push_mode`
-   are absent from `hive.yml` (i.e. the Hive relies solely on `push_mode` or the `direct` default):
-   inform the user the overrides exist and **offer to configure them**. Present it as an optional
-   improvement, not a defect:
+3. **INFO — per-flow overrides not set.** Evaluate **after** check 4's migration offer: if the
+   user accepts the queue-transport migration, skip this check entirely — `inbox_push_mode`
+   becomes dead config under that transport, so recommending it here would have the next audit
+   warning about the config this one suggested. Otherwise: if **both** `inbox_push_mode` and
+   `parliament_push_mode` are absent from `hive.yml` (i.e. the Hive relies solely on `push_mode`
+   or the `direct` default), inform the user the overrides exist and **offer to configure
+   them**. Present it as an optional improvement, not a defect:
    > This Hive uses a single push mode for both inbox contributions and Parliament. You can split
    > them: `inbox_push_mode` and `parliament_push_mode` override `push_mode` per flow. The common
    > setup is **`inbox_push_mode: direct`** (capture contributions aggressively — the inbox is a
@@ -241,6 +245,22 @@ out of):
    branch is unprotected — `parliament_push_mode: pr` requires protection per check 1) and note the
    change in the report. If they decline, record the offer as declined and move on. Do not nag on
    subsequent audits beyond this single INFO line.
+4. **INFO — queue-branch transport available (the recommended transport).** A Hive on the
+   `default-branch` transport is on the legacy path: new Hives are scaffolded with
+   `inbox_transport: branch` since 2.23.0, which keeps capture friction identical while letting
+   `{DEFAULT_BRANCH}` carry full vanilla protection and keeping unreviewed content out of its
+   history. **Offer the migration** — present it as the recommended upgrade, not a defect:
+   > This Hive routes inbox contributions through `{DEFAULT_BRANCH}` (the pre-2.23.0 transport).
+   > The recommended setup is `inbox_transport: branch`: same one-push capture, but the default
+   > branch can then require PR + codeowner review on everything, and unreviewed session content
+   > never enters its history. Migration is reversible and has a coexistence window — want me to
+   > walk `references/mode-upgrade.md` § 2.23.0 with you (pre-flight checks first)?
+
+   If the user accepts, follow the § 2.23.0 migration **in order** — the pre-flight refname check
+   and the protect-last / teardown steps are load-bearing, not ceremony. If they decline, record
+   the offer as declined; as with check 3, do not re-nag on subsequent audits. If the Hive
+   currently uses `inbox_push_mode: pr` + the policy-bot apparatus, note that the migration
+   retires that entire setup (its teardown is § 2.23.0 step 3b).
 
 ### Step 4c: Registry Reconciliation Check
 

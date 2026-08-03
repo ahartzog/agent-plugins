@@ -69,14 +69,19 @@ If upgrade was triggered automatically by `operate`, resume the original workflo
 Minor/patch changes require no migration — they ship live through the installed plugin. This log
 records what changed so operators reading `/apiary upgrade` output have an anchor.
 
-### 2.23.0 — inbox queue-branch transport (opt-in)
+### 2.23.0 — inbox queue-branch transport (recommended default for new Hives)
 
-- **New optional `hive.yml` fields `inbox_transport` (`default-branch` (default) | `branch`) and
+- **New optional `hive.yml` fields `inbox_transport` (`default-branch` | `branch`) and
   `inbox_branch` (default `inbox`).** Under `branch`, sessions push inbox entries to a dedicated,
   never-PR-gated queue branch; Parliament is the only bridge to the default branch, which can then
   carry full vanilla protection (required PR + codeowner review on everything — no policy-bot, no
   CODEOWNERS narrowing). Unreviewed content never enters default-branch history, and queue history
   is cheaply rewritable for incident response. Design: `references/inbox-transport-design.md`.
+- **`branch` is the recommended transport and the scaffolded default for NEW Hives** (create mode
+  Q5.35 / `hive.yml.template`). For **existing** Hives, nothing changes: an absent field means
+  `default-branch` — deliberately, so no Hive flips transports on a plugin update. Audit Step 4b
+  offers the migration to existing Hives as an INFO recommendation; adopting it is a codeowner
+  decision executed via the steps below.
 - **No action required.** A Hive without `inbox_transport` behaves exactly as before, byte for
   byte. The fields are optional; nothing is migrated automatically.
 - **Opt-in migration (per-Hive, reversible, no flag day):**
