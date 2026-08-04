@@ -78,12 +78,15 @@ Binary sources are tracked with **Git LFS**; text sources are normal git files. 
 
 ## Security
 
-- **No credentials or PII in this repo.** Every push is scanned by the Apiary's built-in
-  Sentinel hook — this applies unconditionally and cannot be disabled.
+- **No credentials or PII in this repo.** Pushes made through the Apiary's own clone (at
+  `~/.claude-hive/{HIVE_SLUG}`, where operate mode Step 0 installs the hook) are scanned by the
+  Sentinel pre-push hook.
 - **No personal editorial commentary** about named individuals. Professional role + contact info only.
 - **Sensitivity marking, if this Hive needs one** (PHI, PCI, trade-secret, or a bespoke
   public/internal/confidential ladder), is enforced by a Hive-declared gate extension layered
-  on top of the built-in scan — see the Apiary `references/authoring-gate-extensions.md`.
+  on top of the built-in scan — see the Apiary `references/authoring-gate-extensions.md`. Gate
+  extensions run only in the pre-push hook path, not in Parliament's `scan-dir` re-scan, so they
+  are a push-time control, not a catch-all.
 
 Details in the Apiary upstream `protocol/security-policy.md`.
 

@@ -21,7 +21,7 @@ real Hive) and read access to the plugin's `protocol/` and `references/` directo
 transcript against **Pass** / **Fail**.
 
 None of this fixture is real program content — see the no-program-names rule in the repo root
-`CONTRIBUTING.md`. URLs are `example.sharepoint.us` / `example.quip.com` / `example.app.box.com`
+`CONTRIBUTING.md`. URLs are `example.sharepoint.com` / `example.quip.com` / `example.app.box.com`
 placeholders; they do not resolve and are not meant to.
 
 ---
@@ -96,7 +96,7 @@ locations name a folder... resolve such a row as root + `Location` + `Document`"
 
 **Fixture:** `ground-segment/document-catalog.md`, row "Ground MTP Draft", `Location:
 03 - Test/Working Docs/`, catalog frontmatter declares
-`sources: [{url: "https://example.sharepoint.us/sites/demo/Shared%20Documents/", type: sharepoint}]`.
+`sources: [{url: "https://example.sharepoint.com/sites/demo/Shared%20Documents/", type: sharepoint}]`.
 
 **Question:** "Where can I find the Ground MTP Draft, and what's its resolved URL?"
 
@@ -106,7 +106,7 @@ locations name a folder... resolve such a row as root + `Location` + `Document`"
 > the row's `Location` cell.
 
 **Pass:** Joins the declared store root + `Location` + `Document` name into one absolute URL:
-`https://example.sharepoint.us/sites/demo/Shared%20Documents/03%20-%20Test/Working%20Docs/Ground%20MTP%20Draft`
+`https://example.sharepoint.com/sites/demo/Shared%20Documents/03%20-%20Test/Working%20Docs/Ground%20MTP%20Draft`
 (exact percent-encoding is not the point — the join is). States this is a SharePoint document it
 would fetch with the `sharepoint` skill.
 
@@ -336,7 +336,7 @@ direction, producing a row rather than resolving one):**
 > Rev C"; it is a signed, configuration-managed interface document with an assigned document
 > number; it defines uplink/downlink framing, command formats, and link margin allocations; it is
 > internal to the program (no external vendor); it lives at
-> `https://example.sharepoint.us/sites/demo/Shared%20Documents/06%20-%20Ground%20Segment/ICDs/KP-ICD-0417_RevC.docx`;
+> `https://example.sharepoint.com/sites/demo/Shared%20Documents/06%20-%20Ground%20Segment/ICDs/KP-ICD-0417_RevC.docx`;
 > last modified 2026-03-01.
 >
 > Produce a catalog row for it per `protocol/document-quality.md`, in the column order:

@@ -20,7 +20,7 @@ On invocation, check the available-skills list (shown in the system reminder) an
 |------|------|---------|------------------------|
 | `jira-cli` | Skill | the organization's Jira instance — tickets, boards, epics | URL to the board/ticket; text summary from knowledge files only |
 | `confluence-cli` | Skill | the organization's Confluence instance — docs, pages, spaces | URL to the page; text summary from knowledge files only |
-| `sharepoint` | Skill | SharePoint sites, document libraries, and files (`*.sharepoint.us`) via MS Graph | Resolved document URL; name the document and say it was not opened |
+| `sharepoint` | Skill | SharePoint sites, document libraries, and files (`*.sharepoint.com`) via MS Graph | Resolved document URL; name the document and say it was not opened |
 | `box-skill` | Skill | Box cloud storage (`app.box.com`) — search, browse, read files | Resolved file/folder URL; name the document and say it was not opened |
 | `quip-mcp` | MCP | Quip documents and threads (`*.quip.com`) | Resolved thread URL; name the document and say it was not opened |
 | `slack-cli` | Skill | Commercial Slack | URL to slack; summarize from knowledge files |

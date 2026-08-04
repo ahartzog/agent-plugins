@@ -186,7 +186,7 @@ Store roots exist for the one case where per-row URLs are genuinely wasteful: a 
 
 ```yaml
 sources:
-  - url: "https://example.sharepoint.us/sites/{site}/Shared%20Documents/"
+  - url: "https://example.sharepoint.com/sites/{site}/Shared%20Documents/"
     type: sharepoint
 ```
 

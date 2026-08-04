@@ -4,6 +4,47 @@ All notable changes to the **apiary** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for change and versioning discipline, and this plugin's [CONTRIBUTING.md](CONTRIBUTING.md) for the mandatory scenario verification.
 
+## [3.0.1] — 2026-08-03 — Post-merge review fixes
+
+Independent multi-lens verification of the 3.0.0 commercial-decoupling branch surfaced six
+survivors; this release fixes them. No mechanical/behavioral change to any mode, workflow, or
+generated artifact — prose, test-guard coverage, and repo hygiene only.
+
+### Fixed
+- **False security guarantee in every generated Hive's README.** `readme-template.md` and
+  `child-claude-md-template.md` claimed pushes are scanned "unconditionally and cannot be
+  disabled" — untrue for a plain clone and for create mode, which installs no hook. Reworded to
+  state what actually happens: pushes through the Apiary's own clone (where operate mode Step 0
+  installs the hook) are scanned. Also notes gate extensions run only in the pre-push hook path,
+  not in Parliament's `scan-dir` re-scan.
+- **`decoupling.test.sh`'s `classification` group was blind to the vocabulary it exists to guard
+  against** — it matched the literal token `classification` but not `classified`/`classify`,
+  and had no term for banner, marking, portion marking, SECRET, NOFORN, Distribution Statement,
+  SBU, or `(U)`. Widened to the concept (`classif(y|ied|ication)`, `marking`, `portion.?mark`,
+  `banner`, `\bSBU\b`, `NOFORN`, `Distribution Statement`, `\bTOP SECRET\b`, `\bSECRET\b`,
+  `\(U\)`), with a new substring-precise `CLASSIFICATION_ALLOW` covering the resulting legitimate
+  hits (generic "sensitivity marking" gate-extension language, "Greeting Banner", "classify by
+  content", "rotate the secret", etc.).
+- **`notifications`/`federation` groups missed removed-code tokens.** Added
+  `Signal notification|via Signal|Signal integration` to `notifications`; added
+  `REGISTRY_PAGE_ID|\bsibling\b|federat(e|ed|ion)|Registry Reconciliation|cross.?hive` to
+  `federation`, with a `FEDERATION_ALLOW` for the resulting "across Hives" / "sibling code repos"
+  false positives.
+- **`SLACK_ALLOW`'s `Slack message` and `Slack handle` entries were generic enough to
+  self-allowlist new prose.** Narrowed to the actual audited call-sites: `Slack message
+  timestamp` and `Professional Slack handle`.
+- **Ambiguous `DESIGN-GOALS.md` citations** — four sites already said "plugin-root"; three more
+  (`CHANGELOG.md`, `README.md`, `references/inbox-transport-design.md` ×2) still said
+  "repo-root"/"repo" and pointed at a file that doesn't exist at the repo root. All now agree.
+- **`example.sharepoint.us` → `example.sharepoint.com`** across protocol docs, design docs, and
+  the golden fixtures/cases/assertion (moved together). `*.sharepoint.us` is the Microsoft 365 US
+  Government (GCC High) tenant domain — the wrong host to have written into a decoupling pass
+  whose stated purpose was removing organization-specific coupling.
+- Added repo-root `docs/` to `.gitignore` — a scratch planning doc at `docs/superpowers/plans/`
+  carried the purged vocabulary verbatim and sat one `git add -A` away from shipping; the
+  decoupling test guard's `ROOT` cannot reach outside `plugins/apiary`, so this was a structural
+  gap, not a discipline one.
+
 ## [3.0.0] — 2026-08-03 — Commercial decoupling
 
 Removes three organization-specific couplings — a DoD-style classification model, an internal
@@ -63,7 +104,7 @@ body for the deliberate no-migration rationale.
   rather than left dangling.
 - **Ambiguous `Design Goal N` citations disambiguated plugin-wide**, because the repo carries two
   independently-numbered documents by that name. Convention going forward: a bare `Goal N`
-  resolves to `protocol/design-goals.md`; a citation of the repo-root `DESIGN-GOALS.md` is always
+  resolves to `protocol/design-goals.md`; a citation of the plugin-root `DESIGN-GOALS.md` is always
   qualified as "principle N" with the file named explicitly. Applied across markdown, `.sh`, and
   `.json` files (an initial `*.md`-only sweep missed two of the latter).
 - **`triage-policy.md` and `push-mode-pr-setup.md` no longer reference `corroborate`**, an

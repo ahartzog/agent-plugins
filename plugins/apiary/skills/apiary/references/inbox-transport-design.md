@@ -448,9 +448,9 @@ Numbering follows `protocol/design-goals.md` (Goals 1–9), per house precedent
 | 6 — Size budgets | Rationale lives here; the hot-path files gain compact rule text only. |
 | 7 — Temporal annotations | Neutral. |
 | 8 — Upstream governance | Transport mechanics are upstream protocol; only the two `hive.yml` fields are per-Hive. |
-| 9 — Discoverability / zero contributor dependencies | bash + git only, as before (repo `DESIGN-GOALS.md` principle 9). The queue is not a new content surface (same `_inbox/` files, same index-less pending semantics as today's `_inbox/`); its observability lives in Status (reads the ref) and audit Step 4b (depth/age/hygiene). |
+| 9 — Discoverability / zero contributor dependencies | bash + git only, as before (plugin-root `DESIGN-GOALS.md` principle 9). The queue is not a new content surface (same `_inbox/` files, same index-less pending semantics as today's `_inbox/`); its observability lives in Status (reads the ref) and audit Step 4b (depth/age/hygiene). |
 
-Repo-level `DESIGN-GOALS.md` principle 10 (operating instructions carry no state or history) is
+Plugin-root `DESIGN-GOALS.md` principle 10 (operating instructions carry no state or history) is
 honored by keeping all rationale in this file; the runbooks carry rules only.
 
 ## Open questions

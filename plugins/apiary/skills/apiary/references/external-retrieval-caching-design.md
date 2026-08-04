@@ -177,7 +177,7 @@ strengthens the case rather than complicating it.
 
 ```json
 {
-  "canonical_url": "https://example.sharepoint.us/sites/…/Payload-ICD-revC.xlsx",
+  "canonical_url": "https://example.sharepoint.com/sites/…/Payload-ICD-revC.xlsx",
   "display_name": "Payload ICD rev C",
   "store_kind": "sharepoint",
   "body_file": "body.xlsx",

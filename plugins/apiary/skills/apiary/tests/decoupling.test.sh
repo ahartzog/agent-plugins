@@ -93,8 +93,21 @@ if [[ "$WANT" != "all" ]]; then
 fi
 run() { [[ "$WANT" == "all" || "$WANT" == "$1" ]]; }
 
+# The classification group targets the *concept* the branch purged (banners, portion/sensitivity
+# markings, the SECRET/TOP SECRET/SBU/NOFORN vocabulary, classify/classified/classification as a
+# verb family) rather than the handful of literal tokens (`classification`, `CUI`, `FOUO`, ...)
+# someone happened to grep when writing the original guard. Widening `classification` to
+# `classif(y|ied|ication)` and adding bare `marking`/`banner`/`\bSECRET\b` necessarily also
+# matches ordinary English ("classify by content type", "Greeting Banner", "rotate the secret")
+# and the generic (non-national-security) "sensitivity marking" gate-extension language this
+# branch's replacement design intentionally uses. CLASSIFICATION_ALLOW is the fixed, audited set
+# of those legitimate mentions — same substring-precise mechanism as SLACK_ALLOW below, same
+# escaping rule (entries are spliced into a Python regex alternation; escape any of
+# . ( ) [ ] + * ? that are literally part of the text you mean to allow).
+CLASSIFICATION_ALLOW='classify each match|diagnose-and-classify|classify by content|misclassified as foreign|Greeting Banner|freeform banner|redirect banner|ASCII art or text banner|banner is desired|GREETING_BANNER|marking any task|sensitivity.marking|marking regime|marking check|no marking|trade-secret|repo secret|secret later|Sentinel-missed secret|secret exists only in queue history|rotate the secret|preserve the secret|including the secret|aws_secret_access_key|aws-secret-key|AWS secret access key|access/secret tokens|bearer\|secret\)|secret\[-_\]\?access|secret in a frontmatter scalar|a "secret" entry'
 run classification && check_group classification \
-  'classification|\bCUI\b|\bFOUO\b|UNCLASSIFIED|\bITAR\b|marking_required|max_level|storage_tier'
+  'classif(y|ied|ication)|\bCUI\b|\bFOUO\b|UNCLASSIFIED|\bITAR\b|marking_required|max_level|storage_tier|marking|portion.?mark|banner|\bSBU\b|NOFORN|Distribution Statement|\bTOP SECRET\b|\bSECRET\b|\(U\)' \
+  "$CLASSIFICATION_ALLOW"
 
 # Bare \bslack\b closes the gap where the narrower patterns above (slack_channel,
 # Signal bot, etc.) would miss a stray "Slack notification"/"post to Slack" reference
@@ -106,19 +119,28 @@ run classification && check_group classification \
 # "Professional Slack handle" PII example and "Slack tokens" credential-list item,
 # custodian-workflow's "Slack tokens" list, inbox-entry.schema.json's "Slack message
 # timestamp" citation example, mode-create.md's "Slack channels" interview question).
+# "Slack message" and "Slack handle" used to be allowed bare, which also self-allowlisted
+# any new generic "Slack message"/"Slack handle" prose (a live regression) — narrowed to
+# the exact audited call-sites above.
 # Each entry below is spliced directly into a Python regex alternation (residue_filter),
 # not matched as a literal substring. Keep every entry regex-literal-safe — no unescaped
 # metacharacters (., (, ), [, ], +, *, ?, etc.). An entry containing one would change what
 # it matches out from under this list (e.g. over-stripping residue via a stray `.` or `(`),
 # silently reopening the gap this allowlist was hardened to close. Escape any metacharacter
 # that's genuinely part of the text you mean to allow.
-SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Jira boards, Slack channels|Slack message|Confluence/Slack|Commercial Slack|URL to slack'
+SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Professional Slack handle|Jira boards, Slack channels|Slack message timestamp|Confluence/Slack|Commercial Slack|URL to slack'
 run notifications && check_group notifications \
-  'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal\b|Signal bot|Signal post|Signal Config|\bslack\b' \
+  'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal\b|Signal bot|Signal post|Signal Config|\bslack\b|Signal notification|via Signal|Signal integration' \
   "$SLACK_ALLOW"
 
+# `cross.?hive` (the `.` optionally matches any single separator char, including a space)
+# closes the `cross[-_]hive` gap but also matches the ordinary phrase "across Hives" used
+# throughout the protocol prose ("patterns that recur across Hives"). FEDERATION_ALLOW is
+# the audited allowlist for that plus the CI template's unrelated "sibling code repos" line.
+FEDERATION_ALLOW='across Hive|sibling code repos'
 run federation && check_group federation \
-  'confluence_registry|REGISTRY_URL|Hive Mind Registry|[Aa]piculturist|cross_hive|cross-hive|\bsiblings\b|federation'
+  'confluence_registry|REGISTRY_URL|Hive Mind Registry|[Aa]piculturist|cross_hive|cross-hive|\bsiblings\b|federation|REGISTRY_PAGE_ID|\bsibling\b|federat(e|ed|ion)|Registry Reconciliation|cross.?hive' \
+  "$FEDERATION_ALLOW"
 
 # Bare \bmeridian\b closes the same class of gap: "Meridian Systems" never matches a
 # stray bare "Meridian" mention that dropped the second word.

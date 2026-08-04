@@ -126,7 +126,7 @@ check "document-catalog.md has the Ground MTP Draft row" \
 check "  ...Location cell is a folder (trailing slash), not an absolute URL" \
   "$(grep -F 'Ground MTP Draft' "$DOC_CATALOG" | grep -qF 'Working Docs/' && echo 0 || echo 1)"
 check "  ...file declares a store root to resolve against (Case 3 requires one; contrast Case 4)" \
-  "$(grep_row "$DOC_CATALOG" 'url: "https://example.sharepoint.us')"
+  "$(grep_row "$DOC_CATALOG" 'url: "https://example.sharepoint.com')"
 
 echo ""
 echo "--- Case 4: missing store root ---"

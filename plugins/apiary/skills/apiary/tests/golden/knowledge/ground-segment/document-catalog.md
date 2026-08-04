@@ -6,7 +6,7 @@ decay: medium
 confidence: high
 last_updated: 2026-06-01
 sources:
-  - url: "https://example.sharepoint.us/sites/demo/Shared%20Documents/"
+  - url: "https://example.sharepoint.com/sites/demo/Shared%20Documents/"
     type: sharepoint
 ---
 
