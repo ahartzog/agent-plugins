@@ -59,7 +59,6 @@ workflow: {WORKFLOW_NAME}          # the dispatch-table name; must match the fil
 description: "{ONE_LINE_SUMMARY}"  # what it does + what it delegates to
 last_updated: YYYY-MM-DD
 codeowners: [{GHE_HANDLE}]
-classification: UNCLASSIFIED       # required when hive.yml sets marking_required: true
 ---
 ```
 
@@ -175,7 +174,6 @@ workflow: standup
 description: "Invokable, author-aware entry point for the team's daily standup post. Confirms author + scope, then delegates gathering mechanics to knowledge/team/standup-mechanics.md."
 last_updated: 2026-07-27
 codeowners: [example-handle]
-classification: UNCLASSIFIED
 ---
 
 # Workflow Extension — Standup

@@ -106,12 +106,11 @@ This section restates the **canonical MERGE disposition rule** in `custodian-wor
 1. Category is `[link]`, `[person]`, or `[tracker]` — OR Chancellor verdict is a clean MERGE (no high-confidence critic objections outstanding)
 2. Archivist checklist passes (format valid, annotation present, target file identified)
 3. No duplicate detected in the target knowledge file
-4. Classification markings pass the Sentinel disposition check against `hive.yml.classification` (see `PROTOCOL/custodian-workflow.md` §0)
 
 A contribution is **not** auto-merged and requires CODEOWNER review when:
 - Category is deliberation-path and the verdict is anything other than a clean MERGE
 - Chancellor verdict is MERGE but a high-confidence critic objection is outstanding
-- Sentinel quarantines the contribution on classification grounds (content above `max_level`, or unmarked content in a Hive with `marking_required: true`)
+- Sentinel quarantines the contribution (PII/credential match, or a Hive-declared gate extension blocks it)
 - Archivist cannot determine the correct target file
 - Contribution was previously rejected and resubmitted (requires human judgment)
 
@@ -167,7 +166,7 @@ Parliament handles the agent-driven flow (inbox → critics → PR). The direct-
 
 **Gate:**
 - CODEOWNER review is **required**. No auto-merge on the direct-PR path, ever. This is the human analogue of Parliament's Chancellor verdict.
-- CI still runs: classification/marking scan, schema lint, size budget check. A critic-CI job (Skeptic / Archivist / Cartographer) runs against the diff and posts an advisory review comment. Critic verdict is informational; CODEOWNERS decide.
+- CI still runs: schema lint, size budget check. A critic-CI job (Skeptic / Archivist / Cartographer) runs against the diff and posts an advisory review comment. Critic verdict is informational; CODEOWNERS decide.
 - On merge, Parliament is notified via a post-merge job that appends a reconciliation note to `_inbox/_completed/` so the direct-PR path shows up in the same audit trail as inbox contributions.
 
 **Rationale:** The inbox optimizes for *capture-in-flight* and is the wrong ergonomics for *deliberate authoring*. Forcing a finished document through fragmented inbox entries is ceremony, not safety. The direct PR preserves the author's voice and coherence; the CODEOWNER gate preserves the collective-ownership principle. [learned: 2026-04-19]
@@ -178,7 +177,6 @@ Parliament handles the agent-driven flow (inbox → critics → PR). The direct-
 
 Contributions are moved to `_inbox/_quarantine/` (not processed) when:
 
-- Classification markings fail the Sentinel disposition check (see `PROTOCOL/custodian-workflow.md` §0): content above the Hive's `max_level`, or unmarked classified content in a Hive with `marking_required: true`
 - Prompt injection pattern detected
 - Author attribution missing or unverifiable
 - Contribution contains personal attacks or PII beyond professional attribution

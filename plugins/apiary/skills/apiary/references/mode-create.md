@@ -15,7 +15,7 @@ If the user points to an existing corpus:
 1. **Read the corpus before interviewing.** Key fields (name, description, codeowners, knowledge topics) can often be inferred — do NOT ask questions the corpus already answers.
 2. **Ask for sanitization directives explicitly.** The corpus may contain material unsafe for a shared Hive:
    - Personal editorial commentary about named individuals → strip to role + contact only
-   - Classification markers (CUI, FOUO, SECRET, `[INTERNAL]` flags) → reference by path; never reproduce
+   - Sensitivity markers (confidential, internal-only, proprietary, `[INTERNAL]` flags) → reference by path; never reproduce
    - Local filesystem paths (OneDrive, vault, home dir) → map to canonical URLs (SharePoint, GHE, Confluence); mark unconfirmed URLs as `{path TBD}`
    - Personal workflow modes (user-specific 5-15 generation, Outlook trawling, voice skills) → exclude; agent is a team persona
 3. **Propose a draft hive.yml + knowledge layout** based on the corpus, then confirm with the user before generating. **When in doubt, exclude.** A sparse Hive that grows through contribution is healthier than a dense one that leaks personal or internal content.
@@ -85,22 +85,11 @@ mode does not configure repo-side protection; record these as manual follow-ups 
 summary. The transport works unprotected in the meantime — audit reports the unrealized
 protection goal as a WARN until step (1) is done.
 
-### Q5.5: Classification Ceiling
-"What is the highest classification this Hive is authorized to store? (`UNCLASSIFIED` / `CUI`)
-
-- `UNCLASSIFIED` (default): no controlled content permitted. Sentinel rejects any classification marker (including legacy FOUO banners).
-- `CUI`: controlled content at or below CUI is permitted, but every knowledge and inbox file must carry a frontmatter `classification` field, and files with content above UNCLASSIFIED must also carry an in-body banner (first line) matching the frontmatter value.
-
-If `CUI`, confirm the storage tier (e.g. `ghe-cui`). The Apiary does not verify hosting — you do."
-
-**On FOUO:** Per DoDI 5200.48, `FOUO` is an **obsolete marking** — new content must never be *created* as FOUO, so it is not offered as a ceiling choice. Legacy FOUO material is **not** automatically CUI; it must be assessed against the CUI Registry. A Hive that needs to hold received legacy FOUO should be set to the `CUI` ceiling and the individual file assessed/marked accordingly (mark it `CUI` if it qualifies, or `UNCLASSIFIED` if the Registry assessment clears it). The `FOUO` enum value is retained in the schemas only so Sentinel can *recognize and correctly handle* an inbound legacy FOUO banner (treated as CUI-equivalent), not so new Hives can adopt it as a ceiling.
-
-Store as `{MAX_LEVEL}` (`UNCLASSIFIED` or `CUI`), `{MARKING_REQUIRED}` (true if `MAX_LEVEL` is `CUI`; false otherwise), and `{STORAGE_TIER}` (optional, documentation-only).
-
 ### Q5.7: Purpose / What Lives Here
 "In one or two sentences, what knowledge *belongs* in this Hive — and what does NOT? This becomes the 'What Lives Here' section of the README and the scoping signal contributors and Parliament use to keep contributions on-topic."
 
-Example: "Releasable, unclassified program knowledge for non-US-accessible teams. CUI/ITAR/SECRET+ content does NOT belong here."
+Example: "Platform runtime and deployment knowledge for the services team.
+Customer contract terms and pricing do NOT belong here — those live with Legal."
 
 Store as `{HIVE_PURPOSE}`. Distinct from `{DESCRIPTION}` (a one-line summary): purpose is the contribution-scoping guidance.
 
@@ -109,7 +98,7 @@ Store as `{HIVE_PURPOSE}`. Distinct from `{DESCRIPTION}` (a one-line summary): p
 
 Example: "architecture, capabilities, infrastructure, people, decisions, integration-status"
 
-For each topic, generate a knowledge file with scaffold frontmatter. When `{MARKING_REQUIRED}` is true, include the `classification` field with the safest default (UNCLASSIFIED — greenfield scaffolds contain no classified content). Contributors mark individual files higher as content is added:
+For each topic, generate a knowledge file with scaffold frontmatter:
 
 ```yaml
 ---
@@ -120,7 +109,6 @@ decay: medium
 confidence: low
 last_updated: {DATE}
 sources: []
-classification: UNCLASSIFIED   # include only when hive.yml.classification.marking_required is true
 ---
 
 # {TOPIC_TITLE}
@@ -145,13 +133,6 @@ Read each template from `assets/` and substitute all `{PLACEHOLDER}` values.
 **Version substitution.** `{APIARY_VERSION}` in `hive.yml.template` must be replaced with the Apiary's **current** version — read the `version` field from `{APIARY_ROOT}/.claude-plugin/plugin.json` and strip any pre-release suffix (`X.Y.Z-experimental-<alias>` → `X.Y.Z`) so it satisfies the `hive.schema.json` semver pattern. Never hardcode a version here: seeding a stale value makes the new Hive appear a major version behind and trips a spurious Upgrade on its first operate invocation.
 
 **Purpose substitution.** `{HIVE_PURPOSE}` — from Q5.7. Emitted into `hive.yml` (`purpose:`) and the README "What Lives Here" section.
-
-**Classification-conditional substitutions.** Several templates carry `{CLASSIFICATION_CONSTRAINT}` / `{CLASSIFICATION_SECTION}` / `{CLASSIFICATION_SECTION_README}` placeholders, each followed by an HTML authoring-guidance comment (`<!-- Create mode substitutes … with one of: … -->`) that shows the UNCLASSIFIED and classified variants. Substitute based on the Q5.5 answer:
-
-- If `{MAX_LEVEL}` is `UNCLASSIFIED` (or the classification block was omitted): use the UNCLASSIFIED variant from that comment. Do NOT emit a `classification:` block in `hive.yml` — leave only the commented `# classification:` *example* in `hive.yml.template` in place (it is illustrative YAML, carries no `{PLACEHOLDER}` tokens, and is safe to ship).
-- If `{MAX_LEVEL}` is `CUI`: use the controlled variant. Emit the real `classification:` block in `hive.yml` with values from Q5.5. Ensure each generated knowledge-file scaffold includes the `classification: UNCLASSIFIED` frontmatter field. (`FOUO` is not a selectable ceiling — see Q5.5.)
-
-**MANDATORY — delete authoring-guidance comments from generated files.** After substituting a `{CLASSIFICATION_*}` placeholder, **remove the entire `<!-- Create mode substitutes … -->` HTML comment block** that accompanied it. These comments contain illustrative `{MAX_LEVEL}` / `{STORAGE_TIER}` tokens; if left in place they survive into the generated `README.md`, `CLAUDE.md`, and `PROTOCOL/agent-definition.md` and will trip the Step 3 unresolved-placeholder check (and ship confusing template scaffolding to users). The rule: a generated file must contain **no `<!-- Create mode substitutes … -->` block** and **no `{CURLY_TOKEN}`** anywhere. (The `<!-- Optional … banner … -->` comment in the agent-definition template is different — keep or delete it per whether a greeting banner was provided.)
 
 1. `hive.yml` from `assets/hive.yml.template`
 2. `PROTOCOL/agent-definition.md` from `assets/agent-definition-template.md`
@@ -186,8 +167,6 @@ Read each template from `assets/` and substitute all `{PLACEHOLDER}` values.
     (No deposits yet. Use the Deposit workflow for text/markdown, or `/extract:ingest` for binary documents.)
     ```
 
-    When `{MARKING_REQUIRED}` is true, include `classification: UNCLASSIFIED` in the frontmatter.
-
     Do NOT LFS-track or pre-install Git LFS at create time — LFS is set up lazily by `/extract:ingest` the first time a binary document is deposited (see `protocol/sources-policy.md` § Git LFS).
 
 10. `.gitkeep` in empty directories
@@ -210,7 +189,6 @@ description: "Retrieval-trigger index for the {HIVE_NAME} Hive — routes questi
 decay: medium
 confidence: medium
 last_updated: {DATE}
-classification: UNCLASSIFIED   # include only when marking_required
 ---
 ```
 
@@ -254,7 +232,7 @@ Before summarizing, run deterministic checks on what was generated. Fail loud if
      exit 1
    fi
    ```
-3. **Consistency checks.** `hive.yml.codeowners` CSV should match the `add-reviewer` list in `.claude/settings.json` PostToolUse hook. If `hive.yml.classification.marking_required` is true, every generated knowledge-file scaffold must include a `classification:` frontmatter field, and its value must not exceed `hive.yml.classification.max_level`.
+3. **Consistency checks.** `hive.yml.codeowners` CSV should match the `add-reviewer` list in `.claude/settings.json` PostToolUse hook.
 
 Report each check as `PASS`/`FAIL` in the Step 4 summary.
 

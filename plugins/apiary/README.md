@@ -69,7 +69,7 @@ Three layers, strictly separated:
 | Layer | Owns | Changes via |
 |---|---|---|
 | **Apiary** (upstream) | All mechanics: routing protocol, Parliament, Sentinel, triage rules, schemas, audit | PR to this plugin — one change reaches every Hive |
-| **hive.yml** | A Hive's identity: slug, remote, codeowners, classification ceiling, extensions | The Hive's codeowners |
+| **hive.yml** | A Hive's identity: slug, remote, codeowners, extensions | The Hive's codeowners |
 | **Content** | Domain knowledge, persona, inbox, sources | The three-phase loop below |
 
 Two properties make the upstream model safe:
@@ -139,7 +139,7 @@ The question every governed-knowledge system must answer: *who decides, who deco
 | Which source answers a question | Session agent | §Prefer: authority tier (`formal>baseline>delivered>working`) + question type + mechanical date sort | citation + authority named in the answer |
 | Is the corpus sufficient | Session agent | §Sufficiency test (verdict stated in-transcript) | `sufficiency:` line |
 | What enters the inbox | **Nobody** — capture is ungated | append-only, autonomous | attributed, timestamped entry |
-| Is a contribution safe | Sentinel (deterministic scan + rules) | patterns + classification ceiling; **cannot be disabled by anyone** | quarantine + report |
+| Is a contribution safe | Sentinel (deterministic scan + rules) | credential/PII patterns + any Hive-declared gate extension; **cannot be disabled by anyone** | quarantine + report |
 | Is a contribution true/placed/formatted | Three parallel critics (Skeptic·Archivist·Cartographer), no cross-talk | independent PASS/FAIL checklists | checklists in the PR |
 | Does it merge | **Chancellor** (verdict: MERGE/REVISE/REJECT/ESCALATE) | weighs critics; verifies directly on critic deadlock | verdict + reasoning in the PR |
 | Conflicting facts over time | **Loop D** | 2nd challenge in 30 days → fact marked `[disputed:]`, humans summoned | `[disputed:]` annotation + needs-review PR |
@@ -154,7 +154,7 @@ Three principles under the table: **facts are never deleted, they're superseded*
 
 Dense summary. The files are canonical; this is the map.
 
-**Invariants (hold every session, no file read needed):** never store content above the Hive's classification ceiling · every correction and reusable artifact becomes an inbox contribution before session end · cite knowledge sources · sessions never write `knowledge/` or `PROTOCOL/` · Sentinel cannot be disabled.
+**Invariants (hold every session, no file read needed):** every correction and reusable artifact becomes an inbox contribution before session end · cite knowledge sources · sessions never write `knowledge/` or `PROTOCOL/` · Sentinel cannot be disabled.
 
 **File map:**
 
@@ -167,7 +167,7 @@ Dense summary. The files are canonical; this is the map.
 | Schema | `protocol/knowledge-schema.md` + `assets/*.schema.json` | frontmatter contract; inline annotations `[learned:] [decided:] [superseded:] [disputed:]`; store roots for catalogs |
 | Triage | `protocol/triage-policy.md` | tag→path table; § Write Operations (ADD/SUPERSEDE/ANNOTATE — no DELETE); canonical MERGE disposition defers to custodian §4.3 |
 | Parliament | `protocol/custodian-workflow.md` | Sentinel §0 (deterministic scan is a literal command) → normalize → Archivist → critics ∥ → Reviser → Chancellor → PRs → telemetry §6.2 |
-| Security | `protocol/security-policy.md` + `protocol/sensitive-data-patterns.md` + `assets/generate-hook.sh` | layers L0 pre-push hook / L1 session redaction / L2 pre-receive (optional) / L3 Parliament; patterns JSON compiles into the hook; excerpt-bound overrides; classification findings non-overridable |
+| Security | `protocol/security-policy.md` + `protocol/sensitive-data-patterns.md` + `assets/generate-hook.sh` | layers L0 pre-push hook / L1 session redaction / L2 pre-receive (optional) / L3 Parliament; patterns JSON compiles into the hook; excerpt-bound overrides |
 | Learning | `protocol/learning-loops.md` | A Correction, B Discovery (capture+findability are ONE obligation), C Calibration, D Escalation; A/B fire in-session, C/D in Parliament |
 | Search | `protocol/external-search-agent.md` | §Search subagent contract: reads to dedup, writes nothing, returns catalog-shaped rows, never citable prose |
 | Sources | `protocol/sources-policy.md` | verbatim primary material; Sentinel-gated, Parliament-bypassing; indexed or it didn't happen (Goal 9) |
@@ -179,69 +179,31 @@ Dense summary. The files are canonical; this is the map.
 
 ---
 
-## Classification Model
-
-Each Hive declares its maximum authorized classification in `hive.yml`:
-
-```yaml
-classification:
-  max_level: CUI             # UNCLASSIFIED | FOUO | CUI
-  marking_required: true     # enforces frontmatter + in-body banner discipline
-  storage_tier: "ghe-cui"    # documentation-only reminder of hosting requirement
-```
-
-Omitting the block defaults to `UNCLASSIFIED` with no marking discipline — the pre-v1.1 "reject all classified content" posture. Declaring a higher ceiling permits classified content at or below that level, provided:
-
-- Every knowledge and inbox file carries a `classification:` frontmatter field.
-- Files containing content above UNCLASSIFIED carry a matching banner (e.g. `CUI`) as the first line of the body.
-- Unmarked classified content is quarantined by Parliament Sentinel.
-- Content above `max_level` is always rejected, regardless of markings.
-
-The Apiary does not verify that the hosting storage tier matches the declared ceiling — that's the operator's responsibility. See `skills/apiary/protocol/security-policy.md` for the full defense-in-depth model, including the two operating modes (UNCLASSIFIED-reject vs. classified-require-markings) and the per-layer enforcement details.
-
----
-
----
-
 ## Operator Reference — Standing Up a New Hive's Backing Store
 
 > This section describes the *sanitized example environment* (fictional `meridian`/GHE hosts). Adapt org names and provisioning flow to your own environment; the sequence and gotchas are the transferable part.
 
 `/apiary create` scaffolds all of a Hive's *files* (hive.yml, PROTOCOL, knowledge/, etc.) locally, but it does **not** create the GHE repo those files get pushed to or configure repo-level access control. Those are one-time, human/repo-admin steps that must happen **before or immediately after** `/apiary create` — agents should walk the user through them explicitly rather than assuming they're already done. This section is the checklist for both.
 
-### 1. Decide the classification ceiling first — it determines which org the repo lives in
+### 1. Create the GHE repo via `meridian/owners`
 
-Pick `hive.yml.classification.max_level` (Q5.5 of the create interview) *before* creating the repo, because it dictates which GHE org the repo must live in:
-
-| Ceiling | GHE org | Example |
-|---|---|---|
-| `UNCLASSIFIED` (default) | `meridian/*` — standard org, broadly readable | `platform-navigator-hive` |
-| `CUI` (may also carry ITAR content) | A restricted org whose access model matches the classification — e.g. `restricted-org/*`, `vault-org/*` — non-US/international contributors may lack access | `restricted-org/vault-hive` |
-
-**If you want to hold CUI/ITAR content, the repo must be created in a restricted org, not `meridian`.** `restricted-org` is not the only acceptable choice — other restricted orgs (e.g. `vault-org`) may also be appropriate depending on program and access requirements. The Apiary does not verify or enforce this — Sentinel scans content, but it cannot check which org a repo lives in. Before creating the repo, **confirm with the user which org matches their classification ceiling and program** rather than assuming `restricted-org` by default. Getting this wrong means CUI-marked knowledge sits in a repo with the wrong access model. See `skills/apiary/protocol/security-policy.md` § Classification Discipline for the full marking-discipline rules once the ceiling is set, and Meridian Systems' data-classification / CUI-ITAR-authorization policy (`docs.meridian.example/dev/ai/security/cui-itar-authorization`) for the underlying obligation — repo placement doesn't relieve you of it.
-
-Never put classified content in an UNCLASSIFIED-ceiling Hive "temporarily." If you're not sure which org a Hive belongs in, ask before creating it.
-
-### 2. Create the GHE repo via `meridian/owners`
-
-Meridian Systems repos are provisioned centrally through the `owners` repo, not by clicking "New repository" on GHE. Add an entry to `repos.yml` in the `owners` repo for the org you confirmed above (`meridian/owners` for UNCLASSIFIED; the matching restricted org's `owners` repo, e.g. `restricted-org/owners`, for CUI/ITAR) and open a PR — the `repo-provisioner` CI pipeline creates the actual GHE repo once it merges.
+Meridian Systems repos are provisioned centrally through the `owners` repo, not by clicking "New repository" on GHE. Add an entry to `repos.yml` in the `owners` repo for the org this Hive belongs in and open a PR — the `repo-provisioner` CI pipeline creates the actual GHE repo once it merges.
 
 Full steps and the `repos.yml` schema: **[docs.meridian.example/dev/workflows/software-repo/create-a-repo](https://docs.meridian.example/dev/workflows/software-repo/create-a-repo)** (fetch via the `developer-docs` skill). A live example entry: [meridian/owners repos.yml](https://ghe.meridian.example/meridian/owners/blob/master/repos.yml).
 
 Once the repo exists, run `/apiary create`, answer the interview (Q5.25 asks for exactly this repo's git remote URL), and push the generated scaffold to it.
 
-### 3. Set codeowners correctly
+### 2. Set codeowners correctly
 
 `hive.yml.codeowners` (Q4 of the create interview) must actually match who can approve merges on the repo — the Apiary only writes the *intent*, it doesn't wire up GHE-side enforcement:
 
 - **`push_mode: direct` (default):** no repo-side gating is required — the session agent pushes straight to the default branch. Still keep `hive.yml.codeowners` accurate; it's who Parliament tags for escalations and quarantine review (see `protocol/triage-policy.md`).
 - **`push_mode: pr`** (required once the default branch has required status checks or policy-bot): codeowners enforcement moves to `.policy.yml` + a narrowed `CODEOWNERS` file, *not* GHE's native all-or-nothing CODEOWNERS check. Follow `skills/apiary/references/push-mode-pr-setup.md` § One-Time Operator Setup end-to-end — it covers enabling auto-merge, the required CI checks, the policy-bot rules that let `_inbox/**` auto-merge while `knowledge/**` stays gated on a codeowner, and the `CODEOWNERS` narrowing that's easy to miss (`_inbox/` must be listed with a blank owner list, or the native GHE check still blocks inbox-only PRs).
-- For a first rollout on sensitive content (e.g. a new CUI Hive), consider requiring codeowner review on *every* PR — including inbox-only ones — until you've built confidence in Sentinel + Parliament. `vault-hive` did this for its first ~month; see its README's "Trial Period" note for the pattern.
+- For a first rollout on sensitive content (e.g. a Hive with a strict sensitivity gate extension), consider requiring codeowner review on *every* PR — including inbox-only ones — until you've built confidence in Sentinel + Parliament. `vault-hive` did this for its first ~month; see its README's "Trial Period" note for the pattern.
 
 ### Order of operations, end to end
 
-1. Decide classification ceiling → pick GHE org.
-2. Create the repo via an `meridian/owners` (or `restricted-org/owners`) PR.
-3. `/apiary create` → answer the interview → push the generated scaffold to that repo.
-4. If using `push_mode: pr`, complete the one-time policy-bot / auto-merge / CODEOWNERS setup in `push-mode-pr-setup.md` before flipping the mode on.
-5. Register the child skill in claude-clams (see Create mode Step 4) so `/your-hive-slug` is installable.
+1. Create the repo via an `meridian/owners` (or `restricted-org/owners`) PR.
+2. `/apiary create` → answer the interview → push the generated scaffold to that repo.
+3. If using `push_mode: pr`, complete the one-time policy-bot / auto-merge / CODEOWNERS setup in `push-mode-pr-setup.md` before flipping the mode on.
+4. Register the child skill in claude-clams (see Create mode Step 4) so `/your-hive-slug` is installable.

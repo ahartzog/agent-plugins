@@ -176,9 +176,8 @@ echo "===END==="
 From the single tool result:
 - **`{HIVE_ROOT}`** = `$HOME/.claude-hive/{HIVE_SLUG}` — use for all later steps.
 - **`{DEFAULT_BRANCH}`** = the `DEFAULT_BRANCH_RESOLVED:` line. Prefer it over re-deriving from `hive.yml` — it is what the script actually synced against.
-- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the two groups this list previously omitted even though later steps dispatch on them**:
+- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the group this list previously omitted even though later steps dispatch on it**:
   - **Push modes** — `push_mode` (default `direct`), `inbox_push_mode`, `parliament_push_mode`, `sources_push_mode`. § Push Procedure below resolves `inbox_push_mode` → `push_mode` → `direct`, and `sources-policy.md` § Push Discipline does the same for deposits. Not parsing them meant the Push Procedure dispatched on values the session had never read.
-  - **Classification** — the `classification` block: `classification.max_level` (`UNCLASSIFIED` | `FOUO` | `CUI`; an absent block means `UNCLASSIFIED` with no marking discipline) and `classification.marking_required`. The always-on invariant "never store content above the Hive's classification ceiling" cannot be held without the ceiling, and `marking_required` decides whether inbox and source frontmatter must carry a `classification` field at all (`sources-policy.md` § Frontmatter Schema).
 - **Persona** — the `===PERSONA:…===` section is the agent-definition. Adopt its name, voice, and routing rules. **If it contains a `## Greeting Banner` section, that is the greeting — see Step 1.**
 
 ### Orphaned Branch Recovery
@@ -232,7 +231,7 @@ Keep this compact routing table in mind and read the matching file(s) from the A
 |---|---|
 | `workflows.md` | executing any workflow whose steps aren't already in context |
 | `triage-policy.md` | routing a **Contribute** (deciding fast-path vs. deliberation) |
-| `security-policy.md` | writing to `_inbox/` or any **Contribute** / Sentinel path (CUI/PII/injection checks) |
+| `security-policy.md` | writing to `_inbox/` or any **Contribute** / Sentinel path (PII/credential/injection checks) |
 | `sensitive-data-patterns.md` | interpreting a pre-push Sentinel block, or reasoning about what the hook flags |
 | `knowledge-schema.md` | writing an inbox entry (frontmatter shape) |
 | `routing-protocol.md` | answering an **Ask** — always. The RLDP runs on every Ask (stated in `routing-protocol.md`'s header); a routing-table hit does not establish sufficiency, which is exactly the case §Search's augment path exists for |
@@ -248,7 +247,7 @@ Keep this compact routing table in mind and read the matching file(s) from the A
 Apiary is a hard dependency. If its `protocol/` directory is unavailable, fail loudly:
 > ERROR: Apiary plugin required but not installed. Run: `claude plugin install apiary@ahartzog`
 
-**Always-on invariants** (do not need a file read — hold these every session): never store content above the Hive's classification ceiling; every user correction and every reusable artifact produced becomes an inbox contribution before the session ends; cite knowledge sources.
+**Always-on invariants** (do not need a file read — hold these every session): every user correction and every reusable artifact produced becomes an inbox contribution before the session ends; cite knowledge sources.
 
 ## Step 3: Merge Extensions
 

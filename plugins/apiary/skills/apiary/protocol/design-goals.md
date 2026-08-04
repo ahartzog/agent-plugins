@@ -14,7 +14,7 @@ These principles govern all decisions about how the Hive Mind is built and maint
 
 ## 1. Reference, Don't Duplicate
 
-The knowledge base is an **index layer**, not a content repository. Knowledge files contain curated summaries (1-3 sentences per topic), descriptive links to authoritative sources, temporal annotations (`[learned:]`, `[review-by:]`, `[superseded:]`), and confidence scores. They do not contain full document reproductions, CUI content (path reference only), or speculative claims without a confidence tag.
+The knowledge base is an **index layer**, not a content repository. Knowledge files contain curated summaries (1-3 sentences per topic), descriptive links to authoritative sources, temporal annotations (`[learned:]`, `[review-by:]`, `[superseded:]`), and confidence scores. They do not contain full document reproductions, sensitive content (path reference only), or speculative claims without a confidence tag.
 
 **Do:** Link to the Confluence page, Jira board, or git repo with a one-line summary and `[learned:]` annotation.
 
@@ -47,11 +47,11 @@ The agent case is why a weak description costs more than reader inconvenience: i
 
 ---
 
-## 3. Classification Discipline
+## 3. Sensitivity Is Hive-Local
 
-Each Hive declares its maximum authorized classification in `hive.yml`. Content above the ceiling is always prohibited; content at or below is permitted when markings are correct. The principle is *discipline*, not *exclusion*.
+The Apiary core carries no sensitivity taxonomy. A Hive that must enforce one — PHI, PCI, trade-secret, or a bespoke public/internal/confidential ladder — declares it as a **gate extension** (`references/authoring-gate-extensions.md`), which runs in the generated pre-push hook after the built-in Sentinel scan and cannot suppress it.
 
-Full model (two operating modes, marking requirements, enforcement layers, remediation runbook): `PROTOCOL/security-policy.md`.
+This keeps the core free of any one organization's marking regime while leaving the enforcement point exactly where a marking check belongs. Sentinel's credential and PII scanning is unconditional and unrelated: it applies to every Hive regardless of sensitivity posture (`protocol/security-policy.md`).
 
 ---
 

@@ -62,7 +62,7 @@ This skill bundles canonical protocol files in `protocol/`. These are the single
 
 - `protocol/design-goals.md` — North star principles (MUST be consulted before any protocol change — see CONTRIBUTING.md)
 - `protocol/triage-policy.md` — Contribution routing (fast path vs. deliberation)
-- `protocol/security-policy.md` — CUI defense-in-depth, PII, injection defense
+- `protocol/security-policy.md` — PII/credential defense-in-depth, injection defense
 - `protocol/operational-model.md` — Three-phase session→accumulation→incorporation loop
 - `protocol/learning-loops.md` — Four feedback circuits — compact operational rules (see operate mode Step 2 for when to load)
 - `protocol/workflows.md` — Interaction modes

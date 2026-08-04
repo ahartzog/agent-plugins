@@ -13,8 +13,9 @@ as a tiebreak rather than a conviction.
 A clean Chancellor MERGE — deliberation-path, no high-confidence critic objections, Loop D quiet —
 currently joins the auto-merge batch PR. The human gate is post-hoc: the batch PR is visible in the
 repo's PR history and a single `git revert` rolls it back. That is the right default for a mature Hive whose codeowners trust Parliament, and the
-wrong first posture for a brand-new CUI Hive — which is why the trial-period pattern (codeowner
-review on *every* PR for the first month) already exists as folklore. Folklore is not
+wrong first posture for a brand-new Hive with elevated sensitivity needs (e.g. one declaring a
+strict gate extension) — which is why the trial-period pattern (codeowner review on *every* PR
+for the first month) already exists as folklore. Folklore is not
 configuration: today the only lever is `parliament_push_mode: pr`, which gates **all** Parliament
 output including the fast path — far coarser than the actual question, "does a human look at
 deliberation merges before they land?"
@@ -33,8 +34,8 @@ triage:
   Loop D escalations. Fast path (`[link]`/`[person]`/`[tracker]`) is untouched — this knob is
   about *deliberated* content only, so capture ergonomics and the flywheel are unaffected.
 
-Absent field = `auto` = current behavior; no migration (matches the absent-block-means-default
-precedent set by `classification:`).
+Absent field = `auto` = current behavior; no migration (matches the same absent-field-means-default
+precedent used elsewhere in `hive.yml`, e.g. `inbox_transport`).
 
 **Direction constraint: the knob only tightens.** `review` adds a human gate; nothing a Hive can
 set weakens the upstream default or any other control. Same additive-only philosophy as gate
@@ -70,10 +71,10 @@ The knob turns "trust Parliament" from a belief into a measured graduation with 
 ## Schema and versioning
 
 `hive.schema.json` gains an optional `triage` object with `deliberation_merge` (enum, default
-`auto`). Optional field ⇒ **minor** version bump (new capability, no migration). Create mode Q5.5
-area gains one interview question for CUI Hives only ("start in review posture? — recommended"),
-defaulting to `review` for `max_level: CUI` and `auto` otherwise; greenfield UNCLASSIFIED Hives
-are not asked.
+`auto`). Optional field ⇒ **minor** version bump (new capability, no migration). Create mode's
+interview gains one optional question ("start in review posture for the first month, until the
+team has built confidence in Parliament? — recommended"), defaulting to `auto` unless the operator
+opts in.
 
 ## Open questions
 

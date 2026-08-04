@@ -23,7 +23,7 @@ extensions:
   #  scaffold: assets/workflow-extension-template.md)
   workflows: null
   # Directory of gate-extension files — Hive-specific pre-push hardening layers
-  # (LLM compliance review, classification scan, domain lint) baked into the
+  # (LLM compliance review, sensitivity marking scan, domain lint) baked into the
   # generated pre-push hook. Gates run only AFTER the built-in Sentinel pattern
   # scan passes, so they can raise this Hive's bar but never lower it. Gate
   # commands may need runtimes beyond bash/grep/git — that toolchain is the
@@ -65,11 +65,3 @@ sources:
   # Additional subdirectories can be added by codeowners:
   #   - documents
   #   - recordings
-
-# Classification ceiling. Omit for the default UNCLASSIFIED-only behavior.
-# Uncomment and fill in if this Hive is authorized to store classified content.
-# Ensure the hosting storage tier matches the declared max_level.
-# classification:
-#   max_level: CUI             # UNCLASSIFIED or CUI (FOUO is obsolete per DoDI 5200.48 — not a ceiling for new content)
-#   marking_required: true     # enforces frontmatter classification + in-body banner discipline
-#   storage_tier: "ghe-cui"    # documentation-only reminder

@@ -182,7 +182,7 @@ matched only by filename") and `routing-protocol.md` §Extract ("matching is by 
 so rather than reporting a filename match as a topical one").
 
 **Fixture:** `ground-segment/document-catalog.md`, row `(U) 2.1_2.4 - CDR Ground Segment Design
-(CUI).pptx`, empty `covers` cell.
+(Internal).pptx`, empty `covers` cell.
 
 **Question:** "How does flight dynamics hand off to T&C?" (the document-quality.md worked example —
 the filename shares "Ground Segment Design" and "CDR" context but does not mention flight dynamics,

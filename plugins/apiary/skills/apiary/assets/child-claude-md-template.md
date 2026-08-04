@@ -21,30 +21,14 @@ Parliament processes inbox files into knowledge files via PR. Direct edits to `k
 - Identity: `hive.yml`
 - Persona: `PROTOCOL/agent-definition.md`
 
-## Classification / Security
+## Security
 
-{CLASSIFICATION_SECTION}
+- **No credentials or PII in this repo.** Every push is scanned by the Apiary's
+  built-in Sentinel hook — this applies unconditionally and cannot be disabled.
+- **Sensitivity marking, if this Hive needs one** (PHI, PCI, trade-secret, or a
+  bespoke public/internal/confidential ladder), is enforced by a Hive-declared
+  gate extension layered on top of the built-in scan — see the Apiary
+  `references/authoring-gate-extensions.md`.
 
-<!--
-  Create mode substitutes {CLASSIFICATION_SECTION} with one of:
-
-  UNCLASSIFIED Hive (default):
-    "- **No CUI or classified content in this repo.** Classified material is
-       referenced by storage-system path only. Four layers enforce this:
-       pre-push Sentinel hook (classification-banner scan), session agent,
-       GHE pre-receive hook (server-side, optional), Parliament intake scan.
-       See the Apiary `PROTOCOL/security-policy.md`."
-
-  Classified Hive (max_level: CUI, marking_required: true):
-    "- **This Hive is authorized for content up to {MAX_LEVEL}.** Every knowledge
-       and inbox file must carry a `classification:` field in frontmatter. Files
-       containing classified content must also carry a matching banner
-       (e.g. `CUI`) as the first line of the body.
-     - **Unmarked classified content will be quarantined by Parliament.**
-     - **Content above {MAX_LEVEL} is prohibited.** Anything SECRET or above, or
-       any compartmented material (SCI, SAP), does not belong here — route to the
-       appropriate classified enclave instead.
-     - Storage tier: {STORAGE_TIER}. The operator is responsible for ensuring
-       the repo is hosted accordingly."
--->
+See the Apiary `PROTOCOL/security-policy.md` for the full model.
 

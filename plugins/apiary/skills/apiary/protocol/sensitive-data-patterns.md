@@ -64,7 +64,7 @@ positive detection test in `tests/sentinel.test.sh`.
 
 The pattern set above is deliberately **universal** — it detects things that look the same in every domain. A credential looks like a credential regardless of what the Hive is about, which is why these patterns live upstream and every Hive gets them.
 
-Domain disclosure risk is not universal. A Hive whose subject matter is unclassified but whose *application* is controlled can leak without matching any pattern here. A **synthetic** illustration — invented for a test fixture, not drawn from any real program:
+Domain disclosure risk is not universal. A Hive whose subject matter is not sensitive on its face but whose *application* is controlled can leak without matching any pattern here. A **synthetic** illustration — invented for a test fixture, not drawn from any real program:
 
 > "our customer needs a 12 minute revisit cadence against their GEO belt targets"
 
@@ -91,34 +91,11 @@ Gates may require runtimes beyond bash/grep/git (a model CLI, python3). That is 
 
 ---
 
-## Classification banners
-
-Classification markers are **not** part of the pattern list above — their disposition depends on
-`hive.yml.classification`, so the generator bakes the Hive's `max_level` into the hook at
-generation time and the hook applies these rules to **banner-shaped** markers (a line that *is*
-the marker, optionally `//CAVEATED`, or the long-form phrases `CONTROLLED UNCLASSIFIED
-INFORMATION` / `UNCLASSIFIED//FOR OFFICIAL USE ONLY` — matched case-sensitively so prose and
-words like "circuit" never trip it):
-
-| Hook finding | When | Overridable? |
-|---|---|---|
-| `classification.above-ceiling` | a `SECRET`/`TOP SECRET` banner line, any Hive | **Never** |
-| `classification.marker` | a CUI/FOUO banner in a Hive whose baked ceiling is UNCLASSIFIED (or the hook was generated without a HIVE_ROOT) | **Never** |
-| `classification.unmarked` | a CUI/FOUO banner in a CUI-ceiling Hive whose file has no `classification:` frontmatter field | **Never** |
-
-What Layer 0 deliberately does NOT judge: filename-embedded markers like `(CUI) document.docx`
-(path-only references are the *sanctioned* way to point at classified material —
-`security-policy.md` § Session Agent Behavior), and frontmatter/banner **mismatch** checks — both
-need context and belong to Parliament Sentinel (Layer 3), per `custodian-workflow.md` § 0 "On
-classification markings".
-
----
-
 ## Disposition
 
 When the pre-push hook or Parliament Sentinel matches a pattern, the layer-specific runbook applies:
 
-- **Pre-push hook:** the hook itself only detects and reports — it has no UI. On match it exits non-zero and the agent runs the override-approval flow in `references/pre-push-sentinel.md`. Default = hard block; user may approve an override via `AskUserQuestion` (only available in main agent context — subagents cannot override). `classification.*` findings are never overridable — remove the marker or re-home the content.
+- **Pre-push hook:** the hook itself only detects and reports — it has no UI. On match it exits non-zero and the agent runs the override-approval flow in `references/pre-push-sentinel.md`. Default = hard block; user may approve an override via `AskUserQuestion` (only available in main agent context — subagents cannot override).
 - **Parliament intake:** see `custodian-workflow.md` § 0. Hard reject → quarantine; no override (the user is not in the loop). Parliament does honor `sentinel_override` frontmatter recorded by the pre-push flow — if a match is fully covered by an existing override, Parliament logs it instead of quarantining.
 
 ---

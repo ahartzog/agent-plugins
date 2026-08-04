@@ -25,14 +25,15 @@ chmod +x /tmp/sentinel-scan
 ```
 
 Every reported match is dispositioned per this section (quarantine, or logged override). The LLM's
-own judgment layers ON TOP of the deterministic scan — override reconciliation, classification
-context, injection review — it never substitutes for it.
+own judgment layers ON TOP of the deterministic scan — override reconciliation, injection review —
+it never substitutes for it.
 
 The pattern set is defined in `assets/sentinel-patterns.json` (human-readable companion in `protocol/sensitive-data-patterns.md`). Categories:
 
 - **PII** — SSNs and US phone numbers (deterministic patterns). Physical addresses and other free-form PII have no reliable regex — detecting them is Archivist judgment, not a pattern. Exception: email addresses are allowed (expected in stakeholder/people knowledge files).
 - **Credentials** — API keys, tokens, passwords, private keys, AWS/GCP/Azure secrets, connection strings, GitHub PATs, Slack tokens.
-- **Classification markings** — Classification banners (CUI, FOUO, CONTROLLED UNCLASSIFIED, etc.). Sentinel reads `hive.yml.classification` to decide the disposition (see "On classification markings" below).
+
+A Hive that needs a sensitivity-marking check beyond PII/credentials declares it as a gate extension (`references/authoring-gate-extensions.md`). Gate extensions run only in the client-side pre-push hook (Layer 0), not in this Parliament re-scan — see `assets/generate-hook.sh` § `run_gate_extensions`.
 
 ### On detection (PII, credentials)
 
@@ -52,24 +53,6 @@ If the contribution carries a `sentinel_override` frontmatter block (as defined 
 This preserves user-approved false-positive handling while still catching pattern drift between the contribution being authored and Parliament running.
 
 The session agent that recorded the override is responsible for the justification's accuracy. Reviewers can audit overrides via the Parliament run report or `git log` on the inbox file.
-
-### On classification markings
-Behavior depends on `hive.yml.classification`:
-
-| Hive mode | Detected content | Disposition |
-|---|---|---|
-| UNCLASSIFIED (default, or `max_level: UNCLASSIFIED`) | Any classification marker | Quarantine (hard reject, same as PII/credentials) |
-| Classified (`max_level: CUI`; a legacy `FOUO` value is treated as CUI-equivalent) | Content at or below `max_level`, correctly marked (frontmatter `classification:` + matching in-body banner for above-UNCLASSIFIED) | Allow |
-| Classified | Content at or below `max_level`, missing frontmatter field, banner, or with mismatch | Quarantine with failure mode noted: "missing frontmatter classification", "missing in-body banner", or "frontmatter/banner mismatch" |
-| Classified | Content above `max_level` | Quarantine with "content above Hive ceiling" noted. Notify CODEOWNERS. |
-
-The table governs **banner-shaped markers and marked content**. A filename-embedded or path-only
-reference (`[link][cui-reference] path/to/(CUI) document.docx`) is the *sanctioned* way to point at
-classified material (`security-policy.md` § Session Agent Behavior) and is judged in context here
-rather than auto-quarantined: quarantine it only when the surrounding contribution reproduces
-controlled content, not for naming where a document lives.
-
-Quarantined contributions follow the same notification + pipeline-stop pattern as PII/credentials.
 
 ### Post-Parliament tail-check
 At the end of every Parliament run, Sentinel performs a lightweight audit:
@@ -302,7 +285,6 @@ Before routing, the Archivist processes every contribution in every ready file:
 - Validate frontmatter compliance (domain, type, decay, confidence, last_updated).
 - Add `[learned: YYYY-MM-DD]` annotation to each new fact.
 - Confirm or correct the target knowledge file.
-- Check classification markings against `hive.yml.classification` — quarantine per the Sentinel disposition table above.
 - Check for prompt injection patterns — quarantine if found.
 - **Re-tag mislabeled contributions** (e.g., a `[link]` contribution that actually contains architectural claims should be re-tagged `[architecture]`).
 - Produce a structured checklist (PASS/FAIL per item with reasoning).
@@ -356,7 +338,7 @@ Invoke Skeptic, Archivist (full checklist), and Cartographer simultaneously with
 **Archivist** — standards:
 - Correct frontmatter, temporal annotations, confidence level?
 - Descriptive link or duplicated content?
-- Classification markings match `hive.yml.classification`? Target file confirmed?
+- Target file confirmed?
 - Output: PASS/FAIL per item with reasoning.
 
 **Cartographer** — structural:
@@ -665,7 +647,6 @@ release the lock ref (§1.1: `git push origin :refs/heads/parliament/lock`).
 | Inbox file unreadable or malformed frontmatter | Skip file, log in run report, do not quarantine |
 | Knowledge file missing for a target | Log as a coverage gap in the run report; do not create new files without Cartographer + Opus review |
 | Git push failure during PR creation | Retry once; if still failing, abort run and release lock |
-| Classification markings fail Hive policy (see Sentinel disposition table) | Quarantine to `_inbox/_quarantine/`, log incident, do not process further |
 | Queue drain push fails after rebase-retry (queue-branch transport, §6.3) | Log in run report; leave the queue as-is; release the lock. §1.3's idempotency guard makes the next run re-delete without reprocessing |
 | Queue ref unreachable at §0.5 (queue-branch transport) | Proceed with legacy `_inbox/` only; log `QUEUE_ABSENT` in the run report — an empty queue is normal before the first session push |
 | Lock ref steal loses the CAS race (queue-branch transport, §1.1) | Exit cleanly — another runner won; do not retry within this invocation |

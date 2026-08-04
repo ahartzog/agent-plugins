@@ -172,7 +172,7 @@ The hive.yml layer is the parameterization surface — it is where a Hive custom
 
 Before any Parliament agent processes a contribution, Sentinel runs a mandatory security scan. Sentinel cannot be disabled or skipped.
 
-Sentinel scans for: PII beyond professional attribution, credentials/tokens/keys, and classification markings above the repo's clearance level. Hard rejections go to `_inbox/_quarantine/` with a Sentinel report; `/apiary audit` surfaces unaddressed quarantine items to CODEOWNERS (Sentinel Retrospective). Other contributions in the batch continue.
+Sentinel scans for: PII beyond professional attribution, and credentials/tokens/keys. Hard rejections go to `_inbox/_quarantine/` with a Sentinel report; `/apiary audit` surfaces unaddressed quarantine items to CODEOWNERS (Sentinel Retrospective). Other contributions in the batch continue. A Hive that needs a sensitivity-marking check beyond PII/credentials declares one as a gate extension (`references/authoring-gate-extensions.md`), enforced at push time.
 
 After every Parliament run, Sentinel performs a tail-check: structural validation, quarantine retrospective, and version check. Findings are appended to the Parliament run report.
 

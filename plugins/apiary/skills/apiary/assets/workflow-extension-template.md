@@ -5,7 +5,6 @@ workflow: {WORKFLOW_NAME}
 description: "{ONE_LINE_SUMMARY — what it does, and which knowledge file holds the mechanics}"
 last_updated: {YYYY-MM-DD}
 codeowners: [{GHE_HANDLE}]
-classification: UNCLASSIFIED
 delegates_to: [knowledge/{DOMAIN}/{MECHANICS_FILE}.md]
 ---
 

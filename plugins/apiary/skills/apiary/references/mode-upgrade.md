@@ -140,8 +140,8 @@ worth taking**, called out first.
   **every** invocation rather than only at clone time, so your existing `~/.claude-hive/{slug}`
   clones widen on their next session instead of keeping their original patterns forever. (If a
   session ever failed to commit its `_metrics/` log with *"matched paths that exist outside of your
-  sparse-checkout definition"*, that was this.) The Identity parse list gains the push modes and the
-  `classification` block, which later steps in the same file already dispatched on.
+  sparse-checkout definition"*, that was this.) The Identity parse list gains the push modes, which
+  later steps in the same file already dispatched on.
 
 ### 2.23.0 — inbox queue-branch transport (recommended default for new Hives)
 
@@ -226,10 +226,9 @@ worth taking**, called out first.
 
 - **One MERGE disposition rule** (custodian §4.3, with a Loop D carve-out): clean MERGE
   auto-merges; MERGE-with-objection or a second-challenged `[contradiction]` goes to needs-review.
-- **Sentinel:** frontmatter + `sources/**.txt` scanning; classification-banner scan baked from the
-  Hive's ceiling; excerpt-bound overrides (`sentinel_override.matches`); 18 patterns with a
-  positive test each (two long-broken regexes fixed); Parliament §0 runs the hook's `scan-dir`
-  as a literal command; quarantine redacts.
+- **Sentinel:** frontmatter + `sources/**.txt` scanning; excerpt-bound overrides
+  (`sentinel_override.matches`); 18 patterns with a positive test each (two long-broken regexes
+  fixed); Parliament §0 runs the hook's `scan-dir` as a literal command; quarantine redacts.
 - **Loops C/D wired:** §4.1.05 prior-contradiction check; §6.2 idempotent telemetry rebuild;
   housekeeping stages the telemetry files.
 - **RLDP:** §Recurse boundary defined; sufficiency verdict stated in one line; mechanical recency

@@ -1,14 +1,14 @@
 ---
 layer: PROTOCOL
 type: schema-spec
-description: "Quality and type classification for external source documents referenced in Hive knowledge catalogs. Defines doc_type and authority fields for source entries."
+description: "Quality and type taxonomy for external source documents referenced in Hive knowledge catalogs. Defines doc_type and authority fields for source entries."
 last_updated: 2026-07-30
 codeowners: (read from hive.yml)
 ---
 
-# Document Quality & Type Classification
+# Document Quality & Type Taxonomy
 
-When a Hive catalogs external documents (SharePoint files, Confluence pages, vendor deliverables), each entry should carry classification fields. The three required fields are **doc_type** (what kind of document), **authority** (how much citation trust), and **covers** (what the document is about). Optional fields — **source_org**, **scope**, **supersedes**, and **discovered_via** — provide additional routing context and provenance.
+When a Hive catalogs external documents (SharePoint files, Confluence pages, vendor deliverables), each entry should carry these descriptive fields. The three required fields are **doc_type** (what kind of document), **authority** (how much citation trust), and **covers** (what the document is about). Optional fields — **source_org**, **scope**, **supersedes**, and **discovered_via** — provide additional routing context and provenance.
 
 > **Shared taxonomy:** The `doc_type` and `authority` enums, `source_org`, `scope`, `supersedes`, and `discovered_via` here are shared with the [Second Brain document-quality protocol](../../../../second-brain/skills/second-brain/references/document-quality.md). The two renderings differ in framing (this one is the multi-Hive PROTOCOL spec; Second Brain's is trimmed for single-user agents) but the field definitions and enum values must stay identical. Any change to a field or enum here must be upstreamed to the other, and vice versa.
 >
@@ -68,7 +68,7 @@ How much citation trust does this document carry? Agents use this to decide whet
 
 What is this document **about** — the topical content an agent matches a question against. `doc_type` and `authority` say what class of document it is and how much to trust it; neither says what is inside it. `covers` is that field.
 
-This is the catalog's equivalent of a reference-library `Triggers` column, and it carries the same weight. Routing arrives at a catalog and scans rows for the query terms (`protocol/routing-protocol.md` §Extract); a row whose only free text is a filename can be matched only by filename. `(U) 2.1_2.4 - CDR Ground Segment Design (CUI).pptx` will not match "how does flight dynamics hand off to T&C" no matter how directly the document answers it.
+This is the catalog's equivalent of a reference-library `Triggers` column, and it carries the same weight. Routing arrives at a catalog and scans rows for the query terms (`protocol/routing-protocol.md` §Extract); a row whose only free text is a filename can be matched only by filename. `2.1_2.4 - CDR Ground Segment Design (Internal).pptx` will not match "how does flight dynamics hand off to T&C" no matter how directly the document answers it.
 
 **Write the subjects, not the role.** Name the topics, systems, interfaces, and terms a reader would search for — the words that would appear in a question this document answers.
 

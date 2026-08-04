@@ -12,7 +12,7 @@ The Apiary skill implements the Hive Parent Protocol (HPP) — the upstream infr
 
 3. **Extensions are additive only.** Child Hives can add workflows, schema fields, and triage categories. They cannot remove or replace upstream behavior.
 
-4. **Sentinel is non-negotiable.** Every Hive gets PII/credential/classification scanning. It cannot be disabled.
+4. **Sentinel is non-negotiable.** Every Hive gets PII/credential scanning. It cannot be disabled. A Hive that needs a sensitivity taxonomy on top of that declares it as an additive gate extension (Goal 3).
 
 5. **Upgrades are invisible.** Protocol improvements take effect on next `operate` invocation. Breaking changes (hive.yml schema) are auto-migrated where possible. Zero-friction.
 

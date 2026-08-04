@@ -8,15 +8,15 @@ Declared via `extensions.gates` in `hive.yml`; frontmatter schema: [`assets/gate
 
 The built-in Sentinel is a fixed regex set — 10 credential patterns and 2 PII patterns (`protocol/sensitive-data-patterns.md`). It is deliberately universal: every Hive gets it, and it detects things that look the same in every domain. A credential looks like a credential everywhere.
 
-Domain risk does not work that way. Consider a Hive covering unclassified engineering work for programs whose *use* of that work is controlled. The following sentence is **synthetic** — it was written as a `block` case in a Hive's gate self-test, and describes no real customer, constellation, or requirement:
+Domain risk does not work that way. Consider a Hive covering general engineering work for programs whose *use* of that work is controlled. The following sentence is **synthetic** — it was written as a `block` case in a Hive's gate self-test, and describes no real customer, constellation, or requirement:
 
 > "our customer needs a 12 minute revisit cadence against their GEO belt targets"
 
-No credential. No PII. No classification marking. Every regex in the Sentinel passes it, and that shape of sentence is exactly what must not land. Catching it requires domain judgement — a model reading the diff, or a Hive-specific pattern list of program names.
+No credential. No PII. No sensitivity marking. Every regex in the Sentinel passes it, and that shape of sentence is exactly what must not land. Catching it requires domain judgement — a model reading the diff, or a Hive-specific pattern list of program names.
 
 (Worth noting the general practice: when documenting what a gate should catch, write a synthetic example and label it as such. A real one would have to be redacted from the docs by the very control being described.)
 
-That is what a gate extension is for. Reach for one when your Hive's disclosure risk is **semantic** (needs judgement about meaning) or **domain-specific** (a term list only your Hive knows), and therefore cannot be expressed as a pattern that belongs upstream.
+That is what a gate extension is for. Reach for one when your Hive's disclosure risk is **semantic** (needs judgement about meaning) or **domain-specific** (a term list only your Hive knows), and therefore cannot be expressed as a pattern that belongs upstream. This is also the recommended home for a **sensitivity marking scan** — PHI, PCI, trade-secret, or a bespoke public/internal/confidential ladder, or a regulated-content marking regime a prior version of the Apiary core enforced directly (Design Goal 3). The core carries no such taxonomy; a Hive that needs one declares it here.
 
 If your check *is* universal — a new credential format, a new PII shape — do not write a gate. Add it to `assets/sentinel-patterns.json` so every Hive benefits (`protocol/sensitive-data-patterns.md` § Adding a pattern).
 

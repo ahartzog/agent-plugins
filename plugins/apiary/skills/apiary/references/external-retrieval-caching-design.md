@@ -70,14 +70,14 @@ derive `~/.claude/plugins/data/apiary-<marketplace>/` and create it.
 Rejected alternatives:
 
 - **In-repo `.hive-cache/`, gitignored.** Puts fetched external content inside the Hive's
-  classification boundary and one `git add -A` away from being committed. The repo is the artifact
+  protection boundary and one `git add -A` away from being committed. The repo is the artifact
   the Hive protects; the cache must sit outside it.
 - **OS temp (`/tmp`, `%TEMP%`).** Wiped on schedules the protocol cannot predict — a cache that may
   vanish mid-session is a cache whose TTL means nothing. Also the one place where the path genuinely
   differs per OS.
 
 **Partition by Hive slug, not globally by URL.** A global cache keyed only by URL would let a
-document fetched by one Hive be served to another at a different classification ceiling. Sharing
+document fetched by one Hive be served to another with a different protection posture. Sharing
 across Hives is a marginal hit-rate gain for a real cross-boundary risk; the partition is cheap.
 
 ---
@@ -195,32 +195,30 @@ a formatted date and computes an offset needs an OS branch. Integer comparison n
 
 ---
 
-## Classification — the constraint that gates the default
+## Exposure — the constraint that gates the default
 
 Caching writes fetched content to disk **outside the Hive repo**, and that is a materially different
 exposure question than reading the same bytes into a turn. Specifically:
 
-- The cache root carries **no classification marking** and is not covered by the Hive's protection
-  model.
+- The cache root is not covered by the Hive's protection model.
 - **Sentinel does not scan it.** Same structural limitation `sources-policy.md` documents for
   LFS-tracked binaries: the gate is a pre-push hook, and nothing here is ever pushed.
 - The cache **outlives the session** that judged the fetch appropriate.
 
 Therefore:
 
-- **Default `enabled: true` only for a Hive whose ceiling is UNCLASSIFIED with
-  `marking_required: false`.** Any Hive above that defaults to **disabled**, opt-in via
-  `hive.yml.cache.enabled: true` — a deliberate act by codeowners who accept unmarked fetched
-  content on local disk.
+- **Default `enabled: false` for every Hive.** Caching is opt-in via
+  `hive.yml.cache.enabled: true` — a deliberate act by codeowners who accept
+  unscanned fetched content on local disk.
 - A locator whose entry is marked `cite-only` (proposed in `BACKLOG.md` § fetch-disposition) is
-  **never cached**, independent of Hive ceiling. Material that should not be mirrored into context
-  certainly should not be mirrored onto disk.
+  **never cached**, independent of the `enabled` setting. Material that should not be mirrored into
+  context certainly should not be mirrored onto disk.
 - Cache-clear must be a documented one-liner (`rm -rf` the Hive's partition) so a user who realizes
   they cached something sensitive has an immediate remedy.
 
-This is the boundary `BACKLOG.md` flagged. This design does not resolve the broader
-classification-exposure policy question (reading CUI into an UNCLASSIFIED Hive's context is policy,
-not plumbing) — it declines to *widen* it by defaulting to off wherever that question is live.
+This is the boundary `BACKLOG.md` flagged. This design does not resolve the broader question of
+whether fetched content should ever be scanned or mirrored to disk at all — it declines to *widen*
+that exposure by defaulting to off unconditionally, leaving the opt-in decision to codeowners.
 
 ---
 
@@ -260,7 +258,7 @@ Scheduler) for a problem that a `find`-and-delete on access solves.
 |---|---|
 | 1 — Reference, don't duplicate | **The tension.** A cache *is* a local copy. Reconciled because it is not part of the knowledge base, is never cited as a source, and is invalidated against the canonical document rather than diverging from it. Goal 1 forbids duplication *in `knowledge/`*; the failure it prevents is a stale copy presented as current, which the validator gate is built to stop. |
 | 2 — Progressive discovery | Unaffected. The cache changes fetch cost, not what an entry says or whether to follow it. |
-| 3 — Classification discipline | **The binding constraint.** Drives default-off above UNCLASSIFIED, per-Hive partitioning, and the documented Sentinel gap. |
+| 3 — Sensitivity is Hive-local | **The binding constraint driving this section's rename to § Exposure.** Drives unconditional default-off, per-Hive partitioning, and the documented Sentinel gap. |
 | 4 — Collective ownership | Unaffected. The cache is per-user and holds nothing shared; no `knowledge/` write path is touched. |
 | 5 — Contribution flywheel | Positive — `hit_count` creates a Deposit prompt that did not previously exist. |
 | 6 — Size budgets | This file is `references/`, loaded on demand, and adds no lines to any always-loaded protocol file. The `tool-tiers.md` change is one column. |

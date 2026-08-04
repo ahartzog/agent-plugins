@@ -82,8 +82,8 @@ never substitute a different tool to fake a search the store does not offer.
 native call shape for these tools: SharePoint's `search` takes a `<drive_id>`, and Box's takes
 `--ancestor-folder-ids`. Tenant-wide is the form that costs extra — SharePoint's is a raw Graph
 `/search/query` POST with no script subcommand. Which of the two a session is *allowed* to run is not
-this table's call: `routing-protocol.md` §Search owns it, and the classification reasoning is
-`references/external-retrieval-search-design.md` § Why the classification guard is a scope default,
+this table's call: `routing-protocol.md` §Search owns it, and the reasoning is
+`references/external-retrieval-search-design.md` § Why the search-scope guard is a default,
 not a prohibition.
 
 ## Degradation Patterns
