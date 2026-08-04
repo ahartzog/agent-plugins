@@ -15,6 +15,7 @@ bash normalizer.test.sh
 bash golden-routing.test.sh   # deterministic fixture checks; always run this half
 bash sentinel-base.test.sh    # merge-base resolution regression guard (2.16.1)
 bash gate-extensions.test.sh  # proves a gate can never suppress a built-in Sentinel match
+bash decoupling.test.sh       # guards the 3.0.0 org-decoupling removals
 
 # sentinel.test.sh needs a generated hook path as its argument:
 GEN_HOOK=$(mktemp) && bash ../assets/generate-hook.sh ../assets/sentinel-patterns.json > "$GEN_HOOK" \

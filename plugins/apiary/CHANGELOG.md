@@ -4,6 +4,83 @@ All notable changes to the **apiary** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for change and versioning discipline, and this plugin's [CONTRIBUTING.md](CONTRIBUTING.md) for the mandatory scenario verification.
 
+## [3.0.0] — 2026-08-03 — Commercial decoupling
+
+Removes three organization-specific couplings — a DoD-style classification model, an internal
+Slack notification bot ("Signal"), and a Confluence-backed Hive Mind Registry/federation — plus
+the organization's own identifying references, so the plugin ships clean for the public
+marketplace. **Breaking:** existing `hive.yml` files carrying any of the removed keys fail schema
+validation (`additionalProperties: false`) until those keys are deleted; see § Removed and the PR
+body for the deliberate no-migration rationale.
+
+### Removed
+- **Classification model.** The `UNCLASSIFIED`/`FOUO`/`CUI` ceiling, `hive.yml.classification`,
+  the `classification` frontmatter field on all five entry schemas, Sentinel's
+  classification-banner check (and its non-overridable pattern class — every remaining pattern is
+  now overridable via `sentinel_override`; credential/PII scanning is otherwise unchanged), the
+  GHE pre-receive variants, and the classification remediation runbook. Hives needing a
+  sensitivity taxonomy now declare one as a gate extension — see
+  `references/authoring-gate-extensions.md`. Design Goal 3 is renamed **"Sensitivity Is
+  Hive-Local"**; Goal numbering is unchanged, so every `Goal N` citation elsewhere remains valid.
+- **Signal / Slack notifications.** `hive.yml.slack_channel` (previously a **required** field),
+  `.signal/config.yml`, Create mode's Signal step, and the `signal-bot` auto-merge mechanism.
+  Quarantine and Loop D escalations now surface via `/apiary audit` (Sentinel Retrospective) and
+  PR review requests — there is no push notification of any kind.
+- **Federation and the Hive Mind Registry.** `hive.yml.siblings`, `federation`,
+  `confluence_registry`, the Apiculturist subagent and its Parliament §1.4 dispatch, cross-hive
+  suggestions, the classification direction guard, and Audit Step 4c. Removed alongside:
+  `tests/apiculturist.test.sh` and `tests/golden/hive.yml.fixture`.
+- **The former security "Layer 2"** — a server-side GHE pre-receive hook that existed only to
+  enforce the now-removed classification taxonomy — is retired. The defense model drops from four
+  layers (one of them always optional) to three: L0 pre-push hook, L1 session-agent redaction, L3
+  Parliament Sentinel intake scan. Layer numbering is left as-is (historical) rather than
+  renumbered; the surviving prose says so explicitly.
+- Organization-specific references: Meridian Systems, claude-clams (the org's internal skill
+  marketplace), `ghe.meridian.example` / `jira.meridian.example` / `confluence.meridian.example` /
+  `docs.meridian.example`, and the `meridian/owners` centrally-provisioned repo-provisioner flow.
+- The strings `CUI`, `ITAR`, `FOUO`, and `UNCLASSIFIED` no longer appear anywhere in the plugin
+  outside this changelog and `BACKLOG.md` — enforced by `tests/decoupling.test.sh`'s
+  `classification` and `org-coupling` groups.
+
+### Changed
+- **External-retrieval caching now defaults to disabled for every Hive, unconditionally.** The
+  default was previously gated on a Hive's classification ceiling (`enabled: true` only below
+  UNCLASSIFIED with no marking required); with no ceiling left to read, the conservative default
+  now applies universally and caching is opt-in via `hive.yml.cache.enabled: true`.
+  `external-retrieval-caching-design.md` § Classification is renamed § Exposure to match.
+- Parliament's auto-merge post-hoc human gate now rests on PR visibility plus `git revert`, no
+  longer on a Signal post — the removed notification's load-bearing justification is rewritten
+  rather than left dangling.
+- **Ambiguous `Design Goal N` citations disambiguated plugin-wide**, because the repo carries two
+  independently-numbered documents by that name. Convention going forward: a bare `Goal N`
+  resolves to `protocol/design-goals.md`; a citation of the repo-root `DESIGN-GOALS.md` is always
+  qualified as "principle N" with the file named explicitly. Applied across markdown, `.sh`, and
+  `.json` files (an initial `*.md`-only sweep missed two of the latter).
+- **`triage-policy.md` and `push-mode-pr-setup.md` no longer reference `corroborate`**, an
+  undefined internal CI status check that operators were told was required. Both now point at
+  "whatever checks your repo's branch protection actually requires," with
+  `assets/circleci-config-template.yml` as the concrete example.
+- **The post-create instruction in README.md / `mode-create.md` no longer assumes an internal
+  marketplace.** "Register the child skill in your plugin marketplace" (unexplained and
+  org-specific) is replaced with a concrete path: drop the generated skill into
+  `~/.claude/skills/` to make `/your-hive-slug` callable immediately, with marketplace publishing
+  named as the optional team-sharing path.
+- **GitHub Enterprise branding genericized on the protection model** (`security-policy.md`,
+  `operational-model.md`) while preserving the real constraint: branch protection / rulesets are
+  standard GitHub features, not GHE-specific, so the prose no longer implies otherwise.
+- `CONTRIBUTING.md`'s schema-change migration rule now covers removed fields as well as added
+  ones, and permits a stated skip when no Hive is known to run the prior schema — this release
+  exercises that skip (see the PR body).
+
+### Added
+- **`tests/decoupling.test.sh`** — a five-group regression guard. `classification`,
+  `notifications`, `federation`, and `org-coupling` assert the four removal classes stay removed
+  (with a substring-precise allowlist for legitimate look-alike mentions, e.g. the Slack-token
+  credential pattern); a fifth group, `survivors`, positively asserts that legitimate content —
+  the Sentinel triage runbook's `classify` verb, the `diagnose-and-classify` pointer, the gate
+  override mechanism, and the 18-pattern Sentinel count — was not collaterally deleted by the
+  sweep.
+
 ## [2.24.0] — 2026-08-03
 
 ### Added
