@@ -78,7 +78,7 @@ A Hive declares such a check as a **gate extension** (`extensions.gates` in `hiv
 - a gate cannot disable the Sentinel, reorder itself ahead of it, or narrow the file list it sees;
 - the only thing a gate can do is block something the Sentinel allowed.
 
-This is what makes gates safe to add without upstream review — a Hive can only raise its own bar. It is the direct application of design goals 3 (extensions are additive only) and 4 (Sentinel is non-negotiable).
+This is what makes gates safe to add without upstream review — a Hive can only raise its own bar. It is the direct application of plugin-root `DESIGN-GOALS.md` principles 3 (extensions are additive only) and 4 (Sentinel is non-negotiable).
 
 **Choosing where a check belongs:**
 
@@ -87,7 +87,7 @@ This is what makes gates safe to add without upstream review — a Hive can only
 | A new credential or PII format any Hive could encounter | Here — `assets/sentinel-patterns.json`, so all Hives benefit |
 | Semantic (needs judgement about meaning) or specific to one domain's term list | A gate extension in that Hive |
 
-Gates may require runtimes beyond bash/grep/git (a model CLI, python3). That is the Hive's own dependency to declare and document — the same footing as opt-in connectors under design goal 9, and a real cost to weigh, since every contributor to that Hive then needs the toolchain to push.
+Gates may require runtimes beyond bash/grep/git (a model CLI, python3). That is the Hive's own dependency to declare and document — the same footing as opt-in connectors under plugin-root `DESIGN-GOALS.md` principle 9, and a real cost to weigh, since every contributor to that Hive then needs the toolchain to push.
 
 ---
 
