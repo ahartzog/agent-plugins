@@ -767,7 +767,7 @@ echo ""
 echo "=== Scenario C1: Step 0 sparse-checkout coverage ==="
 SPARSE_LINE=$(grep -A1 'git sparse-checkout set --no-cone' "$MODE_OPERATE" | tr '\n' ' ')
 for p in 'PROTOCOL/' 'knowledge/' 'sources/' '/hive.yml' '/CLAUDE.md' '/README.md' \
-         '_inbox/' '_custodian/' '_metrics/' '.signal/' '.claude/'; do
+         '_inbox/' '_custodian/' '_metrics/' '.claude/'; do
   if [[ "$SPARSE_LINE" == *"$p"* ]]; then
     echo "PASS: sparse set includes $p"; PASS=$((PASS + 1))
   else

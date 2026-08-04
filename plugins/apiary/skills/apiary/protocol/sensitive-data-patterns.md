@@ -64,7 +64,7 @@ positive detection test in `tests/sentinel.test.sh`.
 
 The pattern set above is deliberately **universal** — it detects things that look the same in every domain. A credential looks like a credential regardless of what the Hive is about, which is why these patterns live upstream and every Hive gets them.
 
-Domain disclosure risk is not universal. A Hive whose subject matter is unclassified but whose *application* is controlled can leak without matching any pattern here. A **synthetic** illustration — invented for a test fixture, not drawn from any real program:
+Domain disclosure risk is not universal. A Hive whose subject matter is not sensitive on its face but whose *application* is controlled can leak without matching any pattern here. A **synthetic** illustration — invented for a test fixture, not drawn from any real program:
 
 > "our customer needs a 12 minute revisit cadence against their GEO belt targets"
 
@@ -78,7 +78,7 @@ A Hive declares such a check as a **gate extension** (`extensions.gates` in `hiv
 - a gate cannot disable the Sentinel, reorder itself ahead of it, or narrow the file list it sees;
 - the only thing a gate can do is block something the Sentinel allowed.
 
-This is what makes gates safe to add without upstream review — a Hive can only raise its own bar. It is the direct application of design goals 3 (extensions are additive only) and 4 (Sentinel is non-negotiable).
+This is what makes gates safe to add without upstream review — a Hive can only raise its own bar. It is the direct application of plugin-root `DESIGN-GOALS.md` principles 3 (extensions are additive only) and 4 (Sentinel is non-negotiable).
 
 **Choosing where a check belongs:**
 
@@ -87,30 +87,7 @@ This is what makes gates safe to add without upstream review — a Hive can only
 | A new credential or PII format any Hive could encounter | Here — `assets/sentinel-patterns.json`, so all Hives benefit |
 | Semantic (needs judgement about meaning) or specific to one domain's term list | A gate extension in that Hive |
 
-Gates may require runtimes beyond bash/grep/git (a model CLI, python3). That is the Hive's own dependency to declare and document — the same footing as opt-in connectors under design goal 9, and a real cost to weigh, since every contributor to that Hive then needs the toolchain to push.
-
----
-
-## Classification banners
-
-Classification markers are **not** part of the pattern list above — their disposition depends on
-`hive.yml.classification`, so the generator bakes the Hive's `max_level` into the hook at
-generation time and the hook applies these rules to **banner-shaped** markers (a line that *is*
-the marker, optionally `//CAVEATED`, or the long-form phrases `CONTROLLED UNCLASSIFIED
-INFORMATION` / `UNCLASSIFIED//FOR OFFICIAL USE ONLY` — matched case-sensitively so prose and
-words like "circuit" never trip it):
-
-| Hook finding | When | Overridable? |
-|---|---|---|
-| `classification.above-ceiling` | a `SECRET`/`TOP SECRET` banner line, any Hive | **Never** |
-| `classification.marker` | a CUI/FOUO banner in a Hive whose baked ceiling is UNCLASSIFIED (or the hook was generated without a HIVE_ROOT) | **Never** |
-| `classification.unmarked` | a CUI/FOUO banner in a CUI-ceiling Hive whose file has no `classification:` frontmatter field | **Never** |
-
-What Layer 0 deliberately does NOT judge: filename-embedded markers like `(CUI) document.docx`
-(path-only references are the *sanctioned* way to point at classified material —
-`security-policy.md` § Session Agent Behavior), and frontmatter/banner **mismatch** checks — both
-need context and belong to Parliament Sentinel (Layer 3), per `custodian-workflow.md` § 0 "On
-classification markings".
+Gates may require runtimes beyond bash/grep/git (a model CLI, python3). That is the Hive's own dependency to declare and document — the same footing as opt-in connectors under plugin-root `DESIGN-GOALS.md` principle 9, and a real cost to weigh, since every contributor to that Hive then needs the toolchain to push.
 
 ---
 
@@ -118,7 +95,7 @@ classification markings".
 
 When the pre-push hook or Parliament Sentinel matches a pattern, the layer-specific runbook applies:
 
-- **Pre-push hook:** the hook itself only detects and reports — it has no UI. On match it exits non-zero and the agent runs the override-approval flow in `references/pre-push-sentinel.md`. Default = hard block; user may approve an override via `AskUserQuestion` (only available in main agent context — subagents cannot override). `classification.*` findings are never overridable — remove the marker or re-home the content.
+- **Pre-push hook:** the hook itself only detects and reports — it has no UI. On match it exits non-zero and the agent runs the override-approval flow in `references/pre-push-sentinel.md`. Default = hard block; user may approve an override via `AskUserQuestion` (only available in main agent context — subagents cannot override).
 - **Parliament intake:** see `custodian-workflow.md` § 0. Hard reject → quarantine; no override (the user is not in the loop). Parliament does honor `sentinel_override` frontmatter recorded by the pre-push flow — if a match is fully covered by an existing override, Parliament logs it instead of quarantining.
 
 ---

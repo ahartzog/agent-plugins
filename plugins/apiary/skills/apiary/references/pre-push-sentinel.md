@@ -77,7 +77,7 @@ Do not push. Do not delete or modify the file. The user decides next steps in a 
 excerpt-bound override covers a listed pattern only on lines containing a recorded excerpt, so
 editing the matched line, or a new match of the same pattern elsewhere in the file, blocks again
 and must be re-reviewed. A legacy override without `matches` keeps the old file-wide scope; treat
-that as a migration state, not a choice. `classification.*` findings can never be overridden.
+that as a migration state, not a choice.
 
 ## Subagent / non-interactive contexts
 

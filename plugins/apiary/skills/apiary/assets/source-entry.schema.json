@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/source-entry.schema.json",
+  "$id": "https://github.com/ahartzog/agent-plugins/apiary/source-entry.schema.json",
   "title": "Hive Mind Source Entry Frontmatter",
   "description": "Required frontmatter on every `sources/**/*.md` file (excluding index.md). The pre-push Sentinel hook validates PII/credentials; this schema validates structural completeness.",
   "type": "object",
@@ -43,11 +43,6 @@
     "session_id": {
       "type": "string",
       "description": "Optional Claude Code session identifier for attribution chain."
-    },
-    "classification": {
-      "type": "string",
-      "description": "Classification of the source content. Optional by default; required when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
-      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
     },
     "sentinel_override": {
       "type": "object",

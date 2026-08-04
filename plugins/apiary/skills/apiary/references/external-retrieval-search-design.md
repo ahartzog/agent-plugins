@@ -142,11 +142,12 @@ all of it and produces a handful of rows. Loading the noise into the session's c
 the rows costs the session its remaining budget and buys nothing — the discarded hits are never
 referenced again.
 
-This is the case Parliament already solved for registry reconciliation: the Apiculturist runs as a
-subagent so "the registry table, the storage XML, and per-row detail all stay in the
-Apiculturist's context" (`protocol/apiculturist-workflow.md`). Search has the same profile — bounded
-inputs, high-volume intermediate data, small structured output — so it gets the same treatment, and
-`protocol/external-search-agent.md` is written to the same contract shape for consistency.
+This is a pattern Parliament already relies on elsewhere: the critic dispatch in
+`protocol/custodian-workflow.md` §4.1 runs Skeptic, Archivist, and Cartographer as subagents
+precisely so each one's noisy working context stays out of the parent session. Search has the same
+profile — bounded inputs, high-volume intermediate data, small structured output — so it gets the
+same treatment, and `protocol/external-search-agent.md` is written to the same contract shape for
+consistency.
 
 Two of the inputs that contract hands down are not obvious, and search fails quietly without them:
 
@@ -305,11 +306,11 @@ and adds a stricter one — **once per store per question**. A store that answer
 well-formed query will not answer more on a second one, and the bound is what makes the cost of
 §Search predictable enough to enable by default.
 
-## Why the classification guard is a scope default, not a prohibition
+## Why the search-scope guard is a default, not a prohibition
 
 Search widens exposure in a way fetching an indexed row does not. A catalog row was written by a
 human who saw the document; a tenant-wide query returns titles nobody has vetted, and titles from
-above a Hive's ceiling are a disclosure even when the documents are never opened.
+stores the Hive was never pointed at are a disclosure even when the documents are never opened.
 
 The guard is therefore a **default scope** rather than a ban: search runs inside the store roots the
 catalog already declares in `sources[]` — territory the Hive is already authorized to index — and
@@ -318,7 +319,7 @@ choice simultaneously, which is the signal that it is the right default: a roote
 fewer irrelevant hits *and* cannot surface a directory the Hive was never pointed at.
 
 Note the inherited debt. `BACKLOG.md` deferred fetch-disposition (`load` | `cite-only` |
-`query-live`) because its driver was classification exposure. That question is now live: a
+`query-live`) because its driver was exposure risk. That question is now live: a
 `query-live` disposition is precisely the per-entry statement that a catalog row is a cache to be
 revalidated rather than an answer, which is what the augment path assumes globally. Search does not
 resolve that debt, and should not be read as having resolved it.

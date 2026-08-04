@@ -9,5 +9,5 @@ last_updated: 2026-05-01
 
 # Sam Demo
 
-Point of contact for the golden-fixture RF link. Synthetic person, not a real Meridian Systems employee.
+Point of contact for the golden-fixture RF link. Synthetic person, not a real employee.
 [learned: 2026-05-01]

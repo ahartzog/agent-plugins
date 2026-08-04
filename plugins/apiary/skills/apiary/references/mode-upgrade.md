@@ -135,14 +135,13 @@ worth taking**, called out first.
   false-HALTs a returning session with `HALT_ORPHANED_BRANCH` — the branch-normalize check needed
   the value before the script reads `hive.yml`, and a session that has never read `hive.yml` could
   only guess `master`. Resolution order: `hive.yml` → `refs/remotes/origin/HEAD` → `master`. The
-  sparse-checkout set gains `/CLAUDE.md`, `/README.md`, `_metrics/`, and `.signal/` — all four were
+  sparse-checkout set gains `/CLAUDE.md`, `/README.md`, and `_metrics/` — all three were
   read or written by sessions and audit without ever being checked out — and it is now applied on
   **every** invocation rather than only at clone time, so your existing `~/.claude-hive/{slug}`
   clones widen on their next session instead of keeping their original patterns forever. (If a
   session ever failed to commit its `_metrics/` log with *"matched paths that exist outside of your
-  sparse-checkout definition"*, that was this.) The Identity parse list gains the push modes, the
-  `classification` block, and the `federation` block, which later steps in the same file already
-  dispatched on.
+  sparse-checkout definition"*, that was this.) The Identity parse list gains the push modes, which
+  later steps in the same file already dispatched on.
 
 ### 2.23.0 — inbox queue-branch transport (recommended default for new Hives)
 
@@ -188,7 +187,7 @@ worth taking**, called out first.
      the fleet is confirmed on ≥2.23.0.
   3b. **Tear down the legacy pr-mode apparatus, if this Hive ever ran it** (same change as the
      protection flip): delete `.policy.yml`'s inbox-only zero-approval rule (or the file), remove
-     policy-bot from the required status checks / revert the owners-bot flags
+     policy-bot from the required status checks / revert the branch-protection settings
      (`required-approving-review-count` back to ≥1, native code-owner review re-enabled), and
      restore `CODEOWNERS` coverage by deleting the ownerless `_inbox/` line. Left in place, that
      machinery lets an inbox-only PR auto-merge into the "protected" default branch with zero
@@ -212,8 +211,8 @@ worth taking**, called out first.
   `routing-gap:` / `unreachable:` prefixes; Parliament rebuilds `loop-b-gaps.json`; audit and
   Brief consume it. **Migration: none** — unprefixed legacy gap entries simply do not aggregate;
   they age out of the 90-day window naturally.
-- Co-loaded restatements deduped to single owning surfaces (workflows §Ask, cross-hive guard,
-  custodian routing table, mode-operate loop enforcement). No semantic change.
+- Co-loaded restatements deduped to single owning surfaces (workflows §Ask, custodian routing table,
+  mode-operate loop enforcement). No semantic change.
 - Design proposals added (not yet protocol): configurable deliberation-MERGE disposition;
   `/apiary audit --fix` remediation pass.
 
@@ -227,10 +226,9 @@ worth taking**, called out first.
 
 - **One MERGE disposition rule** (custodian §4.3, with a Loop D carve-out): clean MERGE
   auto-merges; MERGE-with-objection or a second-challenged `[contradiction]` goes to needs-review.
-- **Sentinel:** frontmatter + `sources/**.txt` scanning; classification-banner scan baked from the
-  Hive's ceiling; excerpt-bound overrides (`sentinel_override.matches`); 18 patterns with a
-  positive test each (two long-broken regexes fixed); Parliament §0 runs the hook's `scan-dir`
-  as a literal command; quarantine redacts.
+- **Sentinel:** frontmatter + `sources/**.txt` scanning; excerpt-bound overrides
+  (`sentinel_override.matches`); 18 patterns with a positive test each (two long-broken regexes
+  fixed); Parliament §0 runs the hook's `scan-dir` as a literal command; quarantine redacts.
 - **Loops C/D wired:** §4.1.05 prior-contradiction check; §6.2 idempotent telemetry rebuild;
   housekeeping stages the telemetry files.
 - **RLDP:** §Recurse boundary defined; sufficiency verdict stated in one line; mechanical recency
@@ -421,33 +419,6 @@ Applies to any Hive whose `PROTOCOL/agent-definition.md` still contains an inlin
    discard it: capture it as a `[meta]` inbox contribution so it can be considered for the
    upstream protocol. That is how the §On no match rule arrived.
 
-### 2.11.0 — Apiculturist registry reconciliation
-
-- Parliament §1.4 no longer refreshes the sibling roster inline. It dispatches the **Apiculturist**
-  subagent (`protocol/apiculturist-workflow.md`), which additionally **upserts this Hive's own row**
-  in the Hive Mind Registry — inserting it if missing, updating drifted `Apiary ver` / purpose /
-  owners / slack / classification.
-- The reconcile is now **ungated**: it runs on every Parliament, not only when the inbox work set is
-  non-empty. A Hive with a quiet inbox is the one most likely to have a stale or missing row, and the
-  old gate always skipped exactly that case.
-- The Apiculturist is the **single writer** of a Hive's registry row. `upgrade` bumps
-  `hive.yml.upstream_version` (Step 3) and stops there; the next Parliament reconciles the row. There
-  is no registry write in upgrade mode, so the two can never conflict.
-- `/apiary audit` gained **Step 4c**, a read-only registry drift check (row missing, `Apiary ver`
-  mismatch, metadata drift, stale sibling cache). Audit still needs no Confluence write auth.
-- Added the optional `hive.yml.federation` block — two independent opt-outs, both defaulting to `true`:
-  `register` (publish/maintain this Hive's registry row) and `cross_hive_routing` (suggest mis-filed
-  contributions to siblings). Setting both `false` makes the Hive self-contained: Parliament skips the
-  Apiculturist and never contacts Confluence. `register: false` does **not** delete an already-published
-  row — retraction is deliberately manual, and audit Step 4c reports the mismatch so a codeowner can do
-  it. Neither switch is a security control; classification remains the direction guard's job.
-- **No action required** for a Hive created at 2.5.0 or later — it already has `confluence_registry`
-  and `purpose`, so the Apiculturist works on the next Parliament run. A Hive with no `federation:`
-  block participates exactly as before, so the opt-outs need no migration either.
-- **Action required for Hives created before 2.5.0** — see the migration below. Without
-  `confluence_registry` the Apiculturist exits early and the Hive stays invisible to registry
-  reconciliation, exactly as the old §1.4 did.
-
 ### 2.6.0 — per-flow push mode
 
 - Added optional `hive.yml` fields `inbox_push_mode` and `parliament_push_mode`. Each overrides the
@@ -462,39 +433,25 @@ Applies to any Hive whose `PROTOCOL/agent-definition.md` still contains an inlin
 
 ## Current Migrations
 
-### Migration: pre-2.5.0 → 2.11.0 (registry federation backfill)
+### Migration: pre-2.5.0 → purpose backfill
 
-**Applies to** any Hive whose `hive.yml` lacks `confluence_registry` or `purpose` — i.e. one created
-before the 2.5.0 federation feature. Such a Hive may well already appear in the registry (rows were
-hand-backfilled at various points), but the protocol cannot see or correct its row.
+**Applies to** any Hive whose `hive.yml` lacks `purpose` — i.e. one created before that field existed.
 
-**Non-breaking.** A Hive that declines this migration keeps operating normally; it simply stays
-invisible to registry reconciliation and cross-hive routing. Nothing else regresses.
+**Non-breaking.** `purpose` is optional. A Hive that declines this migration keeps operating
+normally; it simply has a thinner README "What Lives Here" section and less scoping signal for
+contributors until the field is set.
 
 #### hive.yml changes
-- Added field `confluence_registry` — URL of the canonical registry page
 - Added field `purpose` — what knowledge belongs in this Hive (and what does not)
 
-#### Auto-apply
-1. If `confluence_registry` is missing, add
-   `confluence_registry: "https://confluence.meridian.example/pages/viewpage.action?pageId=100000001"`.
-   Single canonical default; safe to apply without asking.
-2. If `siblings` is missing, add `siblings: []`. It self-heals on the next Parliament run.
-
 #### Requires human input
-3. If `purpose` is missing, **prompt** — never invent it:
+1. If `purpose` is missing, **prompt** — never invent it:
 
    > "In one or two sentences, what knowledge *belongs* in this Hive — and what does NOT? This becomes
-   > the Purpose column in the Hive Mind Registry and the scoping signal Parliament uses to suggest
-   > re-filing mis-placed contributions to a sibling Hive."
+   > the 'What Lives Here' section of the README."
 
    Seed a suggestion from the README's "What Lives Here" section if one exists, but require the user to
-   confirm or edit it. `purpose` drives cross-hive routing for *every other Hive*; a fabricated one
-   silently mis-routes contributions. If the user declines, leave `purpose` unset and note that the
-   Apiculturist will write the row with an empty purpose cell.
-
-**Do not write the registry from upgrade mode.** After backfilling, tell the user: "Registered on the
-next Parliament run — the Apiculturist is the single writer of your registry row."
+   confirm or edit it.
 
 ### Migration: 1.x → 2.0
 
@@ -507,7 +464,7 @@ next Parliament run — the Apiculturist is the single writer of your registry r
 - Removed sync hook from `.claude/settings.json` SessionStart
 
 #### Auto-apply
-1. If `remote` is missing, prompt user: "What is the GHE remote URL for this Hive?"
+1. If `remote` is missing, prompt user: "What is the remote URL for this Hive's repo on your git host?"
 2. If `default_branch` is missing, add `default_branch: master`
 3. If `.apiary-protocol/` exists, delete it
 4. If `.claude/settings.json` contains the `sync.sh` SessionStart hook, remove that hook entry

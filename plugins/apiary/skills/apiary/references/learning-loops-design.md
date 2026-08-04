@@ -154,7 +154,7 @@ Loops A/B/C are all additive-or-tune. No existing loop handles "this fact keeps 
     → if ≥2 contradictions in rolling 30-day window:
       → auto-tag fact X as [disputed] in knowledge file
       → open needs-review PR with all contradiction sources linked
-      → notify CODEOWNERS via slack_channel
+      → CODEOWNERS added as PR reviewers (must approve before merge)
         → human resolves: either corrects the fact or closes with rationale
           → resolution recorded in _custodian/reports/
 ```

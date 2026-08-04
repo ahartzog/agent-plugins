@@ -126,7 +126,7 @@ check "document-catalog.md has the Ground MTP Draft row" \
 check "  ...Location cell is a folder (trailing slash), not an absolute URL" \
   "$(grep -F 'Ground MTP Draft' "$DOC_CATALOG" | grep -qF 'Working Docs/' && echo 0 || echo 1)"
 check "  ...file declares a store root to resolve against (Case 3 requires one; contrast Case 4)" \
-  "$(grep_row "$DOC_CATALOG" 'url: "https://example.sharepoint.us')"
+  "$(grep_row "$DOC_CATALOG" 'url: "https://example.sharepoint.com')"
 
 echo ""
 echo "--- Case 4: missing store root ---"
@@ -225,10 +225,8 @@ check "fixture paraphrase actually carries [effective:] annotations" \
   "$(grep -qF '[effective: 2026-07-15]' "$LB_NOTES" && echo 0 || echo 1)"
 
 echo ""
-echo "--- hive.yml.fixture sanity (no real remote/registry leaked into a fixture) ---"
-check "hive.yml.fixture federation is fully opted out (fixture must never touch Confluence/registry)" \
-  "$(grep -A2 '^federation:' "$GOLDEN_DIR/hive.yml.fixture" | grep -qF 'register: false' && echo 0 || echo 1)"
-check "hive.yml.fixture is NOT literally named hive.yml (must never be cwd-walk discoverable)" \
+echo "--- golden fixture sanity (must never look like a real Hive root) ---"
+check "golden/ has no file literally named hive.yml (must never be cwd-walk discoverable)" \
   "$([[ ! -f "$GOLDEN_DIR/hive.yml" ]] && echo 0 || echo 1)"
 
 echo ""

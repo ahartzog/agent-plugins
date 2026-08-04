@@ -41,7 +41,7 @@ Each inbox contribution carries a tag that determines its processing path. The A
 Raw contribution
   → Archivist: format, annotate, determine target file
   → Open auto-merge PR
-  → Tag reviewer → Signal bot posts to slack_channel (from hive.yml)
+  → Tag reviewer
   → PR merges automatically after CI passes
 ```
 
@@ -72,7 +72,7 @@ Raw contribution
                  high-confidence objection → needs-review PR (CODEOWNER gate)
       → REVISE → back to Reviser (max 2 revision rounds)
       → REJECT → rejection PR (closed immediately, reasoning in description)
-      → ESCALATE → PR with escalation label + CODEOWNER tag + Slack notification
+      → ESCALATE → PR with escalation label + CODEOWNER tag
 ```
 
 **Revision gate:** Max 3 total Reviser attempts (initial + 2 revisions). If Chancellor is still unsatisfied after 3, escalate to human review. [learned: 2026-04-16]
@@ -99,19 +99,18 @@ never by removal — history is the audit trail.
 
 ## Auto-Merge Rules
 
-Parliament enables GitHub auto-merge (`gh pr merge --auto --squash`) on every batch PR it creates. The PR merges automatically once all required status checks pass (CI, policy-bot, corroborate). This is the default for all knowledge contributions that clear the fast path or Chancellor approval.
+Parliament enables GitHub auto-merge (`gh pr merge --auto --squash`) on every batch PR it creates. The PR merges automatically once all required status checks pass (CI, policy-bot, and any other checks your repo's branch protection requires — see `assets/circleci-config-template.yml` for the checks this plugin ships). This is the default for all knowledge contributions that clear the fast path or Chancellor approval.
 
 This section restates the **canonical MERGE disposition rule** in `custodian-workflow.md` §4.3 — that rule governs if the two ever disagree. A contribution qualifies for the auto-merge batch PR when ALL of the following are true:
 
 1. Category is `[link]`, `[person]`, or `[tracker]` — OR Chancellor verdict is a clean MERGE (no high-confidence critic objections outstanding)
 2. Archivist checklist passes (format valid, annotation present, target file identified)
 3. No duplicate detected in the target knowledge file
-4. Classification markings pass the Sentinel disposition check against `hive.yml.classification` (see `PROTOCOL/custodian-workflow.md` §0)
 
 A contribution is **not** auto-merged and requires CODEOWNER review when:
 - Category is deliberation-path and the verdict is anything other than a clean MERGE
 - Chancellor verdict is MERGE but a high-confidence critic objection is outstanding
-- Sentinel quarantines the contribution on classification grounds (content above `max_level`, or unmarked content in a Hive with `marking_required: true`)
+- Sentinel quarantines the contribution (PII/credential match, or a Hive-declared gate extension blocks it)
 - Archivist cannot determine the correct target file
 - Contribution was previously rejected and resubmitted (requires human judgment)
 
@@ -119,12 +118,12 @@ A contribution is **not** auto-merged and requires CODEOWNER review when:
 
 ## PR Types and Behavior
 
-| PR Type | Trigger | Auto-merge? | Signal Post? |
-|---|---|---|---|
-| **Batch merge** | All fast-path + clean-MERGE deliberation in this run | Yes — `gh pr merge --auto --squash` | Yes |
-| **Needs review** | MERGE with a high-confidence objection outstanding, or Loop D fired (§4.1.05) | No until CODEOWNER approves (auto-merge armed) | Yes |
-| **Rejected** | Chancellor rejects after deliberation | PR opened then closed | Yes — shows what was rejected and why |
-| **Escalated** | Chancellor deadlocked or contribution too ambiguous | No — requires CODEOWNER + discussion | Yes |
+| PR Type | Trigger | Auto-merge? |
+|---|---|---|
+| **Batch merge** | All fast-path + clean-MERGE deliberation in this run | Yes — `gh pr merge --auto --squash` |
+| **Needs review** | MERGE with a high-confidence objection outstanding, or Loop D fired (§4.1.05) | No until CODEOWNER approves (auto-merge armed) |
+| **Rejected** | Chancellor rejects after deliberation | PR opened then closed |
+| **Escalated** | Chancellor deadlocked or contribution too ambiguous | No — requires CODEOWNER + discussion |
 
 Parliament produces **one PR per run** for fast-path contributions, not one per contribution. Individual traceability lives in `_inbox/_completed/` reconciliation notes.
 
@@ -167,7 +166,7 @@ Parliament handles the agent-driven flow (inbox → critics → PR). The direct-
 
 **Gate:**
 - CODEOWNER review is **required**. No auto-merge on the direct-PR path, ever. This is the human analogue of Parliament's Chancellor verdict.
-- CI still runs: classification/marking scan, schema lint, size budget check. A critic-CI job (Skeptic / Archivist / Cartographer) runs against the diff and posts an advisory review comment. Critic verdict is informational; CODEOWNERS decide.
+- CI still runs: schema lint, size budget check. A critic-CI job (Skeptic / Archivist / Cartographer) runs against the diff and posts an advisory review comment. Critic verdict is informational; CODEOWNERS decide.
 - On merge, Parliament is notified via a post-merge job that appends a reconciliation note to `_inbox/_completed/` so the direct-PR path shows up in the same audit trail as inbox contributions.
 
 **Rationale:** The inbox optimizes for *capture-in-flight* and is the wrong ergonomics for *deliberate authoring*. Forcing a finished document through fragmented inbox entries is ceremony, not safety. The direct PR preserves the author's voice and coherence; the CODEOWNER gate preserves the collective-ownership principle. [learned: 2026-04-19]
@@ -178,9 +177,8 @@ Parliament handles the agent-driven flow (inbox → critics → PR). The direct-
 
 Contributions are moved to `_inbox/_quarantine/` (not processed) when:
 
-- Classification markings fail the Sentinel disposition check (see `PROTOCOL/custodian-workflow.md` §0): content above the Hive's `max_level`, or unmarked classified content in a Hive with `marking_required: true`
 - Prompt injection pattern detected
 - Author attribution missing or unverifiable
 - Contribution contains personal attacks or PII beyond professional attribution
 
-Quarantine is not rejection — it is escalation for human review. CODEOWNER is notified via Signal bot.
+Quarantine is not rejection — it is escalation for human review, surfaced to CODEOWNERS via `/apiary audit` (Sentinel Retrospective).

@@ -19,7 +19,7 @@ Starting point: `assets/workflow-extension-template.md`.
 |---|---|
 | The behavior you want is a recurring, *nameable* interaction the user will ask for by name | Author a workflow extension |
 | You just need the agent to know a fact, a process, or a set of steps | Write a `knowledge/` file — no extension |
-| An upstream workflow already covers it but routes badly | Fix the upstream workflow via a claude-clams PR — don't shadow it locally |
+| An upstream workflow already covers it but routes badly | Fix the upstream workflow via an upstream Apiary PR — don't shadow it locally |
 | You want to *remove* or *replace* upstream behavior | Not possible. Extensions are additive only (plugin-root `DESIGN-GOALS.md` principle 3) |
 
 The test: **would a user type it?** "Run our 5-15." "Do a release review." If the phrase is
@@ -58,8 +58,7 @@ type: workflow-extension
 workflow: {WORKFLOW_NAME}          # the dispatch-table name; must match the filename stem
 description: "{ONE_LINE_SUMMARY}"  # what it does + what it delegates to
 last_updated: YYYY-MM-DD
-codeowners: [{GHE_HANDLE}]
-classification: UNCLASSIFIED       # required when hive.yml sets marking_required: true
+codeowners: [{GIT_HANDLE}]
 ---
 ```
 
@@ -158,7 +157,7 @@ A session that discovers the extension is wrong should still file a `[meta]` or 
 entry describing the gap — that's the signal. The fix itself is a PR.
 
 Extensions are **Hive-local and additive**. If the workflow would be useful to more than one
-Hive, that's a signal it belongs upstream in `protocol/workflows.md` — open a claude-clams PR
+Hive, that's a signal it belongs upstream in `protocol/workflows.md` — open an upstream Apiary PR
 instead. Ask: *is this domain-specific, or did I just find a hole in the upstream protocol?*
 
 ---
@@ -175,7 +174,6 @@ workflow: standup
 description: "Invokable, author-aware entry point for the team's daily standup post. Confirms author + scope, then delegates gathering mechanics to knowledge/team/standup-mechanics.md."
 last_updated: 2026-07-27
 codeowners: [example-handle]
-classification: UNCLASSIFIED
 ---
 
 # Workflow Extension — Standup
@@ -206,7 +204,7 @@ Its one job is to pin down *who* is posting and *what scope* they own before gat
 
 Ask two questions and wait for answers. Do not start gathering until both are answered.
 
-1. **Who are you?** (GHE handle — sets attribution and which boards are yours)
+1. **Who are you?** (your git host handle — sets attribution and which boards are yours)
 2. **What scope?** (team / sub-team / personal — sets which sources are in play)
 
 If the user already stated both up front ("do my backend standup"), skip the questions and

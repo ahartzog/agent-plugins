@@ -85,8 +85,6 @@ This workflow handles **explicit user-initiated contributions.** Most contributi
 
 **For corrections:** Prompt for source. A correction without a source is recorded as `[contradiction]` (deliberation path) rather than `[correction]`.
 
-**Cross-hive awareness (non-blocking):** Hives are federated — each knows its siblings via `hive.yml.siblings` (seeded from the [Hive Mind Registry](https://confluence.meridian.example/pages/viewpage.action?pageId=100000001) at create time, and reconciled by Parliament's Apiculturist on every run — `protocol/apiculturist-workflow.md`). Skip this entirely when `hive.yml.federation.cross_hive_routing` is `false` (default `true`) — the Hive has opted out of routing outward. Otherwise, if a contribution clearly falls outside this Hive's `purpose` and fits a sibling better, still record it here, then point the user to the better-matching `/sibling-slug`. Parliament does the authoritative routing under the classification direction guard — `custodian-workflow.md` §2.1 step 5 (authoritative).
-
 ---
 
 ## Parliament
@@ -96,7 +94,7 @@ This workflow handles **explicit user-initiated contributions.** Most contributi
 - (planned) Scheduled hourly CI job
 - (planned) Threshold trigger: ≥50 `status: ready` files in `_inbox/`
 
-**Behavior:** Follow the Parliament Operational Runbook in `protocol/custodian-workflow.md`. Summary: Sentinel scan → Archivist pre-processing (incl. cross-hive fit check) → route (fast path vs deliberation) → critics + Reviser + Chancellor → PR creation (incl. any cross-hive suggestions) → cleanup. Mis-filed contributions are only ever *suggested* to siblings, per the §2.1 step 5 direction guard.
+**Behavior:** Follow the Parliament Operational Runbook in `protocol/custodian-workflow.md`. Summary: Sentinel scan → Archivist pre-processing → route (fast path vs deliberation) → critics + Reviser + Chancellor → PR creation → cleanup.
 
 ---
 
@@ -119,7 +117,7 @@ This workflow handles **explicit user-initiated contributions.** Most contributi
 4. Synthesize a digest covering: new contributors, what was learned, what was rejected and why, what's escalated, knowledge base growth, staleness alerts from the most recent audit.
 5. **Pattern detection → inbox stubs:** Analyze the week's activity for systemic signals and convert findings into inbox contributions — ranking gap findings from `_custodian/reports/loop-b-gaps.json` (count ≥ 2 first) rather than re-deriving them. Examples: N questions with no knowledge file coverage → `[process]` stub; recurring `[correction]` against the same fact → `[contradiction]` stub; workflow never invoked → `[meta]` stub; category exceeding Loop C (Calibration) approval threshold (`PROTOCOL/learning-loops.md`) → `[meta]` stub proposing triage policy relaxation.
 6. Format as a human-readable briefing.
-7. Optional: push to configured Slack channel (if Signal bot configured) or write to `_custodian/reports/brief-YYYY-WNN.md`.
+7. Optional: write to `_custodian/reports/brief-YYYY-WNN.md`.
 
 ---
 

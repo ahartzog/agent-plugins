@@ -6,7 +6,7 @@ command: COMMAND_TO_RUN
 description: >
   ONE_LINE_WHAT_THIS_CHECKS_AND_WHY_THE_BUILTIN_PATTERN_SCAN_CANNOT_SEE_IT
 last_updated: YYYY-MM-DD
-codeowners: [GITHUB_USERNAME]
+codeowners: [{GIT_HANDLE}]
 on_error: block
 timeout_seconds: 0
 required_tools: [TOOL_NAME]

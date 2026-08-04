@@ -28,7 +28,7 @@ run, escape its intended path, or exfiltrate data is in scope. Concretely:
 - Path traversal that writes outside the intended Hive or vault directory
 - A generated git hook that can be made to execute attacker-controlled input
 - Prompt injection in knowledge files that steers an agent into destructive tool use
-- **Sentinel bypasses** — a real credential or classification banner that the pre-push
+- **Sentinel bypasses** — a real credential that the pre-push
   scanner fails to catch. The scanner is a safety net users rely on; a silent miss is a
   vulnerability, not a feature request.
 

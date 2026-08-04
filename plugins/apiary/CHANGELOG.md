@@ -4,6 +4,136 @@ All notable changes to the **apiary** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for change and versioning discipline, and this plugin's [CONTRIBUTING.md](CONTRIBUTING.md) for the mandatory scenario verification.
 
+## [3.0.0] — 2026-08-03 — Commercial decoupling
+
+Removes three organization-specific couplings — a DoD-style classification model, an internal
+Slack notification bot ("Signal"), and a Confluence-backed Hive Mind Registry/federation — plus
+the organization's own identifying references, so the plugin ships clean for the public
+marketplace. **Breaking:** existing `hive.yml` files carrying any of the removed keys fail schema
+validation (`additionalProperties: false`) until those keys are deleted; see § Removed and the PR
+body for the deliberate no-migration rationale.
+
+### Removed
+- **Classification model.** The `UNCLASSIFIED`/`FOUO`/`CUI` ceiling, `hive.yml.classification`,
+  the `classification` frontmatter field on all five entry schemas, Sentinel's
+  classification-banner check (and its non-overridable pattern class — every remaining pattern is
+  now overridable via `sentinel_override`; credential/PII scanning is otherwise unchanged), the
+  GHE pre-receive variants, and the classification remediation runbook. Hives needing a
+  sensitivity taxonomy now declare one as a gate extension — see
+  `references/authoring-gate-extensions.md`. Design Goal 3 is renamed **"Sensitivity Is
+  Hive-Local"**; Goal numbering is unchanged, so every `Goal N` citation elsewhere remains valid.
+- **Signal / Slack notifications.** `hive.yml.slack_channel` (previously a **required** field),
+  `.signal/config.yml`, Create mode's Signal step, and the `signal-bot` auto-merge mechanism.
+  Quarantine and Loop D escalations now surface via `/apiary audit` (Sentinel Retrospective) and
+  PR review requests — there is no push notification of any kind.
+- **Federation and the Hive Mind Registry.** `hive.yml.siblings`, `federation`,
+  `confluence_registry`, the Apiculturist subagent and its Parliament §1.4 dispatch, cross-hive
+  suggestions, the classification direction guard, and Audit Step 4c. Removed alongside:
+  `tests/apiculturist.test.sh` and `tests/golden/hive.yml.fixture`.
+- **The former security "Layer 2"** — a server-side GHE pre-receive hook that existed only to
+  enforce the now-removed classification taxonomy — is retired. The defense model drops from four
+  layers (one of them always optional) to three: L0 pre-push hook, L1 session-agent redaction, L3
+  Parliament Sentinel intake scan. Layer numbering is left as-is (historical) rather than
+  renumbered; every remaining Layer-2 cross-reference was updated to retired/past-tense framing
+  (`security-policy.md`, `references/inbox-transport-design.md`) — the initial sweep rewrote one of
+  two mentions in the latter's "rejected alternatives" bullet and left the other in live present
+  tense, closed in final pre-merge review.
+- Organization-specific references: Meridian Systems, claude-clams (the org's internal skill
+  marketplace), `ghe.meridian.example` / `jira.meridian.example` / `confluence.meridian.example` /
+  `docs.meridian.example`, and the `meridian/owners` centrally-provisioned repo-provisioner flow.
+- The strings `CUI`, `ITAR`, `FOUO`, and `UNCLASSIFIED` no longer appear anywhere in the plugin
+  outside this changelog and `BACKLOG.md` — enforced by `tests/decoupling.test.sh`'s
+  `classification` and `org-coupling` groups. Those word-boundary patterns matched the four full
+  strings but not the single-letter DoD portion marking `(U)`, which survived on one golden-fixture
+  line (`tests/golden/knowledge/ground-segment/document-catalog.md` and the golden case describing
+  it) until final pre-merge review found and removed it — neither pattern nor `\bCUI\b`'s neighbor
+  markings catch a bare one-letter abbreviation. Repo-root `SECURITY.md` (outside this guard's
+  scope — see the `ROOT=` note in `decoupling.test.sh`) separately still advertised a
+  classification-banner scan guarantee after that check was removed from `generate-hook.sh`;
+  corrected in the same pass.
+
+### Changed
+- **External-retrieval caching now defaults to disabled for every Hive, unconditionally.** The
+  default was previously gated on a Hive's classification ceiling (`enabled: true` only below
+  UNCLASSIFIED with no marking required); with no ceiling left to read, the conservative default
+  now applies universally and caching is opt-in via `hive.yml.cache.enabled: true`.
+  `external-retrieval-caching-design.md` § Classification is renamed § Exposure to match.
+- Parliament's auto-merge post-hoc human gate now rests on PR visibility plus `git revert`, no
+  longer on a Signal post — the removed notification's load-bearing justification is rewritten
+  rather than left dangling.
+- **Ambiguous `Design Goal N` citations disambiguated plugin-wide**, because the repo carries two
+  independently-numbered documents by that name. Convention going forward: a bare `Goal N`
+  resolves to `protocol/design-goals.md`; a citation of the plugin-root `DESIGN-GOALS.md` is always
+  qualified as "principle N" with the file named explicitly. Applied across markdown, `.sh`, and
+  `.json` files (an initial `*.md`-only sweep missed two of the latter).
+- **`triage-policy.md` and `push-mode-pr-setup.md` no longer reference `corroborate`**, an
+  undefined internal CI status check that operators were told was required. Both now point at
+  "whatever checks your repo's branch protection actually requires," with
+  `assets/circleci-config-template.yml` as the concrete example.
+- **The post-create instruction in README.md / `mode-create.md` no longer assumes an internal
+  marketplace.** "Register the child skill in your plugin marketplace" (unexplained and
+  org-specific) is replaced with a concrete path: create `~/.claude/skills/{HIVE_SLUG}/SKILL.md`
+  from the generated skill file's contents to make `/your-hive-slug` callable, with marketplace
+  publishing named as the optional team-sharing path.
+- **GitHub Enterprise branding genericized on the protection model** (`security-policy.md`,
+  `operational-model.md`) while preserving the real constraint: branch protection / rulesets are
+  standard GitHub features, not GHE-specific, so the prose no longer implies otherwise.
+- `CONTRIBUTING.md`'s schema-change migration rule now covers removed fields as well as added
+  ones, and permits a stated skip when no Hive is known to run the prior schema — this release
+  exercises that skip (see the PR body).
+
+### Added
+- **`tests/decoupling.test.sh`** — a five-group regression guard. `classification`,
+  `notifications`, `federation`, and `org-coupling` assert the four removal classes stay removed
+  (with a substring-precise allowlist for legitimate look-alike mentions, e.g. the Slack-token
+  credential pattern); a fifth group, `survivors`, positively asserts that legitimate content —
+  the Sentinel triage runbook's `classify` verb, the `diagnose-and-classify` pointer, the gate
+  override mechanism, and the 18-pattern Sentinel count — was not collaterally deleted by the
+  sweep.
+
+### Fixed
+_Found by independent multi-lens verification of this branch before merge; folded into this
+release rather than shipped as a separate one, since 3.0.0 had not yet been released._
+- **False security guarantee in every generated Hive's README.** `readme-template.md` and
+  `child-claude-md-template.md` claimed pushes are scanned "unconditionally and cannot be
+  disabled" — untrue for a plain clone and for create mode, which installs no hook. Reworded to
+  state what actually happens: pushes through the Apiary's own clone (where operate mode Step 0
+  installs the hook) are scanned. Also notes gate extensions run only in the pre-push hook path,
+  not in Parliament's `scan-dir` re-scan.
+- **`decoupling.test.sh`'s `classification` group was blind to the vocabulary it exists to guard
+  against** — it matched the literal token `classification` but not `classified`/`classify`,
+  and had no term for banner, marking, portion marking, SECRET, NOFORN, Distribution Statement,
+  SBU, or `(U)`. Widened to the concept (`classif(y|ied|ication)`, `marking`, `portion.?mark`,
+  `banner`, `\bSBU\b`, `NOFORN`, `Distribution Statement`, `\(U\)` case-insensitively, plus
+  `\bTOP SECRET\b`/`\bSECRET\b` matched **case-sensitively** — DoD banners are uppercase by
+  convention, and matching them case-insensitively would also catch the ordinary English/
+  credential word "secret" throughout the security docs), with a substring-precise
+  `CLASSIFICATION_ALLOW` (and a small case-sensitive companion) covering the remaining legitimate
+  hits (generic "sensitivity marking" gate-extension language, "Greeting Banner", "classify by
+  content", etc.).
+- **`notifications`/`federation` groups missed removed-code tokens.** Added
+  `Signal notification|via Signal|Signal integration` to `notifications`; added
+  `REGISTRY_PAGE_ID|\bsibling\b|federat(e|ed|ion)|Registry Reconciliation|cross.?hive` to
+  `federation`, with a `FEDERATION_ALLOW` for the resulting "across Hives" / "sibling code repos"
+  false positives.
+- **`SLACK_ALLOW`'s `Slack message` and `Slack handle` entries were generic enough to
+  self-allowlist new prose.** Narrowed to the actual audited call-sites: `Slack message
+  timestamp` and `Professional Slack handle`.
+- **Ambiguous `DESIGN-GOALS.md` citations** — six files (eight citations: `generate-hook.sh`,
+  `hive.schema.json`, `sensitive-data-patterns.md` ×2, `authoring-gate-extensions.md` ×2,
+  `authoring-workflow-extensions.md`, `mode-operate.md`) already said "plugin-root"; three more
+  files (four citations: `CHANGELOG.md`, `README.md`, `references/inbox-transport-design.md` ×2)
+  still said "repo-root"/"repo" and pointed at a file that doesn't exist at the repo root. All now
+  agree.
+- **`example.sharepoint.us` → `example.sharepoint.com`** across protocol docs, design docs, and
+  the golden fixtures/cases/assertion (moved together). `*.sharepoint.us` is the Microsoft 365 US
+  Government (GCC High) tenant domain — the wrong host to have written into a decoupling pass
+  whose stated purpose was removing organization-specific coupling.
+- Added repo-root `docs/` to `.gitignore` — a scratch planning doc at `docs/superpowers/plans/`
+  carried the purged vocabulary verbatim and sat one `git add -A` away from shipping; the
+  decoupling test guard's `ROOT` cannot reach outside `plugins/apiary`, so this was a structural
+  gap, not a discipline one.
+
 ## [2.24.0] — 2026-08-03
 
 ### Added

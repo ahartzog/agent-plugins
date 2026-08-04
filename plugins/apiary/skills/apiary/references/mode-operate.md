@@ -66,10 +66,9 @@ fi
 # forever: `git add _metrics/<file>` then fails with "matched paths that exist outside of your
 # sparse-checkout definition", so the session log can never be committed, and audit finds no
 # CLAUDE.md or README.md on disk. `/CLAUDE.md` and `/README.md` are anchored root files audit
-# reads; `_metrics/` is written by every session (Ask step 5); `.signal/` holds the Signal config
-# audit checks.
+# reads; `_metrics/` is written by every session (Ask step 5).
 git sparse-checkout set --no-cone PROTOCOL/ knowledge/ sources/ /hive.yml /CLAUDE.md /README.md \
-  _inbox/ _custodian/ _metrics/ .signal/ .claude/ 2>/dev/null \
+  _inbox/ _custodian/ _metrics/ .claude/ 2>/dev/null \
   || echo "WARN_SPARSE_SET_FAILED: could not apply the sparse-checkout patterns." >&2
 
 # --- Sync to the remote default branch (HALT if not fast-forwardable) ---
@@ -177,10 +176,8 @@ echo "===END==="
 From the single tool result:
 - **`{HIVE_ROOT}`** = `$HOME/.claude-hive/{HIVE_SLUG}` — use for all later steps.
 - **`{DEFAULT_BRANCH}`** = the `DEFAULT_BRANCH_RESOLVED:` line. Prefer it over re-deriving from `hive.yml` — it is what the script actually synced against.
-- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `slack_channel`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `confluence_registry` → `{REGISTRY_URL}`, `siblings` → `{SIBLINGS}` (cached roster of peer Hives, each `{slug, purpose, repo, classification}`), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the three groups this list previously omitted even though later steps dispatch on them**:
+- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the group this list previously omitted even though later steps dispatch on it**:
   - **Push modes** — `push_mode` (default `direct`), `inbox_push_mode`, `parliament_push_mode`, `sources_push_mode`. § Push Procedure below resolves `inbox_push_mode` → `push_mode` → `direct`, and `sources-policy.md` § Push Discipline does the same for deposits. Not parsing them meant the Push Procedure dispatched on values the session had never read.
-  - **Classification** — the `classification` block: `classification.max_level` (`UNCLASSIFIED` | `FOUO` | `CUI`; an absent block means `UNCLASSIFIED` with no marking discipline) and `classification.marking_required`. The always-on invariant "never store content above the Hive's classification ceiling" cannot be held without the ceiling, and `marking_required` decides whether inbox and source frontmatter must carry a `classification` field at all (`sources-policy.md` § Frontmatter Schema).
-  - **Federation** — the `federation` block: `cross_hive_routing` and `register` (both default `true`). § Contribution Handling's cross-hive advisory and `workflows.md` § Contribute skip entirely when `cross_hive_routing` is `false`; absent the field, the advisory fires on a Hive that opted out.
 - **Persona** — the `===PERSONA:…===` section is the agent-definition. Adopt its name, voice, and routing rules. **If it contains a `## Greeting Banner` section, that is the greeting — see Step 1.**
 
 ### Orphaned Branch Recovery
@@ -234,11 +231,11 @@ Keep this compact routing table in mind and read the matching file(s) from the A
 |---|---|
 | `workflows.md` | executing any workflow whose steps aren't already in context |
 | `triage-policy.md` | routing a **Contribute** (deciding fast-path vs. deliberation) |
-| `security-policy.md` | writing to `_inbox/` or any **Contribute** / Sentinel path (CUI/PII/injection checks) |
+| `security-policy.md` | writing to `_inbox/` or any **Contribute** / Sentinel path (PII/credential/injection checks) |
 | `sensitive-data-patterns.md` | interpreting a pre-push Sentinel block, or reasoning about what the hook flags |
 | `knowledge-schema.md` | writing an inbox entry (frontmatter shape) |
 | `routing-protocol.md` | answering an **Ask** — always. The RLDP runs on every Ask (stated in `routing-protocol.md`'s header); a routing-table hit does not establish sufficiency, which is exactly the case §Search's augment path exists for |
-| `custodian-workflow.md` | running **Parliament** (includes Sentinel, registry reconciliation §1.4, and cross-hive routing §2.1) |
+| `custodian-workflow.md` | running **Parliament** (includes Sentinel scan and contribution routing) |
 | `operational-model.md` | you need the session→accumulation→incorporation model |
 | `learning-loops.md` | deciding whether a discovery/correction must be captured (see Learning Loop Enforcement) |
 | `design-goals.md` | running **Audit** or a self-check |
@@ -250,7 +247,7 @@ Keep this compact routing table in mind and read the matching file(s) from the A
 Apiary is a hard dependency. If its `protocol/` directory is unavailable, fail loudly:
 > ERROR: Apiary plugin required but not installed. Run: `claude plugin install apiary@ahartzog`
 
-**Always-on invariants** (do not need a file read — hold these every session): never store content above the Hive's classification ceiling; every user correction and every reusable artifact produced becomes an inbox contribution before the session ends; cite knowledge sources.
+**Always-on invariants** (do not need a file read — hold these every session): every user correction and every reusable artifact produced becomes an inbox contribution before the session ends; cite knowledge sources.
 
 ## Step 3: Merge Extensions
 
@@ -312,8 +309,6 @@ When Parliament workflow is triggered, follow the Parliament Operational Runbook
 **Any reusable artifact produced during a session is a contribution** — not just corrections and facts. Guides, directories, decisions with lasting relevance all qualify. Ephemeral debugging output does not.
 
 **Artifact contribution is a task-completion gate.** Before marking any task complete, evaluate internally: *did this session produce something a future user of this Hive would benefit from knowing?* If yes, write the inbox entry and push — do not ask the user for confirmation. Inbox writes are low-cost and Parliament reviews everything before it reaches knowledge files.
-
-**Cross-hive advisory (non-blocking).** Requires `federation.cross_hive_routing` (default `true`); if it is `false`, skip this advisory entirely. `{SIBLINGS}` is whatever `hive.yml` already holds — never fetch it at session time, and if it is empty this advisory simply does not fire. If a contribution clearly falls outside this Hive's `{HIVE_PURPOSE}` and matches a sibling's purpose in `{SIBLINGS}` better, you may say so and point the user to the better-matching `/sibling-slug` — *after* still capturing it here (Parliament does the authoritative routing). Never withhold or redirect a contribution on this basis at session time; this is a gentle pointer, not a gate. **Classification direction:** before naming a sibling, apply the direction guard — `custodian-workflow.md` §2.1 step 5 (authoritative); never point controlled content toward a lower-ceiling sibling.
 
 ### Pre-Push Guard
 
