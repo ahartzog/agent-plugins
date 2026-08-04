@@ -15,13 +15,39 @@ EXCLUDES=(
   --exclude=decoupling.test.sh
 )
 
+# residue_filter: reads grep hit-lines ("file:line:content") on stdin, and re-emits
+# only the ones where $1 (the forbidden pattern) still matches AFTER every substring
+# matching $2 (the allow pattern) has been stripped out of the line. This is what makes
+# the allowlist substring-precise rather than line-precise: dropping the whole line on
+# any allow-match would also hide a stray forbidden term appended to (or already
+# sharing) a legitimate line — the exact gap a Task 7 review caught live (a "Slack
+# notification" sentence appended to an allowlisted "Slack tokens" credentials line
+# still passed under the old whole-line `grep -v` filter). Stripping only the
+# allow-matched substrings and re-testing the residue closes that gap while still
+# letting the fixed set of already-audited legitimate mentions through untouched.
+residue_filter() {
+  python3 -c '
+import re, sys
+pattern = re.compile(sys.argv[1], re.IGNORECASE)
+allow = re.compile(sys.argv[2], re.IGNORECASE)
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    residue = allow.sub("", line)
+    if pattern.search(residue):
+        print(line)
+' "$1" "$2"
+}
+
 # check_group: FAILs if $pattern matches anywhere under $ROOT (outside EXCLUDES).
-# Optional $3 is an "allow" pattern — hits matching it are filtered out before the
-# pass/fail decision. This is how bare-word patterns (e.g. \bslack\b) coexist with a
-# fixed, known set of legitimate mentions: the sweep pattern stays broad (so a NEW
-# stray reference is still caught), and only the specific already-audited shapes are
-# subtracted back out. It is not a suppression of the pattern — anything that doesn't
-# match one of the allow-listed shapes still fails the guard.
+# Optional $3 is an "allow" pattern — see residue_filter above for exactly how hits
+# matching it are handled (substring removal + residue re-test, not a whole-line drop).
+# This is how bare-word patterns (e.g. \bslack\b) coexist with a fixed, known set of
+# legitimate mentions: the sweep pattern stays broad (so a NEW stray reference is still
+# caught, even one sharing a line with legitimate content), and only the specific
+# already-audited substrings are subtracted back out. It is not a suppression of the
+# pattern — anything that doesn't match one of the allow-listed shapes still fails.
 check_group() {
   local group="$1"; shift
   local pattern="$1"; shift
@@ -29,7 +55,7 @@ check_group() {
   local hits
   hits="$(grep -rniE "$pattern" "${EXCLUDES[@]}" "$ROOT" || true)"
   if [[ -n "$hits" && -n "$allow" ]]; then
-    hits="$(printf '%s\n' "$hits" | grep -viE "$allow" || true)"
+    hits="$(printf '%s\n' "$hits" | residue_filter "$pattern" "$allow")"
   fi
   if [[ -n "$hits" ]]; then
     printf 'FAIL [%s] surviving references:\n%s\n\n' "$group" "$hits" >&2
@@ -71,12 +97,13 @@ run classification && check_group classification \
 # Signal bot, etc.) would miss a stray "Slack notification"/"post to Slack" reference
 # entirely. The allow pattern is the fixed set of legitimate mentions audited in Task 7:
 # the credential.slack-token detector (pattern + docs row + two test cases), the
-# optional slack-cli connector (tool-tiers, DESIGN-GOALS, the Jira/Confluence/Slack
-# connected-tier line), and three prose mentions (security-policy's "Professional Slack
-# handle" PII example and "Slack tokens" credential-list item, custodian-workflow's
-# "Slack tokens" list, inbox-entry.schema.json's "Slack message timestamp" citation
-# example, mode-create.md's "Slack channels" interview question).
-SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Slack channels|Slack message|Confluence/Slack'
+# optional slack-cli connector (tool-tiers' row — including its "Commercial Slack"
+# purpose text and "URL to slack" fallback text — plus DESIGN-GOALS and the
+# Jira/Confluence/Slack connected-tier line), and prose mentions (security-policy's
+# "Professional Slack handle" PII example and "Slack tokens" credential-list item,
+# custodian-workflow's "Slack tokens" list, inbox-entry.schema.json's "Slack message
+# timestamp" citation example, mode-create.md's "Slack channels" interview question).
+SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Slack channels|Slack message|Confluence/Slack|Commercial Slack|URL to slack'
 run notifications && check_group notifications \
   'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal/|Signal bot|Signal post|Signal Config|\bslack\b' \
   "$SLACK_ALLOW"
