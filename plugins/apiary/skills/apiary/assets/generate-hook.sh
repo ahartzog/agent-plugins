@@ -14,9 +14,10 @@ set -euo pipefail
 # emitted hook free of runtime dependencies — the same approach already used
 # for the patterns themselves.
 #
-# Gate extensions are ADDITIVE ONLY (design goal 3) and cannot suppress a
-# built-in match (design goal 4): the pattern scan runs first and its failure
-# is terminal, so no gate configuration can turn a dirty push clean.
+# Gate extensions are ADDITIVE ONLY (plugin-root `DESIGN-GOALS.md` principle 3)
+# and cannot suppress a built-in match (principle 4): the pattern scan runs
+# first and its failure is terminal, so no gate configuration can turn a
+# dirty push clean.
 
 # The marker that identifies a hook as ours. Operate mode Step 0 greps for this
 # before regenerating, so a hand-hardened foreign hook is preserved rather than
