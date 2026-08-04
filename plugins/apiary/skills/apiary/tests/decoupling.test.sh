@@ -28,11 +28,14 @@ EXCLUDES=(
 # still passed under the old whole-line `grep -v` filter). Stripping only the
 # allow-matched substrings and re-testing the residue closes that gap while still
 # letting the fixed set of already-audited legitimate mentions through untouched.
+# $3 is the case mode: "i" (default) case-insensitive, "cs" case-sensitive — see
+# check_group below for why a check would ever want "cs".
 residue_filter() {
   python3 -c '
 import re, sys
-pattern = re.compile(sys.argv[1], re.IGNORECASE)
-allow = re.compile(sys.argv[2], re.IGNORECASE)
+flags = 0 if sys.argv[3] == "cs" else re.IGNORECASE
+pattern = re.compile(sys.argv[1], flags)
+allow = re.compile(sys.argv[2], flags)
 for line in sys.stdin:
     line = line.rstrip("\n")
     if not line:
@@ -40,7 +43,7 @@ for line in sys.stdin:
     residue = allow.sub("", line)
     if pattern.search(residue):
         print(line)
-' "$1" "$2"
+' "$1" "$2" "${3:-i}"
 }
 
 # check_group: FAILs if $pattern matches anywhere under $ROOT (outside EXCLUDES).
@@ -51,14 +54,24 @@ for line in sys.stdin:
 # caught, even one sharing a line with legitimate content), and only the specific
 # already-audited substrings are subtracted back out. It is not a suppression of the
 # pattern — anything that doesn't match one of the allow-listed shapes still fails.
+# Optional $4 is the case mode ("i" default, "cs" case-sensitive) — passed through to
+# both grep and residue_filter. Case-sensitive mode exists for exactly one class of term
+# (SECRET/TOP SECRET DoD classification banners, which are uppercase by convention): a
+# case-insensitive match on \bSECRET\b also catches the ordinary English/credential word
+# "secret", which appears constantly in security prose and would otherwise force a large
+# allowlist just to suppress lowercase noise — narrowing to case-sensitive removes the
+# false positives at the source instead of allowlisting around them.
 check_group() {
   local group="$1"; shift
   local pattern="$1"; shift
-  local allow="${1:-}"
+  local allow="${1:-}"; shift || true
+  local case_mode="${1:-i}"
+  local grep_opts="-rniE"
+  [[ "$case_mode" == "cs" ]] && grep_opts="-rnE"
   local hits
-  hits="$(grep -rniE "$pattern" "${EXCLUDES[@]}" "$ROOT" || true)"
+  hits="$(grep "$grep_opts" "$pattern" "${EXCLUDES[@]}" "$ROOT" || true)"
   if [[ -n "$hits" && -n "$allow" ]]; then
-    hits="$(printf '%s\n' "$hits" | residue_filter "$pattern" "$allow")"
+    hits="$(printf '%s\n' "$hits" | residue_filter "$pattern" "$allow" "$case_mode")"
   fi
   if [[ -n "$hits" ]]; then
     printf 'FAIL [%s] surviving references:\n%s\n\n' "$group" "$hits" >&2
@@ -97,17 +110,32 @@ run() { [[ "$WANT" == "all" || "$WANT" == "$1" ]]; }
 # markings, the SECRET/TOP SECRET/SBU/NOFORN vocabulary, classify/classified/classification as a
 # verb family) rather than the handful of literal tokens (`classification`, `CUI`, `FOUO`, ...)
 # someone happened to grep when writing the original guard. Widening `classification` to
-# `classif(y|ied|ication)` and adding bare `marking`/`banner`/`\bSECRET\b` necessarily also
-# matches ordinary English ("classify by content type", "Greeting Banner", "rotate the secret")
-# and the generic (non-national-security) "sensitivity marking" gate-extension language this
-# branch's replacement design intentionally uses. CLASSIFICATION_ALLOW is the fixed, audited set
-# of those legitimate mentions — same substring-precise mechanism as SLACK_ALLOW below, same
-# escaping rule (entries are spliced into a Python regex alternation; escape any of
-# . ( ) [ ] + * ? that are literally part of the text you mean to allow).
-CLASSIFICATION_ALLOW='classify each match|diagnose-and-classify|classify by content|misclassified as foreign|Greeting Banner|freeform banner|redirect banner|ASCII art or text banner|banner is desired|GREETING_BANNER|marking any task|sensitivity.marking|marking regime|marking check|no marking|trade-secret|repo secret|secret later|Sentinel-missed secret|secret exists only in queue history|rotate the secret|preserve the secret|including the secret|aws_secret_access_key|aws-secret-key|AWS secret access key|access/secret tokens|bearer\|secret\)|secret\[-_\]\?access|secret in a frontmatter scalar|a "secret" entry'
+# `classif(y|ied|ication)` and adding bare `marking`/`banner` necessarily also matches ordinary
+# English ("classify by content type", "Greeting Banner") and the generic (non-national-security)
+# "sensitivity marking" gate-extension language this branch's replacement design intentionally
+# uses. CLASSIFICATION_ALLOW is the fixed, audited set of those legitimate mentions — same
+# substring-precise mechanism as SLACK_ALLOW below, same escaping rule (entries are spliced into
+# a Python regex alternation; escape any of . ( ) [ ] + * ? that are literally part of the text
+# you mean to allow).
+CLASSIFICATION_ALLOW='classify each match|diagnose-and-classify|classify by content|misclassified as foreign|Greeting Banner|freeform banner|redirect banner|ASCII art or text banner|banner is desired|GREETING_BANNER|marking any task|sensitivity.marking|marking regime|marking check|no marking'
 run classification && check_group classification \
-  'classif(y|ied|ication)|\bCUI\b|\bFOUO\b|UNCLASSIFIED|\bITAR\b|marking_required|max_level|storage_tier|marking|portion.?mark|banner|\bSBU\b|NOFORN|Distribution Statement|\bTOP SECRET\b|\bSECRET\b|\(U\)' \
+  'classif(y|ied|ication)|\bCUI\b|\bFOUO\b|UNCLASSIFIED|\bITAR\b|marking_required|max_level|storage_tier|marking|portion.?mark|banner|\bSBU\b|NOFORN|Distribution Statement|\(U\)' \
   "$CLASSIFICATION_ALLOW"
+
+# SECRET/TOP SECRET are checked separately, case-sensitively. DoD classification banners are
+# uppercase by convention (`SECRET//NOFORN`, `TOP SECRET`, `//SECRET//`); matched case-insensitively
+# (as the rest of this group is) \bSECRET\b also catches the ordinary English/credential word
+# "secret", which the security docs and tests use constantly ("rotate the secret",
+# `aws_secret_access_key`, "Sentinel-missed secret") — that forced a ~16-entry allowlist that
+# existed only to suppress lowercase noise, not to permit anything classification-shaped. Splitting
+# this into its own case-sensitive check removes those false positives at the source: a lowercase
+# "secret" no longer matches at all, and an actual uppercase banner still fails with zero allowlist
+# needed today (empty allow below — add an entry here, not to CLASSIFICATION_ALLOW, if a genuine
+# uppercase SECRET false positive ever shows up).
+run classification && check_group classification \
+  '\bTOP SECRET\b|\bSECRET\b' \
+  '' \
+  cs
 
 # Bare \bslack\b closes the gap where the narrower patterns above (slack_channel,
 # Signal bot, etc.) would miss a stray "Slack notification"/"post to Slack" reference
