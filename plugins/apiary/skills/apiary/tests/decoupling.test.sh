@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # decoupling.test.sh — asserts the org-specific couplings removed in 3.0.0 stay removed.
-# Usage: bash decoupling.test.sh [classification|notifications|federation|org-coupling]
+# Usage: bash decoupling.test.sh [classification|notifications|federation|org-coupling|survivors]
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"   # -> plugins/apiary
@@ -15,11 +15,22 @@ EXCLUDES=(
   --exclude=decoupling.test.sh
 )
 
+# check_group: FAILs if $pattern matches anywhere under $ROOT (outside EXCLUDES).
+# Optional $3 is an "allow" pattern — hits matching it are filtered out before the
+# pass/fail decision. This is how bare-word patterns (e.g. \bslack\b) coexist with a
+# fixed, known set of legitimate mentions: the sweep pattern stays broad (so a NEW
+# stray reference is still caught), and only the specific already-audited shapes are
+# subtracted back out. It is not a suppression of the pattern — anything that doesn't
+# match one of the allow-listed shapes still fails the guard.
 check_group() {
   local group="$1"; shift
-  local pattern="$1"
+  local pattern="$1"; shift
+  local allow="${1:-}"
   local hits
   hits="$(grep -rniE "$pattern" "${EXCLUDES[@]}" "$ROOT" || true)"
+  if [[ -n "$hits" && -n "$allow" ]]; then
+    hits="$(printf '%s\n' "$hits" | grep -viE "$allow" || true)"
+  fi
   if [[ -n "$hits" ]]; then
     printf 'FAIL [%s] surviving references:\n%s\n\n' "$group" "$hits" >&2
     FAILED=1
@@ -28,20 +39,69 @@ check_group() {
   fi
 }
 
+check_present() {
+  local label="$1" file="$2" pattern="$3"
+  if grep -qE "$pattern" "$ROOT/$file" 2>/dev/null; then
+    printf 'PASS [survivors] %s\n' "$label"
+  else
+    printf 'FAIL [survivors] %s — expected %s in %s\n' "$label" "$pattern" "$file" >&2
+    FAILED=1
+  fi
+}
+
+VALID_GROUPS=(classification notifications federation org-coupling survivors)
 WANT="${1:-all}"
+if [[ "$WANT" != "all" ]]; then
+  known=0
+  for g in "${VALID_GROUPS[@]}"; do
+    [[ "$WANT" == "$g" ]] && { known=1; break; }
+  done
+  if [[ "$known" -eq 0 ]]; then
+    joined="$(IFS='|'; echo "${VALID_GROUPS[*]}")"
+    printf 'decoupling.test.sh: unknown group "%s" (expected: all|%s)\n' "$WANT" "$joined" >&2
+    exit 2
+  fi
+fi
 run() { [[ "$WANT" == "all" || "$WANT" == "$1" ]]; }
 
 run classification && check_group classification \
   'classification|\bCUI\b|\bFOUO\b|UNCLASSIFIED|\bITAR\b|marking_required|max_level|storage_tier'
 
+# Bare \bslack\b closes the gap where the narrower patterns above (slack_channel,
+# Signal bot, etc.) would miss a stray "Slack notification"/"post to Slack" reference
+# entirely. The allow pattern is the fixed set of legitimate mentions audited in Task 7:
+# the credential.slack-token detector (pattern + docs row + two test cases), the
+# optional slack-cli connector (tool-tiers, DESIGN-GOALS, the Jira/Confluence/Slack
+# connected-tier line), and three prose mentions (security-policy's "Professional Slack
+# handle" PII example and "Slack tokens" credential-list item, custodian-workflow's
+# "Slack tokens" list, inbox-entry.schema.json's "Slack message timestamp" citation
+# example, mode-create.md's "Slack channels" interview question).
+SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Slack channels|Slack message|Confluence/Slack'
 run notifications && check_group notifications \
-  'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal/|Signal bot|Signal post|Signal Config'
+  'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal/|Signal bot|Signal post|Signal Config|\bslack\b' \
+  "$SLACK_ALLOW"
 
 run federation && check_group federation \
   'confluence_registry|REGISTRY_URL|Hive Mind Registry|[Aa]piculturist|cross_hive|cross-hive|^siblings:|federation'
 
+# Bare \bmeridian\b closes the same class of gap: "Meridian Systems" never matches a
+# stray bare "Meridian" mention that dropped the second word.
 run org-coupling && check_group org-coupling \
-  'Meridian Systems|claude-clams|ghe\.meridian|jira\.meridian|confluence\.meridian|docs\.meridian|meridian/owners|repo-provisioner'
+  'Meridian Systems|claude-clams|ghe\.meridian|jira\.meridian|confluence\.meridian|docs\.meridian|meridian/owners|repo-provisioner|\bmeridian\b'
+
+# Positive assertions: a future sweep that deletes the Sentinel triage runbook or thins
+# the pattern file should fail loudly here, not slip through as an absence nobody checked.
+if run survivors; then
+  check_present "sentinel triage verb" \
+    "skills/apiary/references/pre-push-sentinel.md" "classify each match"
+  check_present "operate-mode triage pointer" \
+    "skills/apiary/references/mode-operate.md" "diagnose-and-classify"
+  check_present "override mechanism retained" \
+    "skills/apiary/assets/generate-hook.sh" "_covered\(\)"
+  n=$(python3 -c "import json;print(len(json.load(open('$ROOT/skills/apiary/assets/sentinel-patterns.json'))['patterns']))")
+  [[ "$n" == "18" ]] && printf 'PASS [survivors] 18 sentinel patterns\n' \
+    || { printf 'FAIL [survivors] sentinel pattern count is %s, expected 18\n' "$n" >&2; FAILED=1; }
+fi
 
 if [[ $FAILED -ne 0 ]]; then
   echo "decoupling.test.sh: FAILED" >&2

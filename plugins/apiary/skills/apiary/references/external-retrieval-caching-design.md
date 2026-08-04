@@ -168,7 +168,7 @@ row. Reproduced here only to show the mechanism is real for every store the Apia
 implementing change moves it.
 
 This inherits the open question in `BACKLOG.md` about re-homing `tool-tiers.md` as a resolver
-registry — a third column makes that table more clearly Meridian-wide reference data, which
+registry — a third column makes that table more clearly org-wide reference data, which
 strengthens the case rather than complicating it.
 
 ---
@@ -177,7 +177,7 @@ strengthens the case rather than complicating it.
 
 ```json
 {
-  "canonical_url": "https://meridian.sharepoint.example/sites/…/Payload-ICD-revC.xlsx",
+  "canonical_url": "https://example.sharepoint.us/sites/…/Payload-ICD-revC.xlsx",
   "display_name": "Payload ICD rev C",
   "store_kind": "sharepoint",
   "body_file": "body.xlsx",

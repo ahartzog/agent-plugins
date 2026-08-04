@@ -45,7 +45,7 @@ What kind of document is this? Agents use this to route question types to the ri
 | `working` | Useful reference not fitting other categories, not formally reviewed | Working notes, draft slides |
 
 **Domain extensions:** The base taxonomy above is weighted toward program/CDRL contexts. Operational, enterprise, and platform domains should **extend rather than shoehorn**. Add domain-specific `doc_type` values in the catalog's frontmatter under `doc_type_extensions`. Examples:
-- Meridian Platform: `runbook`, `design-doc`, `postmortem`
+- Platform/SRE: `runbook`, `design-doc`, `postmortem`
 - ERP/BizSys: `dashboard-spec`, `integration-spec`, `operational-report`
 - Cyber/accreditation: `vulnerability-finding`, `stig-checklist`, `authorization-package`
 
