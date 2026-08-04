@@ -34,7 +34,6 @@ Required files:
 Optional files (note if missing, don't fail):
 - `knowledge/**/reference-library.md` — at least one (checked in Step 1b)
 - `PROTOCOL/extensions/` directory
-- `.signal/config.yml`
 - `_metrics/`
 - `README.md`
 

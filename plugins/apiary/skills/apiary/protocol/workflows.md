@@ -117,7 +117,7 @@ This workflow handles **explicit user-initiated contributions.** Most contributi
 4. Synthesize a digest covering: new contributors, what was learned, what was rejected and why, what's escalated, knowledge base growth, staleness alerts from the most recent audit.
 5. **Pattern detection → inbox stubs:** Analyze the week's activity for systemic signals and convert findings into inbox contributions — ranking gap findings from `_custodian/reports/loop-b-gaps.json` (count ≥ 2 first) rather than re-deriving them. Examples: N questions with no knowledge file coverage → `[process]` stub; recurring `[correction]` against the same fact → `[contradiction]` stub; workflow never invoked → `[meta]` stub; category exceeding Loop C (Calibration) approval threshold (`PROTOCOL/learning-loops.md`) → `[meta]` stub proposing triage policy relaxation.
 6. Format as a human-readable briefing.
-7. Optional: push to configured Slack channel (if Signal bot configured) or write to `_custodian/reports/brief-YYYY-WNN.md`.
+7. Optional: write to `_custodian/reports/brief-YYYY-WNN.md`.
 
 ---
 

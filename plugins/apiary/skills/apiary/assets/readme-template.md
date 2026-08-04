@@ -40,11 +40,10 @@ Direct edits to `knowledge/` bypass triage and will be reverted.
 
 ```
 {HIVE_SLUG}/
-├── hive.yml                  # Identity: slug, codeowners, slack channel
+├── hive.yml                  # Identity: slug, codeowners
 ├── CLAUDE.md                 # Project-scoped Claude Code instructions
 ├── README.md                 # You are here
 ├── .claude/settings.json     # Hooks: sync on session start, rebase before push
-├── .signal/config.yml       # Signal bot Slack channel
 ├── PROTOCOL/
 │   ├── agent-definition.md   # Persona, routing, constraints
 │   └── extensions/           # (optional) hive-local workflow extensions
@@ -136,5 +135,3 @@ When working in this repo, `/{HIVE_SLUG}` dispatches through the Apiary for prot
 ## Contribute
 
 Questions or corrections that don't fit the inbox — open an issue or PR. For protocol changes, PRs must be reviewed by CODEOWNERS (see `hive.yml`).
-
-Slack: `#{SLACK_CHANNEL}`.

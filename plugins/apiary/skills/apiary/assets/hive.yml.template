@@ -8,7 +8,6 @@ remote: "{GIT_REMOTE}"       # git remote URL — used by Apiary for clone/pull/
 default_branch: master       # branch name for push, rebase, and sync operations
 persona: PROTOCOL/agent-definition.md
 codeowners: [{CODEOWNERS}]
-slack_channel: "{SLACK_CHANNEL}"
 
 # What knowledge belongs in this Hive (and what does not). Shown in discovery listings
 # and the README "What Lives Here" section.

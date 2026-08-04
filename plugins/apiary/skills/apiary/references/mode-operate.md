@@ -66,10 +66,9 @@ fi
 # forever: `git add _metrics/<file>` then fails with "matched paths that exist outside of your
 # sparse-checkout definition", so the session log can never be committed, and audit finds no
 # CLAUDE.md or README.md on disk. `/CLAUDE.md` and `/README.md` are anchored root files audit
-# reads; `_metrics/` is written by every session (Ask step 5); `.signal/` holds the Signal config
-# audit checks.
+# reads; `_metrics/` is written by every session (Ask step 5).
 git sparse-checkout set --no-cone PROTOCOL/ knowledge/ sources/ /hive.yml /CLAUDE.md /README.md \
-  _inbox/ _custodian/ _metrics/ .signal/ .claude/ 2>/dev/null \
+  _inbox/ _custodian/ _metrics/ .claude/ 2>/dev/null \
   || echo "WARN_SPARSE_SET_FAILED: could not apply the sparse-checkout patterns." >&2
 
 # --- Sync to the remote default branch (HALT if not fast-forwardable) ---
@@ -177,7 +176,7 @@ echo "===END==="
 From the single tool result:
 - **`{HIVE_ROOT}`** = `$HOME/.claude-hive/{HIVE_SLUG}` — use for all later steps.
 - **`{DEFAULT_BRANCH}`** = the `DEFAULT_BRANCH_RESOLVED:` line. Prefer it over re-deriving from `hive.yml` — it is what the script actually synced against.
-- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `slack_channel`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the two groups this list previously omitted even though later steps dispatch on them**:
+- **Identity** — parse the `===HIVE_YML===` section for: `hive_slug`, `description`, `remote`, `default_branch` (cross-check against `DEFAULT_BRANCH_RESOLVED`), `persona`, `codeowners`, `purpose` → `{HIVE_PURPOSE}` (scope of what belongs here; may be absent on Hives created before v2.5), `extensions`, `auto_merge`, `inbox_transport` → `{INBOX_TRANSPORT}` (default `default-branch`), `inbox_branch` → `{INBOX_BRANCH}` (default `inbox`; only read when the transport is `branch`), **and the two groups this list previously omitted even though later steps dispatch on them**:
   - **Push modes** — `push_mode` (default `direct`), `inbox_push_mode`, `parliament_push_mode`, `sources_push_mode`. § Push Procedure below resolves `inbox_push_mode` → `push_mode` → `direct`, and `sources-policy.md` § Push Discipline does the same for deposits. Not parsing them meant the Push Procedure dispatched on values the session had never read.
   - **Classification** — the `classification` block: `classification.max_level` (`UNCLASSIFIED` | `FOUO` | `CUI`; an absent block means `UNCLASSIFIED` with no marking discipline) and `classification.marking_required`. The always-on invariant "never store content above the Hive's classification ceiling" cannot be held without the ceiling, and `marking_required` decides whether inbox and source frontmatter must carry a `classification` field at all (`sources-policy.md` § Frontmatter Schema).
 - **Persona** — the `===PERSONA:…===` section is the agent-definition. Adopt its name, voice, and routing rules. **If it contains a `## Greeting Banner` section, that is the greeting — see Step 1.**

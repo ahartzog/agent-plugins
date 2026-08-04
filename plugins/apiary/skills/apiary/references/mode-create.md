@@ -12,7 +12,7 @@ Before Step 1, ask: **"Is there existing content this Hive should be seeded from
 
 If the user points to an existing corpus:
 
-1. **Read the corpus before interviewing.** Key fields (name, description, codeowners, slack channel, knowledge topics) can often be inferred — do NOT ask questions the corpus already answers.
+1. **Read the corpus before interviewing.** Key fields (name, description, codeowners, knowledge topics) can often be inferred — do NOT ask questions the corpus already answers.
 2. **Ask for sanitization directives explicitly.** The corpus may contain material unsafe for a shared Hive:
    - Personal editorial commentary about named individuals → strip to role + contact only
    - Classification markers (CUI, FOUO, SECRET, `[INTERNAL]` flags) → reference by path; never reproduce
@@ -51,11 +51,6 @@ Store as `{PERSONA_NAME}` and `{SCOPE_SENTENCE}`.
 
 Store as `{CODEOWNERS}` (array) and `{CODEOWNERS_CSV}` (comma string).
 
-### Q5: Slack Channel
-"Which Slack channel should the Signal bot post to for this Hive?"
-
-Store as `{SLACK_CHANNEL}`.
-
 ### Q5.25: Git Remote
 "What is the GHE remote URL for this Hive's repo? (e.g. `git@ghe.meridian.example:meridian/my-hive.git`)"
 
@@ -86,7 +81,7 @@ first session push, and that after scaffolding they should (1) apply vanilla bra
 `parliament_push_mode: pr` **once the protection is on** (not before — `pr` mode on an
 unprotected branch strands PRs; audit Step 4b checks the pairing) — per
 `protocol/security-policy.md` § Repository Protection Model (transport=branch variant). Create
-mode does not configure repo-side protection; record these as manual follow-ups in the Step 8
+mode does not configure repo-side protection; record these as manual follow-ups in the Step 4
 summary. The transport works unprotected in the meantime — audit reports the unrealized
 protection goal as a WARN until step (1) is done.
 
@@ -241,15 +236,7 @@ See `protocol/knowledge-schema.md` § Reference Library Entry Format for the ful
 **For flat Hives** (all knowledge at `knowledge/` root): one `knowledge/reference-library.md`.
 **For nested Hives** (subdirectories like `knowledge/service-catalog/`): one `reference-library.md` per subdomain, each with its own `## Scope` header.
 
-## Step 3: Generate Signal Config
-
-Create `.signal/config.yml`:
-```yaml
-slack:
-  channel: "{SLACK_CHANNEL}"
-```
-
-## Step 4: Validate Rendered Output
+## Step 3: Validate Rendered Output
 
 Before summarizing, run deterministic checks on what was generated. Fail loud if any check fails — do not claim success.
 
@@ -267,14 +254,14 @@ Before summarizing, run deterministic checks on what was generated. Fail loud if
      exit 1
    fi
    ```
-3. **Consistency checks.** `hive.yml.slack_channel` should match `.signal/config.yml` slack channel. `hive.yml.codeowners` CSV should match the `add-reviewer` list in `.claude/settings.json` PostToolUse hook. If `hive.yml.classification.marking_required` is true, every generated knowledge-file scaffold must include a `classification:` frontmatter field, and its value must not exceed `hive.yml.classification.max_level`.
+3. **Consistency checks.** `hive.yml.codeowners` CSV should match the `add-reviewer` list in `.claude/settings.json` PostToolUse hook. If `hive.yml.classification.marking_required` is true, every generated knowledge-file scaffold must include a `classification:` frontmatter field, and its value must not exceed `hive.yml.classification.max_level`.
 
-Report each check as `PASS`/`FAIL` in the Step 8 summary.
+Report each check as `PASS`/`FAIL` in the Step 4 summary.
 
-## Step 8: Summary
+## Step 4: Summary
 
 Show the user:
 1. List of all generated files
 2. The `hive.yml` contents
-3. Step 4 validation results
+3. Step 3 validation results
 4. Next steps: "Push this repo to GHE, then register the child skill in claude-clams."

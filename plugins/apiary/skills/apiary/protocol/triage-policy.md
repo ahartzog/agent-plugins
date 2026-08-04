@@ -41,7 +41,7 @@ Each inbox contribution carries a tag that determines its processing path. The A
 Raw contribution
   → Archivist: format, annotate, determine target file
   → Open auto-merge PR
-  → Tag reviewer → Signal bot posts to slack_channel (from hive.yml)
+  → Tag reviewer
   → PR merges automatically after CI passes
 ```
 
@@ -119,12 +119,12 @@ A contribution is **not** auto-merged and requires CODEOWNER review when:
 
 ## PR Types and Behavior
 
-| PR Type | Trigger | Auto-merge? | Signal Post? |
-|---|---|---|---|
-| **Batch merge** | All fast-path + clean-MERGE deliberation in this run | Yes — `gh pr merge --auto --squash` | Yes |
-| **Needs review** | MERGE with a high-confidence objection outstanding, or Loop D fired (§4.1.05) | No until CODEOWNER approves (auto-merge armed) | Yes |
-| **Rejected** | Chancellor rejects after deliberation | PR opened then closed | Yes — shows what was rejected and why |
-| **Escalated** | Chancellor deadlocked or contribution too ambiguous | No — requires CODEOWNER + discussion | Yes |
+| PR Type | Trigger | Auto-merge? |
+|---|---|---|
+| **Batch merge** | All fast-path + clean-MERGE deliberation in this run | Yes — `gh pr merge --auto --squash` |
+| **Needs review** | MERGE with a high-confidence objection outstanding, or Loop D fired (§4.1.05) | No until CODEOWNER approves (auto-merge armed) |
+| **Rejected** | Chancellor rejects after deliberation | PR opened then closed |
+| **Escalated** | Chancellor deadlocked or contribution too ambiguous | No — requires CODEOWNER + discussion |
 
 Parliament produces **one PR per run** for fast-path contributions, not one per contribution. Individual traceability lives in `_inbox/_completed/` reconciliation notes.
 
@@ -183,4 +183,4 @@ Contributions are moved to `_inbox/_quarantine/` (not processed) when:
 - Author attribution missing or unverifiable
 - Contribution contains personal attacks or PII beyond professional attribution
 
-Quarantine is not rejection — it is escalation for human review. CODEOWNER is notified via Signal bot.
+Quarantine is not rejection — it is escalation for human review, surfaced to CODEOWNERS via `/apiary audit` (Sentinel Retrospective).

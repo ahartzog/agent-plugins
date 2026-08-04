@@ -83,7 +83,6 @@ Full Parliament mechanics: upstream `protocol/custodian-workflow.md`
 | Parliament (manual) | **Defined, not yet automated** | Run via `/{hive-slug} parliament` or `/apiary parliament` in a Claude session |
 | Parliament (scheduled) | **Planned** | Hourly CI job — GitHub Action or CircleCI pipeline not yet stood up |
 | Parliament (threshold) | **Planned** | Trigger when inbox reaches the `batch_threshold` configured in `_custodian/config.yml` |
-| Signal notifications | **Working** | Signal bot posts to slack_channel (from hive.yml) on PR events |
 | Audit | **Defined, not yet automated** | Run via `/apiary audit` in a Claude session |
 | Brief | **Defined, not yet automated** | Run via the Hive's skill with "weekly summary" prompt |
 
@@ -173,7 +172,7 @@ The hive.yml layer is the parameterization surface — it is where a Hive custom
 
 Before any Parliament agent processes a contribution, Sentinel runs a mandatory security scan. Sentinel cannot be disabled or skipped.
 
-Sentinel scans for: PII beyond professional attribution, credentials/tokens/keys, and classification markings above the repo's clearance level. Hard rejections go to `_inbox/_quarantine/` with a Sentinel report; CODEOWNERS are notified via slack_channel (from hive.yml). Other contributions in the batch continue.
+Sentinel scans for: PII beyond professional attribution, credentials/tokens/keys, and classification markings above the repo's clearance level. Hard rejections go to `_inbox/_quarantine/` with a Sentinel report; `/apiary audit` surfaces unaddressed quarantine items to CODEOWNERS (Sentinel Retrospective). Other contributions in the batch continue.
 
 After every Parliament run, Sentinel performs a tail-check: structural validation, quarantine retrospective, and version check. Findings are appended to the Parliament run report.
 

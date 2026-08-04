@@ -90,7 +90,7 @@ In `assets/`:
 - `sentinel-patterns.json` — Runtime source of truth for credential / PII regex patterns. Read by both the pre-push hook and Parliament Sentinel.
 - `generate-hook.sh` — Generator script (Bash + jq). Reads `sentinel-patterns.json` and emits a self-contained bash pre-push hook to stdout. Run by operate-mode Step 0 as `generate-hook.sh <patterns.json> [HIVE_ROOT]`; passing `HIVE_ROOT` also bakes in that Hive's `extensions.gates`. The generated hook supports CLI modes: `pre-push scan FILE...` or `pre-push scan-dir HIVE_ROOT` (neither runs gate extensions — those fire only on the actual push path, to avoid recursion when a gate itself calls `scan`).
 
-Validate with `yq -o json <file> | ajv validate -s <schema>`. Create mode Step 4 runs these checks automatically.
+Validate with `yq -o json <file> | ajv validate -s <schema>`. Create mode Step 3 runs these checks automatically.
 
 ## Skill Knowledge
 

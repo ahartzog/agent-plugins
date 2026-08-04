@@ -39,7 +39,7 @@ The pattern set is defined in `assets/sentinel-patterns.json` (human-readable co
 Hard reject. No deliberation, no revision.
 
 1. **Redact the matched lines in the quarantined copy first** — replace each matched value with `[REDACTED: <pattern-name>]`. The Sentinel report records pattern name + file + line number, and at most a masked excerpt (e.g. last 4 characters) — never the raw matched value, which would re-preserve the secret one directory over. For purging the pre-quarantine commit from history, follow `security-policy.md` § Credential Remediation Runbook. Quarantine exists to isolate humans from process, not to preserve the leak: `_inbox/_quarantine/` is excluded from every later scan and lives in the pushed repo, so an unredacted quarantined credential would sit in the remote indefinitely. Then move the contribution to `_inbox/_quarantine/` with the Sentinel report (patterns matched, line references). For a credential, also tell CODEOWNERS to **rotate the secret** — redaction removes the copy, not the exposure.
-2. Notify CODEOWNERS via Slack (reads `slack_channel` from `hive.yml`).
+2. Quarantine is surfaced to CODEOWNERS via `/apiary audit` (§ Sentinel Retrospective, `references/mode-audit.md`) — there is no push notification.
 3. Pipeline stops for this contribution. Other contributions in the batch continue.
 
 ### Pre-push override recognition
@@ -382,7 +382,8 @@ For every `[contradiction]` contribution, before the Reviser runs:
 2. **≥1 prior found (this is the second or later challenge):** Loop D fires. The Reviser's output
    MUST add a `[disputed: YYYY-MM-DD]` annotation to the challenged fact in the target knowledge
    file, the contribution routes to a **needs-review PR** (never the auto-merge batch) with every
-   contradiction source linked, and CODEOWNERS are notified via Signal.
+   contradiction source linked; CODEOWNERS are added as reviewers on that PR (§5 Auto-Add
+   Reviewers) and must approve before it merges.
 3. Record the outcome either way in `_custodian/reports/loop-d-disputes.json` (§6.2) — first
    challenges are recorded so the second one can be recognized.
 
@@ -481,22 +482,18 @@ One batch PR per Parliament run. Structure:
 **Batch merge PR** (fast-path + **clean-MERGE** deliberation contributions, per §4.3's canonical disposition rule):
 - Auto-merge; merges after CI passes.
 - PR description: list of source inbox files processed, summary of contributions by target knowledge file, attribution to original contributors.
-- Signal bot posts to slack_channel (from hive.yml).
 
 **Needs-review PR** (MERGE with a high-confidence objection outstanding, or §4.1.05 Loop D fired — §4.3's canonical disposition rule):
 - Requires CODEOWNER approval; auto-merge requested so it self-merges once review lands.
 - PR description: Tribunal reasoning summarized per contribution.
-- Signal bot posts to slack_channel (from hive.yml).
 
 **Rejection PR** (per rejected contribution, opened then immediately closed):
 - Closed immediately; serves as an auditable record.
 - Description: rejection reasoning, which critic findings drove the decision.
-- Signal bot posts to slack_channel (from hive.yml).
 
 **Escalation PR** (per escalated contribution):
 - Full escalation template: §4.3 § Escalation threshold.
 - CODEOWNER tagged for discussion.
-- Signal bot posts to slack_channel (from hive.yml).
 
 ### Auto-Add Reviewers
 

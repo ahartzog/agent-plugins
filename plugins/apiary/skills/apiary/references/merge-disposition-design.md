@@ -11,8 +11,8 @@ as a tiebreak rather than a conviction.
 ## The problem
 
 A clean Chancellor MERGE — deliberation-path, no high-confidence critic objections, Loop D quiet —
-currently joins the auto-merge batch PR. The human gate is post-hoc: a Signal post and a one-revert
-rollback. That is the right default for a mature Hive whose codeowners trust Parliament, and the
+currently joins the auto-merge batch PR. The human gate is post-hoc: the batch PR is visible in the
+repo's PR history and a single `git revert` rolls it back. That is the right default for a mature Hive whose codeowners trust Parliament, and the
 wrong first posture for a brand-new CUI Hive — which is why the trial-period pattern (codeowner
 review on *every* PR for the first month) already exists as folklore. Folklore is not
 configuration: today the only lever is `parliament_push_mode: pr`, which gates **all** Parliament

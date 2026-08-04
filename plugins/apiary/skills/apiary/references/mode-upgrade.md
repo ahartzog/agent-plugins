@@ -135,7 +135,7 @@ worth taking**, called out first.
   false-HALTs a returning session with `HALT_ORPHANED_BRANCH` — the branch-normalize check needed
   the value before the script reads `hive.yml`, and a session that has never read `hive.yml` could
   only guess `master`. Resolution order: `hive.yml` → `refs/remotes/origin/HEAD` → `master`. The
-  sparse-checkout set gains `/CLAUDE.md`, `/README.md`, `_metrics/`, and `.signal/` — all four were
+  sparse-checkout set gains `/CLAUDE.md`, `/README.md`, and `_metrics/` — all three were
   read or written by sessions and audit without ever being checked out — and it is now applied on
   **every** invocation rather than only at clone time, so your existing `~/.claude-hive/{slug}`
   clones widen on their next session instead of keeping their original patterns forever. (If a
