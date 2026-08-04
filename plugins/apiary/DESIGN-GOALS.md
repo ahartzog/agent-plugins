@@ -87,5 +87,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. Key rules:
 
 - **Every mechanical change must pass the three canonical scenario tests** before PR.
 - Run `bash skills/apiary/tests/clone-flow.test.sh` — all tests must pass.
-- Protocol changes go through PR review on claude-clams.
+- Protocol changes go through PR review on the Apiary plugin repository.
 - Prefer improving the upstream Apiary over local workarounds in child Hives.

@@ -62,7 +62,7 @@ This skill bundles canonical protocol files in `protocol/`. These are the single
 
 - `protocol/design-goals.md` — North star principles (MUST be consulted before any protocol change — see CONTRIBUTING.md)
 - `protocol/triage-policy.md` — Contribution routing (fast path vs. deliberation)
-- `protocol/security-policy.md` — PII/credential defense-in-depth, injection defense
+- `protocol/security-policy.md` — PII, credential, and injection defense
 - `protocol/operational-model.md` — Three-phase session→accumulation→incorporation loop
 - `protocol/learning-loops.md` — Four feedback circuits — compact operational rules (see operate mode Step 2 for when to load)
 - `protocol/workflows.md` — Interaction modes
@@ -91,10 +91,6 @@ In `assets/`:
 - `generate-hook.sh` — Generator script (Bash + jq). Reads `sentinel-patterns.json` and emits a self-contained bash pre-push hook to stdout. Run by operate-mode Step 0 as `generate-hook.sh <patterns.json> [HIVE_ROOT]`; passing `HIVE_ROOT` also bakes in that Hive's `extensions.gates`. The generated hook supports CLI modes: `pre-push scan FILE...` or `pre-push scan-dir HIVE_ROOT` (neither runs gate extensions — those fire only on the actual push path, to avoid recursion when a gate itself calls `scan`).
 
 Validate with `yq -o json <file> | ajv validate -s <schema>`. Create mode Step 3 runs these checks automatically.
-
-## Skill Knowledge
-
-The Apiary knows that Meridian Systems shared skills live in claude-clams. When a Hive's agent-definition routes to external skills (e.g., `/platform`, `/cyber-accreditation`), the Apiary understands the invocation pattern but defers domain-specific skill relevance to each Hive's routing table.
 
 ## Notes
 

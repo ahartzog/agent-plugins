@@ -23,7 +23,7 @@ Each pattern records: **what it is**, **why it works**, **when to use it**, and 
 ```
 knowledge/people/
 ├── README.md              — entry point: structure, contribution rules, linking convention
-├── internal.md            — Meridian Systems people, sub-grouped by function
+├── internal.md            — organization-internal people, sub-grouped by function
 ├── external.md            — everyone else, sub-grouped by organization
 ├── uncertainties.md       — open questions (full names, duplicate records, role/org confirmations)
 └── profiles/
@@ -46,7 +46,7 @@ knowledge/people/
 
 **Linking convention inside the Hive:**
 
-- **Body-text markdown links** (`[name](profiles/name.md)`) are the standard for clickable cross-references — they render in both GHE and any markdown viewer.
+- **Body-text markdown links** (`[name](profiles/name.md)`) are the standard for clickable cross-references — they render in both GitHub Enterprise (GHE) and any markdown viewer.
 - **Frontmatter links** only render clickably in Obsidian (with quoted wikilink strings like `manager: "[[person-slug]]"`). They remain raw text in GHE. Keep frontmatter plain by default; adopt wikilinks only if the Hive is consumed in Obsidian and the team values the graph-view indexing.
 
 **When to invoke this pattern:**
@@ -59,7 +59,7 @@ Any Hive tracking more than ~10 distinct people. Below that, a single `stakehold
 **Migration path from a flat `stakeholders.md`:**
 
 1. Create `knowledge/people/{README,internal,external,uncertainties}.md` and `profiles/`.
-2. Split the existing table contents: Meridian Systems people → `internal.md`; customer/partner/contractor → `external.md`.
+2. Split the existing table contents: organization-internal people → `internal.md`; customer/partner/contractor → `external.md`.
 3. Port any existing profile cards (or promote the most-referenced individuals from the flat file).
 4. Harvest open questions into `uncertainties.md` — `[UNCERTAIN]` flags from the source, missing full names, duplicate-looking records.
 5. Add a redirect banner at the top of the old `stakeholders.md` pointing to `people/README.md`. Keep the old file until other knowledge files have been updated to link to the new location, then retire it.

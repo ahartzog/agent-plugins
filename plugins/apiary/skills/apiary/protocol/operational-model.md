@@ -89,7 +89,7 @@ Full Parliament mechanics: upstream `protocol/custodian-workflow.md`
 ### What needs to be built
 
 1. **CI pipeline for Parliament.** A scheduled job (GitHub Actions cron or CircleCI scheduled workflow) that clones the repo, invokes the Parliament workflow via Claude CLI (`claude -p "run parliament"`), and posts results. Config target: hourly, per `_custodian/config.yml`.
-2. **Branch protection for `_inbox/`** (default-branch transport only). GHE branch protection rules must allow direct pushes to master for paths matching `_inbox/**`. This may require a bypass rule or a bot account, depending on GHE org policy. Under `inbox_transport: branch` this problem does not exist — the queue branch is unprotected by design and master carries plain vanilla protection (`protocol/security-policy.md` § Repository Protection Model, transport=branch variant).
+2. **Branch protection for `_inbox/`** (default-branch transport only). GitHub Enterprise (GHE) branch protection rules must allow direct pushes to master for paths matching `_inbox/**`. This may require a bypass rule or a bot account, depending on GHE org policy. Under `inbox_transport: branch` this problem does not exist — the queue branch is unprotected by design and master carries plain vanilla protection (`protocol/security-policy.md` § Repository Protection Model, transport=branch variant).
 3. **CI pipeline for Audit.** Scheduled weekly, produces audit reports in `_custodian/reports/`.
 
 ---
@@ -162,7 +162,7 @@ Every Hive Mind operates within a three-layer stack:
 | **hive.yml** | Per-Hive configuration: slug, remote, branch, codeowners, knowledge schema | `{hive-repo}/hive.yml` |
 | **Content** | Knowledge files, inbox, sources, custodian reports | `{hive-repo}/knowledge/`, `_inbox/`, `sources/`, `_custodian/` |
 
-The Apiary layer is read-only from any individual Hive's perspective. Changes to protocol files require a PR to the Apiary skill in claude-clams. **The Apiary plugin is a hard dependency** — child Hive skills declare it in their `plugin.json` dependencies and will not function without it. Protocol files are read directly from the installed plugin at runtime; no vendoring or syncing is required.
+The Apiary layer is read-only from any individual Hive's perspective. Changes to protocol files require a PR to the Apiary plugin repository. **The Apiary plugin is a hard dependency** — child Hive skills declare it in their `plugin.json` dependencies and will not function without it. Protocol files are read directly from the installed plugin at runtime; no vendoring or syncing is required.
 
 The hive.yml layer is the parameterization surface — it is where a Hive customizes behavior without forking protocol. The content layer is Hive-specific and fully owned by the Hive's CODEOWNERS.
 

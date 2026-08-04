@@ -181,21 +181,19 @@ Dense summary. The files are canonical; this is the map.
 
 ## Operator Reference — Standing Up a New Hive's Backing Store
 
-> This section describes the *sanitized example environment* (fictional `meridian`/GHE hosts). Adapt org names and provisioning flow to your own environment; the sequence and gotchas are the transferable part.
+> §2 below illustrates codeowners enforcement using GitHub Enterprise (GHE) as the example git host — adapt the platform-specific mechanics to whatever git host you use. The sequence and gotchas are the transferable part.
 
-`/apiary create` scaffolds all of a Hive's *files* (hive.yml, PROTOCOL, knowledge/, etc.) locally, but it does **not** create the GHE repo those files get pushed to or configure repo-level access control. Those are one-time, human/repo-admin steps that must happen **before or immediately after** `/apiary create` — agents should walk the user through them explicitly rather than assuming they're already done. This section is the checklist for both.
+`/apiary create` scaffolds all of a Hive's *files* (hive.yml, PROTOCOL, knowledge/, etc.) locally, but it does **not** create the repo on your git host that those files get pushed to, or configure repo-level access control. Those are one-time, human/repo-admin steps that must happen **before or immediately after** `/apiary create` — agents should walk the user through them explicitly rather than assuming they're already done. This section is the checklist for both.
 
-### 1. Create the GHE repo via `meridian/owners`
+### 1. Create the repo on your git host
 
-Meridian Systems repos are provisioned centrally through the `owners` repo, not by clicking "New repository" on GHE. Add an entry to `repos.yml` in the `owners` repo for the org this Hive belongs in and open a PR — the `repo-provisioner` CI pipeline creates the actual GHE repo once it merges.
-
-Full steps and the `repos.yml` schema: **[docs.meridian.example/dev/workflows/software-repo/create-a-repo](https://docs.meridian.example/dev/workflows/software-repo/create-a-repo)** (fetch via the `developer-docs` skill). A live example entry: [meridian/owners repos.yml](https://ghe.meridian.example/meridian/owners/blob/master/repos.yml).
+Create an empty repo on your git host and note its clone URL — the exact provisioning process (self-service "New repository," a request to a platform team, an internal automation) varies by org, so follow whatever process yours uses.
 
 Once the repo exists, run `/apiary create`, answer the interview (Q5.25 asks for exactly this repo's git remote URL), and push the generated scaffold to it.
 
 ### 2. Set codeowners correctly
 
-`hive.yml.codeowners` (Q4 of the create interview) must actually match who can approve merges on the repo — the Apiary only writes the *intent*, it doesn't wire up GHE-side enforcement:
+`hive.yml.codeowners` (Q4 of the create interview) must actually match who can approve merges on the repo — the Apiary only writes the *intent*, it doesn't wire up host-side enforcement:
 
 - **`push_mode: direct` (default):** no repo-side gating is required — the session agent pushes straight to the default branch. Still keep `hive.yml.codeowners` accurate; it's who Parliament tags for escalations and quarantine review (see `protocol/triage-policy.md`).
 - **`push_mode: pr`** (required once the default branch has required status checks or policy-bot): codeowners enforcement moves to `.policy.yml` + a narrowed `CODEOWNERS` file, *not* GHE's native all-or-nothing CODEOWNERS check. Follow `skills/apiary/references/push-mode-pr-setup.md` § One-Time Operator Setup end-to-end — it covers enabling auto-merge, the required CI checks, the policy-bot rules that let `_inbox/**` auto-merge while `knowledge/**` stays gated on a codeowner, and the `CODEOWNERS` narrowing that's easy to miss (`_inbox/` must be listed with a blank owner list, or the native GHE check still blocks inbox-only PRs).
@@ -203,7 +201,7 @@ Once the repo exists, run `/apiary create`, answer the interview (Q5.25 asks for
 
 ### Order of operations, end to end
 
-1. Create the repo via an `meridian/owners` (or `restricted-org/owners`) PR.
+1. Create an empty repo on your git host, note its clone URL, and set it as `hive.yml.remote`.
 2. `/apiary create` → answer the interview → push the generated scaffold to that repo.
 3. If using `push_mode: pr`, complete the one-time policy-bot / auto-merge / CODEOWNERS setup in `push-mode-pr-setup.md` before flipping the mode on.
-4. Register the child skill in claude-clams (see Create mode Step 4) so `/your-hive-slug` is installable.
+4. Register the child skill in your plugin marketplace (see Create mode Step 4) so `/your-hive-slug` is installable.

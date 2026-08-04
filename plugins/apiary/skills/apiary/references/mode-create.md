@@ -16,7 +16,7 @@ If the user points to an existing corpus:
 2. **Ask for sanitization directives explicitly.** The corpus may contain material unsafe for a shared Hive:
    - Personal editorial commentary about named individuals → strip to role + contact only
    - Sensitivity markers (confidential, internal-only, proprietary, `[INTERNAL]` flags) → reference by path; never reproduce
-   - Local filesystem paths (OneDrive, vault, home dir) → map to canonical URLs (SharePoint, GHE, Confluence); mark unconfirmed URLs as `{path TBD}`
+   - Local filesystem paths (OneDrive, vault, home dir) → map to canonical URLs (SharePoint, GitHub Enterprise (GHE), Confluence); mark unconfirmed URLs as `{path TBD}`
    - Personal workflow modes (user-specific 5-15 generation, Outlook trawling, voice skills) → exclude; agent is a team persona
 3. **Propose a draft hive.yml + knowledge layout** based on the corpus, then confirm with the user before generating. **When in doubt, exclude.** A sparse Hive that grows through contribution is healthier than a dense one that leaks personal or internal content.
 4. Skip any Step 1 question the corpus + confirmation already answered.
@@ -42,7 +42,7 @@ Store as `{DESCRIPTION}`.
 ### Q3: Persona
 "Who is this AI agent? Give it a name and describe its role."
 
-Example: "Widget Integration Sherpa — helps Widget and Meridian Systems engineers understand each other's systems and track integration progress."
+Example: "Widget Integration Sherpa — helps Widget and Acme engineers understand each other's systems and track integration progress."
 
 Store as `{PERSONA_NAME}` and `{SCOPE_SENTENCE}`.
 
@@ -52,7 +52,7 @@ Store as `{PERSONA_NAME}` and `{SCOPE_SENTENCE}`.
 Store as `{CODEOWNERS}` (array) and `{CODEOWNERS_CSV}` (comma string).
 
 ### Q5.25: Git Remote
-"What is the GHE remote URL for this Hive's repo? (e.g. `git@ghe.meridian.example:meridian/my-hive.git`)"
+"What is the remote URL for this Hive's repo on your git host? (e.g. `git@github.example.com:your-org/my-hive.git`)"
 
 Store as `{GIT_REMOTE}`.
 
@@ -122,7 +122,7 @@ sources: []
 Store as `{DELEGATIONS}` — used to populate routing table in agent-definition.md.
 
 ### Q8: External References
-"What external systems does this Hive's domain touch? (GHE repos, Confluence spaces, Jira boards, Slack channels, docs.meridian.example pages, Quip threads, etc.)"
+"What external systems does this Hive's domain touch? (git host repos, Confluence spaces, Jira boards, Slack channels, internal docs pages, Quip threads, etc.)"
 
 Collect enough to seed the reference-library file. Don't need exhaustive coverage — the reference-library grows through contributions like any other knowledge file.
 
@@ -171,9 +171,9 @@ Read each template from `assets/` and substitute all `{PLACEHOLDER}` values.
 
 10. `.gitkeep` in empty directories
 11. `.gitignore` with `.DS_Store`, `settings.local.json`, `.parliament/`, and `.inbox-worktree/` (the last two keep the Parliament clone and the queue-push worktree — both living inside the session clone — out of any broad `git add`, e.g. Orphaned Branch Recovery's)
-12. `.circleci/config.yml` from `assets/circleci-config-template.yml` (substitute `{HIVE_SLUG}`). **Required:** a Hive repo provisioned through `meridian/owners` gets a CircleCI project that ERRORS on every PR without a config ("No configuration was found in your project"), and the org-required `ci/circleci_enterprise: gatekeeper` check needs a job named `gatekeeper` to report against. This template provides both `gatekeeper` (no-op for a content-only repo) and `inbox-size-check`.
+12. `.circleci/config.yml` from `assets/circleci-config-template.yml` (substitute `{HIVE_SLUG}`). **Required if the Hive repo is built on CircleCI:** a repo with no config ERRORS on every PR ("No configuration was found in your project"), and if your org enforces a required status check under a specific job name, this template provides a no-op `gatekeeper` job to satisfy it, alongside `inbox-size-check`.
 
-Also generate the child Hive's thin skill for claude-clams registration:
+Also generate the child Hive's thin skill for plugin marketplace registration:
 13. Skill file from `assets/child-skill-template.md` — to be placed at the user's preferred skill location
 
 ### Reference Library Generation
@@ -242,4 +242,4 @@ Show the user:
 1. List of all generated files
 2. The `hive.yml` contents
 3. Step 3 validation results
-4. Next steps: "Push this repo to GHE, then register the child skill in claude-clams."
+4. Next steps: "Push this repo to your git host, then register the child skill in your plugin marketplace."

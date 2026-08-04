@@ -19,7 +19,7 @@ Starting point: `assets/workflow-extension-template.md`.
 |---|---|
 | The behavior you want is a recurring, *nameable* interaction the user will ask for by name | Author a workflow extension |
 | You just need the agent to know a fact, a process, or a set of steps | Write a `knowledge/` file — no extension |
-| An upstream workflow already covers it but routes badly | Fix the upstream workflow via a claude-clams PR — don't shadow it locally |
+| An upstream workflow already covers it but routes badly | Fix the upstream workflow via an upstream Apiary PR — don't shadow it locally |
 | You want to *remove* or *replace* upstream behavior | Not possible. Extensions are additive only (plugin-root `DESIGN-GOALS.md` principle 3) |
 
 The test: **would a user type it?** "Run our 5-15." "Do a release review." If the phrase is
@@ -157,7 +157,7 @@ A session that discovers the extension is wrong should still file a `[meta]` or 
 entry describing the gap — that's the signal. The fix itself is a PR.
 
 Extensions are **Hive-local and additive**. If the workflow would be useful to more than one
-Hive, that's a signal it belongs upstream in `protocol/workflows.md` — open a claude-clams PR
+Hive, that's a signal it belongs upstream in `protocol/workflows.md` — open an upstream Apiary PR
 instead. Ask: *is this domain-specific, or did I just find a hole in the upstream protocol?*
 
 ---
