@@ -119,9 +119,12 @@ release rather than shipped as a separate one, since 3.0.0 had not yet been rele
 - **`SLACK_ALLOW`'s `Slack message` and `Slack handle` entries were generic enough to
   self-allowlist new prose.** Narrowed to the actual audited call-sites: `Slack message
   timestamp` and `Professional Slack handle`.
-- **Ambiguous `DESIGN-GOALS.md` citations** — four sites already said "plugin-root"; three more
-  (`CHANGELOG.md`, `README.md`, `references/inbox-transport-design.md` ×2) still said
-  "repo-root"/"repo" and pointed at a file that doesn't exist at the repo root. All now agree.
+- **Ambiguous `DESIGN-GOALS.md` citations** — six files (eight citations: `generate-hook.sh`,
+  `hive.schema.json`, `sensitive-data-patterns.md` ×2, `authoring-gate-extensions.md` ×2,
+  `authoring-workflow-extensions.md`, `mode-operate.md`) already said "plugin-root"; three more
+  files (four citations: `CHANGELOG.md`, `README.md`, `references/inbox-transport-design.md` ×2)
+  still said "repo-root"/"repo" and pointed at a file that doesn't exist at the repo root. All now
+  agree.
 - **`example.sharepoint.us` → `example.sharepoint.com`** across protocol docs, design docs, and
   the golden fixtures/cases/assertion (moved together). `*.sharepoint.us` is the Microsoft 365 US
   Government (GCC High) tenant domain — the wrong host to have written into a decoupling pass
