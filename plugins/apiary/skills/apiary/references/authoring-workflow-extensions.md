@@ -58,7 +58,7 @@ type: workflow-extension
 workflow: {WORKFLOW_NAME}          # the dispatch-table name; must match the filename stem
 description: "{ONE_LINE_SUMMARY}"  # what it does + what it delegates to
 last_updated: YYYY-MM-DD
-codeowners: [{GHE_HANDLE}]
+codeowners: [{GIT_HANDLE}]
 ---
 ```
 
@@ -204,7 +204,7 @@ Its one job is to pin down *who* is posting and *what scope* they own before gat
 
 Ask two questions and wait for answers. Do not start gathering until both are answered.
 
-1. **Who are you?** (GHE handle — sets attribution and which boards are yours)
+1. **Who are you?** (your git host handle — sets attribution and which boards are yours)
 2. **What scope?** (team / sub-team / personal — sets which sources are in play)
 
 If the user already stated both up front ("do my backend standup"), skip the questions and

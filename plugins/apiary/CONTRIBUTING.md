@@ -60,7 +60,7 @@ A Hive routes inbox contributions to a dedicated queue branch (`references/inbox
 
 ## How to Verify
 
-### Option A: Run the test script (fast, local, no GHE dependency)
+### Option A: Run the test script (fast, local, no live git host dependency)
 
 ```bash
 bash plugins/apiary/skills/apiary/tests/clone-flow.test.sh

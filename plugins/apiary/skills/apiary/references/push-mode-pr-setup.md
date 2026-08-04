@@ -18,11 +18,11 @@ Use this reference when a Hive's resolved push mode is `pr` — set via `hive.ym
 
 **Per-flow split:** `push_mode` is the baseline for both flows; `inbox_push_mode` and `parliament_push_mode` override it for their respective flows (resolution: specific override → `push_mode` → `direct`). The common configuration is `inbox_push_mode: direct` + `parliament_push_mode: pr` — inbox entries are captured aggressively straight to the default branch (the inbox is a review buffer, not a publishing surface), while `knowledge/` merges stay gated behind a codeowner-reviewed Parliament PR. Only the flow whose resolved mode is `pr` uses the runtime procedures below.
 
-The goal: session agents contribute via short-lived PRs that GHE auto-merges without human intervention for the happy path (inbox-only changes). Protected-path PRs still route through code-owner review.
+The goal: session agents contribute via short-lived PRs that GitHub Enterprise (GHE) auto-merges without human intervention for the happy path (inbox-only changes). Protected-path PRs still route through code-owner review.
 
 Covers:
 - **Runtime procedures** — how session agents and Parliament push when the resolved push mode for that flow is `pr`. Called from `references/mode-operate.md` (session contribute push, gated on the resolved `inbox_push_mode`) and `protocol/custodian-workflow.md` §6.3 (Parliament housekeeping, gated on the resolved `parliament_push_mode`).
-- **One-time operator setup** — repo toggles, policy-bot config, owners-bot flags, CODEOWNERS narrowing.
+- **One-time operator setup** — repo toggles, policy-bot config, branch-protection settings, CODEOWNERS narrowing.
 
 ---
 
@@ -90,7 +90,7 @@ Decide which paths are "protected" (require human review) and which auto-merge. 
 
 ### One-time repo setup
 
-1. **Enable GHE auto-merge on the repo.** Owners-bot does not expose `allow_auto_merge` as a `repos.yml` field, so set it via API:
+1. **Enable auto-merge on the repo** — a git host setting (works the same on GitHub.com and GitHub Enterprise). If your org provisions repos through a config-as-code tool that doesn't expose this as a field, set it directly via the API:
 
    ```bash
    gh api repos/{OWNER}/{REPO} --method PATCH \
@@ -148,12 +148,12 @@ Decide which paths are "protected" (require human review) and which auto-merge. 
            mode: all-users
    ```
 
-4. **Update owners-bot config (`repos.yml`):**
+4. **Configure branch protection on the default branch** (directly via your git host's settings UI/API, or through whatever config-as-code tool your org uses to provision repos):
 
-   - `enable-policy-bot: true`
-   - Drop `code-owner-review: true` (GHE's native CODEOWNERS enforcement is all-or-nothing and cannot be path-scoped — policy-bot handles gating instead)
-   - `required-approving-review-count: 0` (policy-bot supplies approvals)
-   - Add `policy-bot` to `required-status-checks` alongside any CI jobs
+   - Install/enable the [policy-bot](https://github.com/palantir/policy-bot) GitHub App on the repo, if it isn't already enabled org-wide.
+   - Turn off "Require review from Code Owners" (the git host's native CODEOWNERS enforcement is all-or-nothing and cannot be path-scoped — policy-bot handles gating instead).
+   - Set the required approving review count to 0 (policy-bot supplies approvals).
+   - Add `policy-bot` to the required status checks, alongside any CI jobs.
 
 5. **Narrow `CODEOWNERS`** so `_inbox/` is unowned:
 
@@ -162,7 +162,7 @@ Decide which paths are "protected" (require human review) and which auto-merge. 
    _inbox/
    ```
 
-   The blank owner list on a later rule overrides `*` for the matching path. Without this, GHE's native CODEOWNERS check still fires on inbox-only PRs regardless of policy-bot.
+   The blank owner list on a later rule overrides `*` for the matching path. Without this, the git host's native CODEOWNERS check still fires on inbox-only PRs regardless of policy-bot.
 
 6. **Set `push_mode: pr`** in `hive.yml`.
 

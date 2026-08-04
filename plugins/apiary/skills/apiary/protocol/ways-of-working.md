@@ -46,8 +46,8 @@ knowledge/people/
 
 **Linking convention inside the Hive:**
 
-- **Body-text markdown links** (`[name](profiles/name.md)`) are the standard for clickable cross-references — they render in both GitHub Enterprise (GHE) and any markdown viewer.
-- **Frontmatter links** only render clickably in Obsidian (with quoted wikilink strings like `manager: "[[person-slug]]"`). They remain raw text in GHE. Keep frontmatter plain by default; adopt wikilinks only if the Hive is consumed in Obsidian and the team values the graph-view indexing.
+- **Body-text markdown links** (`[name](profiles/name.md)`) are the standard for clickable cross-references — they render on your git host and any markdown viewer.
+- **Frontmatter links** only render clickably in Obsidian (with quoted wikilink strings like `manager: "[[person-slug]]"`). They remain raw text on your git host. Keep frontmatter plain by default; adopt wikilinks only if the Hive is consumed in Obsidian and the team values the graph-view indexing.
 
 **When to invoke this pattern:**
 
@@ -66,7 +66,8 @@ Any Hive tracking more than ~10 distinct people. Below that, a single `stakehold
 
 **Reference implementation:**
 
-Orbit Hive — [`knowledge/people/`](../../../../../../orbit/orbit-hive/knowledge/people/) (path relative to this file, for developers working across the monorepo). Prototype introduced 2026-04-19.
+This pattern was prototyped in a production Hive (2026-04-19). For a minimal worked example of the
+profile-card format within this repo, see `skills/apiary/tests/golden/knowledge/people/profiles/`.
 
 ---
 

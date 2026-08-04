@@ -21,8 +21,8 @@ anyone may push `_inbox/**` (capture must be frictionless — Goal 5), everythin
 (curation must be gated — Goal 4). No ruleset expresses one in terms of the other.
 
 The existing answer wedges the path policy into branch-scoped tooling: `push_mode: pr` with
-policy-bot auto-approval, a CODEOWNERS file deliberately narrowed so `_inbox/` is unowned, owners-bot
-flags, and repo-level auto-merge — a six-step operator setup (`references/push-mode-pr-setup.md`)
+policy-bot auto-approval, a CODEOWNERS file deliberately narrowed so `_inbox/` is unowned,
+branch-protection tuning, and repo-level auto-merge — a six-step operator setup (`references/push-mode-pr-setup.md`)
 whose failure mode is silent enough that audit Step 4b exists solely to detect it. And it buys the
 wrong guarantee even when it works: **unreviewed content still enters the default branch's permanent
 history.** A Sentinel-missed credential lives in `master` history even after quarantine moves the
@@ -103,7 +103,7 @@ or the knowledge layer.
 - **Per-contribution `inbox/*` branches only.** Branch proliferation (one per session-push),
   garbage-collection duty, and Parliament must enumerate refs instead of reading one tree. The
   single queue branch subsumes it: one ref, same protection story, same concurrency story.
-- **Server-side path enforcement (GHE pre-receive).** GHE-only, needs server admin, and ships
+- **Server-side path enforcement (GitHub Enterprise (GHE) pre-receive).** GHE-only, needs server admin, and ships
   nothing client-side — it is the Layer-2 backstop in `security-policy.md`, not a transport.
 - **Writing the queue via the hosting API** (`gh api` blob/tree/commit, or GitHub Issues). Any
   server-side write path **skips the client-side pre-push Sentinel hook** — Layer 0 simply never

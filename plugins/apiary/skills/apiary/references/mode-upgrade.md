@@ -187,7 +187,7 @@ worth taking**, called out first.
      the fleet is confirmed on ≥2.23.0.
   3b. **Tear down the legacy pr-mode apparatus, if this Hive ever ran it** (same change as the
      protection flip): delete `.policy.yml`'s inbox-only zero-approval rule (or the file), remove
-     policy-bot from the required status checks / revert the owners-bot flags
+     policy-bot from the required status checks / revert the branch-protection settings
      (`required-approving-review-count` back to ≥1, native code-owner review re-enabled), and
      restore `CODEOWNERS` coverage by deleting the ownerless `_inbox/` line. Left in place, that
      machinery lets an inbox-only PR auto-merge into the "protected" default branch with zero
@@ -464,7 +464,7 @@ contributors until the field is set.
 - Removed sync hook from `.claude/settings.json` SessionStart
 
 #### Auto-apply
-1. If `remote` is missing, prompt user: "What is the GHE remote URL for this Hive?"
+1. If `remote` is missing, prompt user: "What is the remote URL for this Hive's repo on your git host?"
 2. If `default_branch` is missing, add `default_branch: master`
 3. If `.apiary-protocol/` exists, delete it
 4. If `.claude/settings.json` contains the `sync.sh` SessionStart hook, remove that hook entry

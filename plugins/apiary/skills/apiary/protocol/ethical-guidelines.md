@@ -67,7 +67,7 @@ Attribution serves two purposes:
 2. **Trust calibration:** Over time, the system may weight contributions by historical accuracy. Attribution makes this possible.
 
 Attribution standards:
-- Inbox files are attributed by GHE username (enforced by the push mechanism)
+- Inbox files are attributed by git host username (enforced by the push mechanism)
 - Contributions within inbox files carry the author's identity from the file header
 - The attribution chain is preserved through Parliament processing and into the knowledge base
 

@@ -37,7 +37,7 @@ extensions:
 
 auto_merge:
   tribunal_passed: true
-  mechanism: pending   # TBD: GHE auto-merge label, CI gate, or bot
+  mechanism: pending   # TBD: git host auto-merge label, CI gate, or bot
 
 # Inbox transport — where session inbox contributions travel. `branch` (the recommended
 # default for new Hives, scaffolded below) routes them to a dedicated, never-PR-gated
