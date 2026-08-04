@@ -6,7 +6,7 @@ Declared via `extensions.gates` in `hive.yml`; frontmatter schema: [`assets/gate
 
 ## When you need one
 
-The built-in Sentinel is a fixed regex set — 10 credential patterns and 2 PII patterns (`protocol/sensitive-data-patterns.md`). It is deliberately universal: every Hive gets it, and it detects things that look the same in every domain. A credential looks like a credential everywhere.
+The built-in Sentinel is a fixed regex set — 16 credential patterns and 2 PII patterns (18 total; `protocol/sensitive-data-patterns.md`). It is deliberately universal: every Hive gets it, and it detects things that look the same in every domain. A credential looks like a credential everywhere.
 
 Domain risk does not work that way. Consider a Hive covering general engineering work for programs whose *use* of that work is controlled. The following sentence is **synthetic** — it was written as a `block` case in a Hive's gate self-test, and describes no real customer, constellation, or requirement:
 

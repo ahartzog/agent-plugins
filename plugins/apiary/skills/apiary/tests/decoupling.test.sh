@@ -4,6 +4,9 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"   # -> plugins/apiary
+# Scope note: this guard only ever scans under plugins/apiary — it never reaches the repo
+# root. Repo-root files (SECURITY.md, root CONTRIBUTING.md, root README.md, etc.) are outside
+# its reach and must be checked by hand for the same coupling classes.
 FAILED=0
 
 # Historical records intentionally retain the old vocabulary; the guard itself
@@ -109,13 +112,13 @@ run classification && check_group classification \
 # it matches out from under this list (e.g. over-stripping residue via a stray `.` or `(`),
 # silently reopening the gap this allowlist was hardened to close. Escape any metacharacter
 # that's genuinely part of the text you mean to allow.
-SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Slack channels|Slack message|Confluence/Slack|Commercial Slack|URL to slack'
+SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Jira boards, Slack channels|Slack message|Confluence/Slack|Commercial Slack|URL to slack'
 run notifications && check_group notifications \
-  'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal/|Signal bot|Signal post|Signal Config|\bslack\b' \
+  'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal\b|Signal bot|Signal post|Signal Config|\bslack\b' \
   "$SLACK_ALLOW"
 
 run federation && check_group federation \
-  'confluence_registry|REGISTRY_URL|Hive Mind Registry|[Aa]piculturist|cross_hive|cross-hive|^siblings:|federation'
+  'confluence_registry|REGISTRY_URL|Hive Mind Registry|[Aa]piculturist|cross_hive|cross-hive|\bsiblings\b|federation'
 
 # Bare \bmeridian\b closes the same class of gap: "Meridian Systems" never matches a
 # stray bare "Meridian" mention that dropped the second word.

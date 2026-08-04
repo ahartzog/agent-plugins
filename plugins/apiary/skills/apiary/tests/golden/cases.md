@@ -181,7 +181,7 @@ defect looks like).
 matched only by filename") and `routing-protocol.md` §Extract ("matching is by filename only — say
 so rather than reporting a filename match as a topical one").
 
-**Fixture:** `ground-segment/document-catalog.md`, row `(U) 2.1_2.4 - CDR Ground Segment Design
+**Fixture:** `ground-segment/document-catalog.md`, row `2.1_2.4 - CDR Ground Segment Design
 (Internal).pptx`, empty `covers` cell.
 
 **Question:** "How does flight dynamics hand off to T&C?" (the document-quality.md worked example —

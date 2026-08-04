@@ -103,8 +103,9 @@ or the knowledge layer.
 - **Per-contribution `inbox/*` branches only.** Branch proliferation (one per session-push),
   garbage-collection duty, and Parliament must enumerate refs instead of reading one tree. The
   single queue branch subsumes it: one ref, same protection story, same concurrency story.
-- **Server-side path enforcement (GitHub Enterprise (GHE) pre-receive).** GHE-only, needs server admin, and ships
-  nothing client-side — it is the Layer-2 backstop in `security-policy.md`, not a transport.
+- **Server-side path enforcement (GitHub Enterprise (GHE) pre-receive).** GHE-only, needs server admin, and shipped
+  nothing client-side — it was the former Layer-2 backstop in `security-policy.md`, retired along
+  with the sensitivity taxonomy it existed to enforce, not a transport.
 - **Writing the queue via the hosting API** (`gh api` blob/tree/commit, or GitHub Issues). Any
   server-side write path **skips the client-side pre-push Sentinel hook** — Layer 0 simply never
   runs. That is disqualifying for the default transport. (GitHub Issues as a *second*, zero-clone

@@ -34,13 +34,23 @@ body for the deliberate no-migration rationale.
   enforce the now-removed classification taxonomy — is retired. The defense model drops from four
   layers (one of them always optional) to three: L0 pre-push hook, L1 session-agent redaction, L3
   Parliament Sentinel intake scan. Layer numbering is left as-is (historical) rather than
-  renumbered; the surviving prose says so explicitly.
+  renumbered; every remaining Layer-2 cross-reference was updated to retired/past-tense framing
+  (`security-policy.md`, `references/inbox-transport-design.md`) — the initial sweep rewrote one of
+  two mentions in the latter's "rejected alternatives" bullet and left the other in live present
+  tense, closed in final pre-merge review.
 - Organization-specific references: Meridian Systems, claude-clams (the org's internal skill
   marketplace), `ghe.meridian.example` / `jira.meridian.example` / `confluence.meridian.example` /
   `docs.meridian.example`, and the `meridian/owners` centrally-provisioned repo-provisioner flow.
 - The strings `CUI`, `ITAR`, `FOUO`, and `UNCLASSIFIED` no longer appear anywhere in the plugin
   outside this changelog and `BACKLOG.md` — enforced by `tests/decoupling.test.sh`'s
-  `classification` and `org-coupling` groups.
+  `classification` and `org-coupling` groups. Those word-boundary patterns matched the four full
+  strings but not the single-letter DoD portion marking `(U)`, which survived on one golden-fixture
+  line (`tests/golden/knowledge/ground-segment/document-catalog.md` and the golden case describing
+  it) until final pre-merge review found and removed it — neither pattern nor `\bCUI\b`'s neighbor
+  markings catch a bare one-letter abbreviation. Repo-root `SECURITY.md` (outside this guard's
+  scope — see the `ROOT=` note in `decoupling.test.sh`) separately still advertised a
+  classification-banner scan guarantee after that check was removed from `generate-hook.sh`;
+  corrected in the same pass.
 
 ### Changed
 - **External-retrieval caching now defaults to disabled for every Hive, unconditionally.** The
@@ -62,9 +72,9 @@ body for the deliberate no-migration rationale.
   `assets/circleci-config-template.yml` as the concrete example.
 - **The post-create instruction in README.md / `mode-create.md` no longer assumes an internal
   marketplace.** "Register the child skill in your plugin marketplace" (unexplained and
-  org-specific) is replaced with a concrete path: drop the generated skill into
-  `~/.claude/skills/` to make `/your-hive-slug` callable immediately, with marketplace publishing
-  named as the optional team-sharing path.
+  org-specific) is replaced with a concrete path: create `~/.claude/skills/{HIVE_SLUG}/SKILL.md`
+  from the generated skill file's contents to make `/your-hive-slug` callable, with marketplace
+  publishing named as the optional team-sharing path.
 - **GitHub Enterprise branding genericized on the protection model** (`security-policy.md`,
   `operational-model.md`) while preserving the real constraint: branch protection / rulesets are
   standard GitHub features, not GHE-specific, so the prose no longer implies otherwise.

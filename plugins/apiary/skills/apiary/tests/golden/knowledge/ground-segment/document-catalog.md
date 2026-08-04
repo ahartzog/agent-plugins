@@ -25,5 +25,5 @@ is the whole point of a case built to catch a row-order regression.
 | Space-to-Ground Link Budget — Working Draft | `02 - Systems Engineering/Working Docs/` | link margin requirements, S-band uplink budget, X-band downlink budget, antenna gain assumptions | specification | working | | 2026-05-20 |
 | PROJ-123 Space-to-Ground Link Budget Spec | `02 - Systems Engineering/Link Budget/` | link margin requirements, S-band uplink budget, X-band downlink budget, antenna gain assumptions | specification | formal | | 2026-03-02 |
 | Ground MTP Draft | `03 - Test/Working Docs/` | MTP architecture, deployment topology, environment tiers | plan | working | | 2026-04-06 |
-| (U) 2.1_2.4 - CDR Ground Segment Design (Internal).pptx | `04 - CDR/Ground Segment/` | | analysis-report | baseline | | 2026-02-14 |
+| 2.1_2.4 - CDR Ground Segment Design (Internal).pptx | `04 - CDR/Ground Segment/` | | analysis-report | baseline | | 2026-02-14 |
 | PROJ-123 Ground Station RF Interface Requirements | `01 - Requirements/` | ground station RF link requirements, EIRP thresholds, G/T requirements | requirements | formal | | 2026-01-20 |
