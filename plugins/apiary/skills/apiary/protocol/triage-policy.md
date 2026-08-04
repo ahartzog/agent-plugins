@@ -99,7 +99,7 @@ never by removal — history is the audit trail.
 
 ## Auto-Merge Rules
 
-Parliament enables GitHub auto-merge (`gh pr merge --auto --squash`) on every batch PR it creates. The PR merges automatically once all required status checks pass (CI, policy-bot, corroborate). This is the default for all knowledge contributions that clear the fast path or Chancellor approval.
+Parliament enables GitHub auto-merge (`gh pr merge --auto --squash`) on every batch PR it creates. The PR merges automatically once all required status checks pass (CI, policy-bot, and any other checks your repo's branch protection requires — see `assets/circleci-config-template.yml` for the checks this plugin ships). This is the default for all knowledge contributions that clear the fast path or Chancellor approval.
 
 This section restates the **canonical MERGE disposition rule** in `custodian-workflow.md` §4.3 — that rule governs if the two ever disagree. A contribution qualifies for the auto-merge batch PR when ALL of the following are true:
 

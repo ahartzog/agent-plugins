@@ -89,7 +89,7 @@ Full Parliament mechanics: upstream `protocol/custodian-workflow.md`
 ### What needs to be built
 
 1. **CI pipeline for Parliament.** A scheduled job (GitHub Actions cron or CircleCI scheduled workflow) that clones the repo, invokes the Parliament workflow via Claude CLI (`claude -p "run parliament"`), and posts results. Config target: hourly, per `_custodian/config.yml`.
-2. **Branch protection for `_inbox/`** (default-branch transport only). GitHub Enterprise (GHE) branch protection rules must allow direct pushes to master for paths matching `_inbox/**`. This may require a bypass rule or a bot account, depending on GHE org policy. Under `inbox_transport: branch` this problem does not exist — the queue branch is unprotected by design and master carries plain vanilla protection (`protocol/security-policy.md` § Repository Protection Model, transport=branch variant).
+2. **Branch protection for `_inbox/`** (default-branch transport only). GitHub branch protection rules must allow direct pushes to master for paths matching `_inbox/**`. This may require a bypass rule or a bot account, depending on your org's policy. Under `inbox_transport: branch` this problem does not exist — the queue branch is unprotected by design and master carries plain vanilla protection (`protocol/security-policy.md` § Repository Protection Model, transport=branch variant).
 3. **CI pipeline for Audit.** Scheduled weekly, produces audit reports in `_custodian/reports/`.
 
 ---

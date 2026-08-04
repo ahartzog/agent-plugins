@@ -103,6 +103,12 @@ run classification && check_group classification \
 # "Professional Slack handle" PII example and "Slack tokens" credential-list item,
 # custodian-workflow's "Slack tokens" list, inbox-entry.schema.json's "Slack message
 # timestamp" citation example, mode-create.md's "Slack channels" interview question).
+# Each entry below is spliced directly into a Python regex alternation (residue_filter),
+# not matched as a literal substring. Keep every entry regex-literal-safe — no unescaped
+# metacharacters (., (, ), [, ], +, *, ?, etc.). An entry containing one would change what
+# it matches out from under this list (e.g. over-stripping residue via a stray `.` or `(`),
+# silently reopening the gap this allowlist was hardened to close. Escape any metacharacter
+# that's genuinely part of the text you mean to allow.
 SLACK_ALLOW='slack-cli|slack-token|Slack API token|Slack tokens|Slack handle|Slack channels|Slack message|Confluence/Slack|Commercial Slack|URL to slack'
 run notifications && check_group notifications \
   'slack_channel|SLACK_CHANNEL|signal-bot|sw-signal|\.signal/|Signal bot|Signal post|Signal Config|\bslack\b' \

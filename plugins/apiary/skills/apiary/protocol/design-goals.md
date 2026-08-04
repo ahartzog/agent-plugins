@@ -36,7 +36,7 @@ This is why the Hive can stay small without getting worse: the index is the whol
 
 ## 2. Progressive Discovery via Descriptive Links
 
-Links must be descriptive enough that a reader can decide whether to follow them without clicking. A link like "Architecture doc" is not sufficient. A link like "GTN System Design — event-driven ingest pipeline, gRPC interfaces" gives the reader enough context to route themselves.
+Links must be descriptive enough that a reader can decide whether to follow them without clicking. A link like "Architecture doc" is not sufficient. A link like "Order Router System Design — event-driven ingest pipeline, gRPC interfaces" gives the reader enough context to route themselves.
 
 This pattern serves three populations equally:
 - Engineers who want a quick answer (the summary is enough)

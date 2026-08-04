@@ -128,15 +128,15 @@ content plus attribution — has been pushed to the remote.
 
 Git history means any bad merge is one `git revert` away. Completed inbox files in `_inbox/_completed/` provide full traceability from any knowledge file change back to the session and author.
 
-Force push to `{DEFAULT_BRANCH}` is blocked via the branch safety ruleset (recommended GHE configuration) with no bypass actors. For credential remediation, the ruleset must be temporarily disabled (see Credential Remediation Runbook above). This protects the audit trail.
+Force push to `{DEFAULT_BRANCH}` is blocked via the branch safety ruleset (recommended configuration) with no bypass actors. For credential remediation, the ruleset must be temporarily disabled (see Credential Remediation Runbook above). This protects the audit trail.
 
 ---
 
 ## Repository Protection Model
 
-The tiered write model is enforced via two GHE rulesets (not legacy branch protection): [learned: 2026-04-16]
+The tiered write model is enforced via two GitHub rulesets (not legacy branch protection): [learned: 2026-04-16]
 
-1. **Push ruleset** (recommended name: "Protocol Safety"): File path restriction blocks direct pushes modifying `PROTOCOL/**/*` or `knowledge/**/*`. Applies to all branches (GHE push rulesets cannot be branch-scoped). Repo admins have bypass to push feature branches for PRs. CODEOWNERS still enforces review on merge to master.
+1. **Push ruleset** (recommended name: "Protocol Safety"): File path restriction blocks direct pushes modifying `PROTOCOL/**/*` or `knowledge/**/*`. Applies to all branches (GitHub push rulesets cannot be branch-scoped). Repo admins have bypass to push feature branches for PRs. CODEOWNERS still enforces review on merge to master.
 2. **Branch ruleset** (recommended name: "Master Branch Safety"): Blocks force push and branch deletion on `master`. No bypass actors configured.
 
 Force push is blocked on `{DEFAULT_BRANCH}` (`master` by default) via the "Master Branch Safety" branch ruleset with no bypass actors. [learned: 2026-04-16]

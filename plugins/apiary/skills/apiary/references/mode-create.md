@@ -173,8 +173,8 @@ Read each template from `assets/` and substitute all `{PLACEHOLDER}` values.
 11. `.gitignore` with `.DS_Store`, `settings.local.json`, `.parliament/`, and `.inbox-worktree/` (the last two keep the Parliament clone and the queue-push worktree — both living inside the session clone — out of any broad `git add`, e.g. Orphaned Branch Recovery's)
 12. `.circleci/config.yml` from `assets/circleci-config-template.yml` (substitute `{HIVE_SLUG}`). **Required if the Hive repo is built on CircleCI:** a repo with no config ERRORS on every PR ("No configuration was found in your project"), and if your org enforces a required status check under a specific job name, this template provides a no-op `gatekeeper` job to satisfy it, alongside `inbox-size-check`.
 
-Also generate the child Hive's thin skill for plugin marketplace registration:
-13. Skill file from `assets/child-skill-template.md` — to be placed at the user's preferred skill location
+Also generate the child Hive's thin skill so `/{HIVE_SLUG}` becomes callable:
+13. Skill file from `assets/child-skill-template.md` — for personal use, place it in `~/.claude/skills/`; to share it with a team, publish it via a plugin marketplace instead
 
 ### Reference Library Generation
 
@@ -242,4 +242,4 @@ Show the user:
 1. List of all generated files
 2. The `hive.yml` contents
 3. Step 3 validation results
-4. Next steps: "Push this repo to your git host, then register the child skill in your plugin marketplace."
+4. Next steps: "Push this repo to your git host. Then make the generated skill callable: drop it in `~/.claude/skills/` for immediate personal use, or publish it via a plugin marketplace to share it with a team."

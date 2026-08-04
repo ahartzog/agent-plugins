@@ -45,7 +45,7 @@ gh pr create \
 gh pr merge --auto --squash
 ```
 
-The PR title uses a conventional-commit prefix so hives running the `corroborate pr` check pass.
+The PR title uses a conventional-commit prefix so it stays compatible with any PR-title/commit-message-format check your CI enforces.
 
 **Protected-path caveat:** If the PR touches anything outside `_inbox/`, **do not** call `gh pr merge --auto`. The session should surface the PR URL to the user and let a code-owner handle review.
 
