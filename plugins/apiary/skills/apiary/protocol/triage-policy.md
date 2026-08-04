@@ -72,7 +72,7 @@ Raw contribution
                  high-confidence objection → needs-review PR (CODEOWNER gate)
       → REVISE → back to Reviser (max 2 revision rounds)
       → REJECT → rejection PR (closed immediately, reasoning in description)
-      → ESCALATE → PR with escalation label + CODEOWNER tag + Slack notification
+      → ESCALATE → PR with escalation label + CODEOWNER tag
 ```
 
 **Revision gate:** Max 3 total Reviser attempts (initial + 2 revisions). If Chancellor is still unsatisfied after 3, escalate to human review. [learned: 2026-04-16]

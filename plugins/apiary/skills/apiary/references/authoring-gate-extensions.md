@@ -16,7 +16,7 @@ No credential. No PII. No sensitivity marking. Every regex in the Sentinel passe
 
 (Worth noting the general practice: when documenting what a gate should catch, write a synthetic example and label it as such. A real one would have to be redacted from the docs by the very control being described.)
 
-That is what a gate extension is for. Reach for one when your Hive's disclosure risk is **semantic** (needs judgement about meaning) or **domain-specific** (a term list only your Hive knows), and therefore cannot be expressed as a pattern that belongs upstream. This is also the recommended home for a **sensitivity marking scan** — PHI, PCI, trade-secret, or a bespoke public/internal/confidential ladder, or a regulated-content marking regime a prior version of the Apiary core enforced directly (Design Goal 3). The core carries no such taxonomy; a Hive that needs one declares it here.
+That is what a gate extension is for. Reach for one when your Hive's disclosure risk is **semantic** (needs judgement about meaning) or **domain-specific** (a term list only your Hive knows), and therefore cannot be expressed as a pattern that belongs upstream. This is also the recommended home for a **sensitivity marking scan** — PHI, PCI, trade-secret, or a bespoke public/internal/confidential ladder, or a regulated-content marking regime a prior version of the Apiary core enforced directly (`protocol/design-goals.md` Goal 3 — Sensitivity Is Hive-Local). The core carries no such taxonomy; a Hive that needs one declares it here.
 
 If your check *is* universal — a new credential format, a new PII shape — do not write a gate. Add it to `assets/sentinel-patterns.json` so every Hive benefits (`protocol/sensitive-data-patterns.md` § Adding a pattern).
 
@@ -24,7 +24,7 @@ If your check *is* universal — a new credential format, a new PII shape — do
 
 These are structural, not conventions — the generator enforces them:
 
-1. **A gate cannot suppress a built-in match.** The pattern scan runs first; on match, the hook reports and exits before any gate is invoked. A gate returning 0 cannot rescue a leaked AWS key. (Design goal 3: extensions are additive only. Design goal 4: Sentinel is non-negotiable.)
+1. **A gate cannot suppress a built-in match.** The pattern scan runs first; on match, the hook reports and exits before any gate is invoked. A gate returning 0 cannot rescue a leaked AWS key. (Plugin-root `DESIGN-GOALS.md` principle 3: extensions are additive only. Principle 4: Sentinel is non-negotiable.)
 2. **A gate cannot disable the Sentinel or another gate.** There is no ordering control and no "skip" declaration.
 3. **A gate cannot narrow the file list.** It receives the same candidate files the pattern scan saw.
 
@@ -79,7 +79,7 @@ The built-in Sentinel pattern scan is self-contained and unaffected either way.
 
 ## Dependencies are yours
 
-Design goal 9 keeps the *Apiary* free of runtime dependencies for contributors: the generated hook needs only bash, grep, and git. Gates are the documented exception, on the same footing as opt-in connectors — if your gate needs `python3` and a model CLI, that is your Hive's dependency to declare in `required_tools`, install, and document in your Hive's `CLAUDE.md`.
+Plugin-root `DESIGN-GOALS.md` principle 9 keeps the *Apiary* free of runtime dependencies for contributors: the generated hook needs only bash, grep, and git. Gates are the documented exception, on the same footing as opt-in connectors — if your gate needs `python3` and a model CLI, that is your Hive's dependency to declare in `required_tools`, install, and document in your Hive's `CLAUDE.md`.
 
 This is a real cost. Every contributor to your Hive now needs that toolchain to push. Weigh it before adding a gate, and prefer a gate whose absence degrades loudly (`block` + `required_tools`) over one that silently stops protecting.
 

@@ -12,11 +12,11 @@ The Apiary skill implements the Hive Parent Protocol (HPP) — the upstream infr
 
 3. **Extensions are additive only.** Child Hives can add workflows, schema fields, and triage categories. They cannot remove or replace upstream behavior.
 
-4. **Sentinel is non-negotiable.** Every Hive gets PII/credential scanning. It cannot be disabled. A Hive that needs a sensitivity taxonomy on top of that declares it as an additive gate extension (Goal 3).
+4. **Sentinel is non-negotiable.** Every Hive gets PII/credential scanning. It cannot be disabled. A Hive that needs a sensitivity taxonomy on top of that declares it as an additive gate extension (`protocol/design-goals.md` Goal 3 — Sensitivity Is Hive-Local).
 
 5. **Upgrades are invisible.** Protocol improvements take effect on next `operate` invocation. Breaking changes (hive.yml schema) are auto-migrated where possible. Zero-friction.
 
-6. **hive.yml is the single source of identity.** Codeowners, slack channel, extensions, auto-merge intent — all in one file. No more hardcoded values in prose.
+6. **hive.yml is the single source of identity.** Codeowners, remote, extensions, auto-merge intent — all in one file. No more hardcoded values in prose.
 
 7. **The thin router stays thin.** SKILL.md detects mode and dispatches to `references/mode-*.md`. It must stay under 150 lines. New modes = new reference files, not a bigger router.
 

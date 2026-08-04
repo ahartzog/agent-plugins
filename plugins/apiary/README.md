@@ -167,7 +167,7 @@ Dense summary. The files are canonical; this is the map.
 | Schema | `protocol/knowledge-schema.md` + `assets/*.schema.json` | frontmatter contract; inline annotations `[learned:] [decided:] [superseded:] [disputed:]`; store roots for catalogs |
 | Triage | `protocol/triage-policy.md` | tag→path table; § Write Operations (ADD/SUPERSEDE/ANNOTATE — no DELETE); canonical MERGE disposition defers to custodian §4.3 |
 | Parliament | `protocol/custodian-workflow.md` | Sentinel §0 (deterministic scan is a literal command) → normalize → Archivist → critics ∥ → Reviser → Chancellor → PRs → telemetry §6.2 |
-| Security | `protocol/security-policy.md` + `protocol/sensitive-data-patterns.md` + `assets/generate-hook.sh` | layers L0 pre-push hook / L1 session redaction / L2 pre-receive (optional) / L3 Parliament; patterns JSON compiles into the hook; excerpt-bound overrides |
+| Security | `protocol/security-policy.md` + `protocol/sensitive-data-patterns.md` + `assets/generate-hook.sh` | layers L0 pre-push hook / L1 session redaction / L3 Parliament (numbering is historical — a former L2 server-side pre-receive hook was retired); patterns JSON compiles into the hook; excerpt-bound overrides |
 | Learning | `protocol/learning-loops.md` | A Correction, B Discovery (capture+findability are ONE obligation), C Calibration, D Escalation; A/B fire in-session, C/D in Parliament |
 | Search | `protocol/external-search-agent.md` | §Search subagent contract: reads to dedup, writes nothing, returns catalog-shaped rows, never citable prose |
 | Sources | `protocol/sources-policy.md` | verbatim primary material; Sentinel-gated, Parliament-bypassing; indexed or it didn't happen (Goal 9) |
