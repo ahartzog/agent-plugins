@@ -47,6 +47,10 @@ Use this to assess where an agent sits today and what concrete steps level it up
 **What it looks like:**
 - Agent delegates to and/or receives delegation from other agents
 - `reference-library.md` exists with a `## Scope` header and at least one entry carrying triggers (a `Topic | Source | Triggers` table row — the default format — or a `**Triggers:**` block). Contributors in subdirectories can add their own sub-library; the agent discovers all of them automatically via the Discovery Protocol in the agent template.
+- **Knowledge files link to each other, not just to the agent.** Cross-references between knowledge
+  files are real links, not backtick filenames — an `inert references` count at or near zero (see
+  `references/mode-audit.md` § Link Graph Health). "Connected" at this level means the *knowledge* is
+  connected; delegation and a reference-library only connect the *routing*, which is the tree.
 - Multiple content sources wired up (Jira, Confluence, Slack, repos — not just filesystem)
 - At least one repeatable workflow defined (status report, RFC template, scanning runbook)
 - Knowledge files reference external sources by URL/path rather than duplicating content
@@ -57,6 +61,10 @@ Use this to assess where an agent sits today and what concrete steps level it up
 
 **How to get here from L2:**
 - Wire up content sources: install relevant MCP plugins, add source routing to agent
+- Convert inert backtick filename references into real links (`protocol/link-authoring.md`) — the
+  cheapest L2→L3 step in most existing hubs, since the author already decided the pointer belonged
+  there. `scripts/link_inert_refs.py` does the unambiguous ones mechanically; run it without `--apply`
+  first and review the diff.
 - Define at least one workflow using `/second-brain add-workflow`
 - If other agents exist in the hub, add delegation rules ("If asked about X, delegate to Y")
 - Add `Skill` to the tools list and reference relevant skills
@@ -79,6 +87,10 @@ Use this to assess where an agent sits today and what concrete steps level it up
 - **Learning loops actively working:** feedback propagation rate is Green (100%), custodian runs regularly, workarounds are documented in knowledge files with annotations — not just memory
 - **Loop D active:** contradictions flagged with `[disputed:]` and resolved within 14 days
 - **Loop E active:** agent definitions evolving with use — process revisions proposed and applied, dead rules evicted; golden-question evals exist per domain and have run at least once
+- **Link graph is sound:** zero broken link targets and zero broken anchors; no `#Heading` links into
+  `decay: fast` files; every knowledge file except the domain index has at least one inbound link
+  (no graph orphans). Where the domain borders another, its index carries an `## Adjacent Domains`
+  table — optional, and only where such a border actually exists.
 - Custodian workflow exists and runs at least every 14 days (manually or via weekly report integration)
 - `_reports/loop-health.json` exists and is being appended by custodian runs
 
@@ -108,6 +120,12 @@ Use this to assess where an agent sits today and what concrete steps level it up
 - **Custodian checklist has grown** since initial creation — evidence that Loop C is compounding
 - **Loop B discoveries have driven upstream improvements** — at least one shared skill or MCP server improved based on a workaround discovery
 - **Triage policy has evolved** — Loop C data has driven at least one category reclassification (prompt→auto or vice versa)
+- **Loop E has landed at least one revision** — a wrap-mode retrospection finding actually changed the agent definition, not just got proposed and dropped
+- **Duplicate authority has been consolidated, and edges removed with it.** A term appearing across
+  many files has one declared owner and the rest point at it. Edges that existed only to reconcile
+  two copies of the same content are gone. Note the direction: this level is evidenced by edge count
+  going *down* as ownership is settled — growth in link count is not a maturity signal and is not
+  graded anywhere.
 
 **How to get here from L4:**
 - Identify a Yellow/Red source in the content catalog → build or improve a shared connector

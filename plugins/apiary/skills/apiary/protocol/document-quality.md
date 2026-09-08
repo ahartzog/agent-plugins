@@ -12,7 +12,7 @@ When a Hive catalogs external documents (SharePoint files, Confluence pages, ven
 
 > **Shared taxonomy:** The `doc_type` and `authority` enums, `source_org`, `scope`, `supersedes`, and `discovered_via` here are shared with the [Second Brain document-quality protocol](../../../../second-brain/skills/second-brain/references/document-quality.md). The two renderings differ in framing (this one is the multi-Hive PROTOCOL spec; Second Brain's is trimmed for single-user agents) but the field definitions and enum values must stay identical. Any change to a field or enum here must be upstreamed to the other, and vice versa.
 >
-> **`covers` is Apiary-only pending adoption.** It is defined below and not yet in the Second Brain rendering. Treat it as a candidate for that protocol rather than a divergence to reconcile blindly — Second Brain's catalogs serve a single-user agent and its maintainer should decide whether the field carries its weight there.
+> **`covers` was adopted into Second Brain on 2026-09-08** (second-brain 2.2.0). It is no longer Apiary-only: the field definition, the write-the-subjects rule, and the 3-8 term budget are now shared, and a change to any of them must be upstreamed to the other rendering. The two differ only in worked examples.
 
 ## Fields
 

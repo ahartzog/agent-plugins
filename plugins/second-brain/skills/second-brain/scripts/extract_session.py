@@ -107,12 +107,74 @@ def extract(path):
     return turns
 
 
+def read_manifest(path, hub=None):
+    """Files the session opened, in order, with the turn index they belong to.
+
+    Wrap's Connections bucket needs to know which files were read *together* — two
+    files opened for one answer is a traversal, which is the evidence an edge is
+    missing. extract() deliberately drops tool traffic, so that signal is only
+    available here.
+
+    Deliberately incomplete: sees Read/Edit/Write only. Files reached via Grep,
+    Glob, Bash, a subagent, or an external store fetch do not appear. A thin
+    manifest is thin evidence, not proof that nothing was traversed.
+    """
+    seen = []
+    turn = 0
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                d = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if d.get("type") == "user" and not d.get("isSidechain"):
+                # Tool results also arrive as type "user"; counting them would make
+                # "turn" a tool-call index and destroy the co-read grouping this
+                # exists for. Only a real user message with prose advances the turn
+                # — the same test extract() applies.
+                msg_u = d.get("message")
+                if isinstance(msg_u, dict):
+                    t_u = block_text(msg_u.get("content"))
+                    if t_u and not is_injected(t_u):
+                        turn += 1
+            msg = d.get("message")
+            if not isinstance(msg, dict):
+                continue
+            content = msg.get("content")
+            if not isinstance(content, list):
+                continue
+            for b in content:
+                if not isinstance(b, dict) or b.get("type") != "tool_use":
+                    continue
+                if b.get("name") not in ("Read", "Edit", "Write", "NotebookEdit"):
+                    continue
+                fp = (b.get("input") or {}).get("file_path")
+                if not fp or not fp.endswith(".md"):
+                    continue
+                if hub and not os.path.abspath(fp).startswith(os.path.abspath(hub)):
+                    continue
+                seen.append({"turn": turn, "file": fp, "via": b.get("name")})
+    return seen
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--session-id")
     ap.add_argument("--cwd", default=os.getcwd())
     ap.add_argument("--projects-dir")
     ap.add_argument("--json", action="store_true", dest="as_json")
+    ap.add_argument(
+        "--read-manifest",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="HUB_PATH",
+        help="also emit the markdown files this session opened, with turn index. "
+        "Pass a hub path to restrict to files under it. Feeds wrap's Connections bucket.",
+    )
     ap.add_argument(
         "--max-chars",
         type=int,
@@ -145,12 +207,16 @@ def main():
         )
         return 3
 
+    manifest = None
+    if args.read_manifest is not None:
+        hub = args.read_manifest if isinstance(args.read_manifest, str) else None
+        manifest = read_manifest(path, hub)
+
     if args.as_json:
-        json.dump(
-            {"transcript": path, "turn_count": len(turns), "turns": turns},
-            sys.stdout,
-            indent=2,
-        )
+        out = {"transcript": path, "turn_count": len(turns), "turns": turns}
+        if manifest is not None:
+            out["read_manifest"] = manifest
+        json.dump(out, sys.stdout, indent=2)
         sys.stdout.write("\n")
         return 0
 
@@ -161,6 +227,21 @@ def main():
         stamp = f" [{t['timestamp']}]" if t.get("timestamp") else ""
         print(f"## Turn {i} — {who}{stamp}")
         print(t["text"])
+        print()
+
+    if manifest is not None:
+        print("# Read manifest — markdown files opened, by turn")
+        print("# (Read/Edit/Write only; Grep/Glob/Bash/subagent reads are not visible here)")
+        by_turn = {}
+        for m in manifest:
+            by_turn.setdefault(m["turn"], []).append(m["file"])
+        if not by_turn:
+            print("# (none)")
+        for t in sorted(by_turn):
+            uniq = list(dict.fromkeys(by_turn[t]))
+            print(f"## Turn {t} — {len(uniq)} file(s)")
+            for f in uniq:
+                print(f"- {f}")
         print()
     return 0
 

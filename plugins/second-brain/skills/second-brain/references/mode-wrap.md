@@ -42,7 +42,14 @@ Resolve `{skill_base}` to **this skill's base directory** (announced when the sk
 
 Run it **without** `--cwd` first: the script defaults to the session's actual working directory, which is where Claude Code keyed this session's transcript. Pass `--cwd {hub_path}` only if the default finds no transcript (e.g. wrap invoked from a different directory than the work ran in) — and then apply constraint 3 with extra suspicion, since the newest transcript for another directory may be a different conversation.
 
-Emits user turns and assistant prose with tool traffic, thinking blocks, sidechain agents, and harness-injected reminders stripped. A full working session is typically a few thousand tokens. Flags: `--session-id <uuid>` to target a specific session, `--json` for structured output, `--max-chars` to bound long turns.
+Emits user turns and assistant prose with tool traffic, thinking blocks, sidechain agents, and harness-injected reminders stripped. A full working session is typically a few thousand tokens. Flags: `--session-id <uuid>` to target a specific session, `--json` for structured output, `--max-chars` to bound long turns, `--read-manifest [HUB_PATH]` to additionally emit the set of markdown files the session opened.
+
+**`--read-manifest` is what makes the Connections bucket possible.** The digest deliberately strips
+tool traffic, so which files a session actually opened is invisible to it. Two files opened in service
+of one answer are a traversal — the empirical evidence for an edge (`protocol/learning-loops.md`
+Loop B § Connections). Pass the hub path to restrict the manifest to files under it. It sees
+`Read`/`Edit`/`Write` only: files reached via Grep, Glob, Bash, or a subagent do not appear, so a thin
+manifest is thin evidence rather than proof that nothing was traversed.
 
 Honor a non-zero exit per constraint 2 — do not proceed to stage 2. If `python3` is unavailable, fall back to inline harvest from the live conversation (the pre-2.0 wrap path) and note the degraded input.
 
@@ -66,7 +73,8 @@ Require this back:
 {
   "captured":  [{"item": "", "file": "", "evidence": ""}],
   "missing":   [{"item": "", "target_file": "", "triage_tag": "", "turn": 0}],
-  "ambiguous": [{"item": "", "file": "", "problem": "partial|stale|wrong-file"}]
+  "ambiguous": [{"item": "", "file": "", "problem": "partial|stale|wrong-file"}],
+  "connections": [{"from": "", "to": "", "why_second_file": "", "already_linked": true}]
 }
 ```
 
@@ -75,8 +83,14 @@ Require this back:
 | **Captured** | Present with a `[learned:]`/`[superseded:]` annotation dated today, or content visibly updated |
 | **Missing** | Not in any knowledge file |
 | **Ambiguous** | Present but partial, stale, or in the wrong file |
+| **Connections** | Two knowledge files read in service of one answer, with no link between them |
 
 Ambiguous is the bucket that earns its keep: a fact written to the wrong domain file, or a status updated without superseding the old value, reads as captured but isn't retrievable.
+
+Connections is the bucket only wrap can fill, and it fills even on a session that learned no new fact.
+Pass the `--read-manifest` output alongside the digest and have the subagent pair up files read in the
+same turn, then check whether a link already exists between them. `why_second_file` must say what sent
+it to the second file; "both were open" is not a connection.
 
 ### Stage 3 — Judge and persist, inline
 
@@ -86,7 +100,11 @@ The subagent found candidates. Deciding which deserve to persist is yours:
 2. **Confirm ownership.** The subagent proposes a target file; verify it against the routing table. A fact in the wrong domain file is retrievable by nobody.
 3. **Write Missing items** per the owning agent's `auto_contribute` frontmatter — `true`: write directly and report; `false` or absent: propose and wait. Contradictions (Loop D) and process changes (Loop E) always prompt regardless.
 4. **Resolve Ambiguous items** in place — move, complete, or supersede.
-5. **Update the domain `index.md`** if files were added or repurposed.
+5. **Propose Connections.** Each unlinked pair is an `[edge]` contribution, which **always prompts**
+   regardless of `auto_contribute`. Before proposing, apply the one disqualifier: if both files claim
+   authority over the same content, it is `[architecture]` and the fix is consolidation, not a link.
+   Grammar and placement: `protocol/link-authoring.md`.
+6. **Update the domain `index.md`** if files were added or repurposed.
 
 ### Stage 4 — Loop E gate
 
@@ -108,6 +126,7 @@ Wrap — {N} candidates from {M} turns
   Captured (n):  {one line each}
   Missing (n):   {one line each, with target file and action taken}
   Ambiguous (n): {one line each, with what was wrong and how it was resolved}
+  Connections (n): {one line each — from → to, and whether it was proposed, already linked, or rerouted}
 ```
 
 Append to `_reports/loop-health.json` (create the file as a JSON array if missing):

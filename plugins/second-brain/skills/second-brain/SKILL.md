@@ -89,6 +89,7 @@ The protocol layer contains the **universal** operating rules — the same for e
 - `protocol/learning-loops.md` — **The enforcement engine.** Five learning loops (corrections, discoveries, custodian, contradictions, process retrospection) plus the Self-Awareness Protocol (contribution reflex, task-completion gate) and the `auto_contribute` contribution rules.
 - `protocol/triage-policy.md` — Routing rules for knowledge contributions. Defines auto-eligible vs always-prompt categories.
 - `protocol/knowledge-schema.md` — Canonical frontmatter schema for all knowledge files. Required fields, type semantics, decay thresholds, reference-library entry format, inline annotations.
+- `protocol/link-authoring.md` — Link grammar for cross-references between knowledge files: the three relation senses, path qualification, anchor durability, placement. **Demand-loaded** — read it when writing a link (Loop B § Connections), not every session.
 
 **How the protocol reaches a session:** via **Operate mode**, loaded from this skill — never copied into a hub. Agent definitions bootstrap `Skill(second-brain)` with "operate" as their first action. This makes the protocol single-sourced: updating it here updates every Second Brain, with no per-hub migration.
 
@@ -105,6 +106,7 @@ The reference layer contains teaching documents, design rationale, and catalogs.
 - `references/workflow-patterns.md` — Catalog of repeatable workflow patterns with examples (including custodian health pulse, golden-question eval, correction mining, session-end wrap).
 - `references/maturity-model.md` — L1-L5 maturity progression for measuring agent sophistication.
 - `references/learning-loops.md` — **The reinforcement model (design rationale).** The teaching document for the five feedback loops. The compact operational version is `protocol/learning-loops.md`.
+- `references/link-graph.md` — **Why knowledge files link to each other.** Rationale for `protocol/link-authoring.md`, Loop B § Connections, and the Link Graph Health audit step: what links buy an agent and what they demonstrably don't, why traversal is the trigger, why this is a Loop B sub-block rather than a sixth loop, why the topology is a star and not a clique, and why edge count is never a health score. Read when changing any of them.
 - `references/enforcement-hooks.md` — When and how to back loop discipline with Claude Code hooks instead of prompt text. Hooks guarantee; prompts suggest.
 - `references/document-quality.md` — Quality criteria for knowledge files.
 - `references/migration.md` — **Upgrading a pre-2.0 Second Brain.** Diagnose and fix hubs created before the protocol was single-sourced: add the operate bootstrap, move behavior out of `CLAUDE.md`, strip duplicated rules. Read when `audit` reports a missing bootstrap or protocol duplication.
@@ -118,7 +120,8 @@ The reference layer contains teaching documents, design rationale, and catalogs.
 - `assets/golden-questions-template.md` — Per-domain eval-set scaffold (regression harness for agent quality).
 - `assets/contribution-agent-prompt.md` — Legacy subagent contribution prompt.
 - `assets/pre-push-sentinel.sh` + `assets/sentinel-patterns.json` — Fail-open credential/PII pre-push gate for auto-pushing vaults (`references/enforcement-hooks.md` recipe 4).
-- `scripts/extract_session.py` — Parses the Claude Code session transcript into a wrap-mode digest (survives context compaction).
+- `scripts/extract_session.py` — Parses the Claude Code session transcript into a wrap-mode digest (survives context compaction). `--read-manifest [HUB_PATH]` additionally emits the markdown files the session opened, which is what feeds wrap's Connections bucket.
+- `scripts/link_inert_refs.py` — Converts inert filename references (`` `foo.md` ``, "see foo.md") into real links. Dry-run by default; `--apply` writes. Refuses ambiguous basenames and lists them for a human. Exit code 0 means it found work, 1 means none.
 
 ## Key Principles
 

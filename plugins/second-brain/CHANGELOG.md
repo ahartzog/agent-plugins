@@ -4,6 +4,39 @@ All notable changes to the **second-brain** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for what counts as a change and how to pick a bump level.
 
+## [2.2.0] — 2026-09-08
+
+Absorbs the link-graph work from the work-edition lineage (0.6.0–0.8.0), taken as a subset rather than a merge. Everything here is additive: no agent file needs editing, the Bootstrapping block and `auto_contribute` gate are unchanged, and no personal-edition feature was replaced.
+
+### Added
+- **`protocol/link-authoring.md`** — link grammar for knowledge-file cross-references, demand-loaded (Operate mode does not read it). Two link forms with the rule that they are not interchangeable addresses; mandatory path qualification at write time; the two escaping cases that break links silently (table-cell alias pipes, anchors ending in `]`); the three-way breakdown of how renames and moves break inbound links; three relation senses (`defined-by`, `depends-on`, `superseded-by`) and no more; anchor-level selection keyed to the target's `decay`; placement at the mention rather than in a bottom-of-file `## Related` list; the opt-in `## Adjacent Domains` table for cross-domain seams; and the rule that adding an inbound link into a domain you don't own is a proposal, not a write.
+- **`references/link-graph.md`** — the rationale, including the objections. An agent does not click links, so clickability buys nothing for retrieval; what survives that objection is authority direction, anchor economics, and human navigation. Whether links improve agent *answer quality* over inert backtick references is explicitly unmeasured and labeled as such. Also records why this is a Loop B sub-block rather than a sixth loop, why the topology is a star and not a clique, and why edge count is never graded.
+- **`scripts/link_inert_refs.py`** — converts inert filename references into real links. Dry-run by default, `--apply` writes, ambiguous basenames are refused and listed for a human. Skips frontmatter, code fences, and `_reports`/`_archive`/`_Templates`.
+- **Loop B § Connections** in `protocol/learning-loops.md` — the in-session trigger for link creation. A connection is a second unit of knowledge and fires even in sessions that learned no new fact: if you opened a second file to answer, that traversal is the edge. Two files claiming authority over the same content is the disqualifier — that is `[architecture]` and the fix is consolidation.
+- **`[edge]` triage category** (always-prompt, in both `protocol/triage-policy.md` and the `protocol/learning-loops.md` routing table). Always-prompt because traversal is evidence, not proof: a hop taken because routing was bad is not a relationship.
+- **`[agent-revision]` triage category** (always-prompt) — the Loop E contribution class, formally separated from `[process]`, which sheds its Loop E label accordingly.
+- **`references/mode-audit.md` § Link Graph Health** — measures degree in the lateral graph, which every existing structural check misses: a file the agent routes to, referenced by nothing and referencing nothing, passes them all. Counts inert references, broken targets, broken anchors, anchors into fast-decay files, in-degree-zero orphans, and cross-domain edges (reported, never graded). Includes the co-occurrence sweep as candidate generation, and the `\|` table-alias trap that manufactures false orphans.
+- **`references/mode-audit.md` § Behavioral Rules in CLAUDE.md** (L2+) — the audited form of principle 8. A `CLAUDE.md` does not reliably load on slash-command or skill-wrapper invocation, so behavioral rules living only there are unenforced for most invocations.
+- **`references/mode-audit.md` § Sensitive-Store Leak** — for hubs with a confidentiality-scoped domain, checks that nothing outside it links or path-references in. Adapted from the work edition's people-store framing to cover clearance-scoped folders and agents under a confidentiality rule that survives their contribution gate.
+- **`covers` field** in `references/document-quality.md`, adopted from the Apiary rendering under the shared-taxonomy contract. `doc_type` and `authority` say what class a document is and how far to trust it; neither says what is inside it. A catalog row whose only free text is a filename can be matched only by filename.
+- **`--read-manifest [HUB_PATH]`** on `scripts/extract_session.py`, and the **Connections bucket** it feeds in `references/mode-wrap.md`. The digest strips tool traffic, so which files a session opened is otherwise invisible. Deliberately partial: `Read`/`Edit`/`Write` only, so a thin manifest is thin evidence rather than proof nothing was traversed.
+
+### Changed
+- **`references/maturity-model.md`** L3 now requires knowledge files to link to each other, not just to the agent — "Connected" previously graded only the routing tree. L4 adds link-graph soundness (zero broken targets and anchors, no orphans). L5 adds landed Loop E revisions and consolidated duplicate authority, with the direction stated explicitly: that level is evidenced by edge count going *down*. The ladder change ships in the same release as the audit check on purpose; porting the check alone would grade something maturity did not require.
+- **`references/mode-audit.md` § Process Retrospection (Loop E)** now reads `_reports/loop-health.json` telemetry rather than inferring from git log alone. It accepts `run_type: "wrap"` **and** `run_type: "session-end"` — wrap writes the latter and existing telemetry carries it, so a check keyed to one value would report a silent false negative. Existing telemetry is not rewritten.
+- **`protocol/knowledge-schema.md`** gains a Cross-References section naming inert references as a defect class and pointing at the link grammar.
+
+### Fixed
+- `scripts/link_inert_refs.py` docstring claimed "0 clean, 1 nothing to do"; the code returns 0 when conversions were *found* and 1 when there were none. Corrected in the docstring, with the polarity called out — carry this back to the work edition, where the defect originated.
+
+### Deliberately not taken
+- **RLDP / `routing-protocol.md` / `tool-tiers.md`.** Three-way divergence: the personal edition has none, the work export is dated 2026-07-30, and `plugins/apiary` carries a newer 2026-08-03 rendering. Porting the work copy would put a second stale RLDP in this repo. Deferred until a real multi-store catalog exists here; `covers` was taken now so the schema is ready.
+- **`[graph-edge]` / `[graph-cascade]` triage categories, Structured Payload Coherence, Dependency Graph Mapping.** Software dependency graphs. No domain in this edition's target hubs has one.
+- **`tests/golden-routing.test.sh` and its `demo-domain` fixtures.** They exercise RLDP, not linking, and `plugins/apiary` already carries an equivalent harness.
+- **People Index / profile-promotion convention** (`assets/hub-template.md` in the work edition). Introduces a new `People/` folder convention; Obsidian backlinks cover the same need once links land.
+- **`.codex-plugin/plugin.json`.** A second manifest to bump every release, for an audience not yet established here.
+- **Install-pointer regressions, government vocabulary, and work-context examples carrying real names** — never copied.
+
 ## [2.1.0] — 2026-08-03
 
 ### Added
