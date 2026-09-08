@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/knowledge-entry.schema.json",
+  "$id": "https://github.com/ahartzog/agent-plugins/apiary/knowledge-entry.schema.json",
   "title": "Hive Mind Knowledge File Frontmatter",
   "description": "Required frontmatter on every `knowledge/**/*.md` file. The Apiary Archivist enforces this on Parliament merges; the Audit mode checks it during health checks.",
   "type": "object",
@@ -61,11 +61,6 @@
           }
         ]
       }
-    },
-    "classification": {
-      "type": "string",
-      "description": "Classification of the content in this file. Optional by default; required on every knowledge file when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`. Files above UNCLASSIFIED must also carry an in-body banner as the first body line.",
-      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
     }
   },
   "allOf": [

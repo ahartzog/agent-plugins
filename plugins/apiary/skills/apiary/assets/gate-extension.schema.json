@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/gate-extension.schema.json",
+  "$id": "https://github.com/ahartzog/agent-plugins/apiary/gate-extension.schema.json",
   "title": "Hive Mind Gate Extension Frontmatter",
   "description": "Required frontmatter on every gate-extension file under the path declared by `extensions.gates` in hive.yml. A gate extension declares one additional pre-push check that runs AFTER the built-in Sentinel pattern scan has passed. Gates are additive only — they cannot suppress a built-in match, and they cannot disable the Sentinel. `assets/generate-hook.sh` bakes declared gates into the generated pre-push hook at generation time, so the emitted hook keeps zero runtime dependencies of its own.",
   "type": "object",
@@ -71,11 +71,6 @@
         "pattern": "^[A-Za-z0-9._-]+$"
       },
       "uniqueItems": true
-    },
-    "classification": {
-      "type": "string",
-      "description": "Classification of the content in this file. Optional by default; required when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
-      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
     }
   }
 }

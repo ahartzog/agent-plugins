@@ -13,7 +13,6 @@ This is a thin skill. It delegates all operations to the Apiary (Hive Parent Pro
 
 - **Hive slug:** {HIVE_SLUG}
 - **Git remote:** {GIT_REMOTE}
-- **Classification ceiling:** {CLASSIFICATION_CEILING}
 
 ## On Invocation
 

@@ -34,7 +34,6 @@ Required files:
 Optional files (note if missing, don't fail):
 - `knowledge/**/reference-library.md` — at least one (checked in Step 1b)
 - `PROTOCOL/extensions/` directory
-- `.signal/config.yml`
 - `_metrics/`
 - `README.md`
 
@@ -282,57 +281,6 @@ out of):
    currently uses `inbox_push_mode: pr` + the policy-bot apparatus, note that the migration
    retires that entire setup (its teardown is § 2.23.0 step 3b).
 
-### Step 4c: Registry Reconciliation Check
-
-Verifies this Hive is correctly represented in the [Hive Mind Registry](https://confluence.meridian.example/pages/viewpage.action?pageId=100000001).
-The failure this catches is silent: a Hive whose row is missing or stale is invisible (or misleading)
-to every *other* Hive's cross-hive routing, and nobody notices because nothing reports it.
-
-**Read-only.** Audit never writes the registry — `/apiary audit` requires no Confluence write auth.
-Drift is *reported*; the fix is a Parliament run, because the Apiculturist is the single writer of a
-Hive's row (see `protocol/apiculturist-workflow.md`).
-
-**Opt-out short-circuit (check this FIRST).** Read `hive.yml.federation` (both keys default `true`).
-An opted-out Hive is behaving correctly, so its state must never be reported as drift:
-
-- Both `register` and `cross_hive_routing` are `false` ⇒ report `SKIP — federation disabled by
-  hive.yml.federation` and run no further checks. Do not contact Confluence.
-- `register: false` ⇒ do **not** run check 1 (row presence) or check 3 (metadata drift); a missing row
-  is the *intended* state. Instead, if a row for this Hive **does** exist, report:
-  `INFO — row present in the registry but federation.register is false. The Apiculturist will not
-  maintain or remove it; delete the row by hand if retraction was intended.` This is the one case where
-  audit surfaces something a Parliament run will not fix, because retraction is deliberately manual.
-- `cross_hive_routing: false` ⇒ do **not** run check 4 (sibling cache freshness); the roster has no
-  consumer and is expected to be stale or empty.
-
-**Pre-federation short-circuit.** If `hive.yml.confluence_registry` is absent, report:
-
-> `FAIL` — Hive predates registry federation (`upstream_version {V}`); the Apiculturist cannot see it.
-> Run `/apiary upgrade` to backfill `confluence_registry` + `purpose` (`mode-upgrade.md`, pre-2.5.0
-> migration).
-
-Skip the remaining checks — there is nothing to compare against.
-
-Otherwise read the page (`confluence edit {REGISTRY_PAGE_ID}`, a READ op) and check:
-
-1. **Row present.** No row matching `hive_slug` ⇒ `FAIL` ("not registered — the next Parliament run
-   will insert it").
-2. **`Apiary ver` matches `hive.yml.upstream_version`.** Mismatch ⇒ `WARN` with both values. This is
-   the most common drift by far: `upgrade` bumps `hive.yml`, and only the next Parliament reconciles
-   the row.
-3. **Metadata matches.** Compare the row's `Purpose` / `Repository` / `Max Classification` / `Owners` /
-   `Slack` against `hive.yml`. Each mismatch ⇒ `WARN` naming the field and both values. A
-   `Max Classification` mismatch is a **`FAIL`**, not a `WARN` — the ceiling that other Hives'
-   classification direction guard trusts is wrong, which is a security-relevant inconsistency rather
-   than cosmetic drift.
-4. **Sibling cache freshness.** Compare `len(hive.yml.siblings)` against (registry rows − 1). A
-   shortfall ⇒ `WARN` ("roster cached at N, registry has M — operate-mode's cross-hive advisory is
-   working from a stale roster"). An empty `siblings: []` on a Hive that has never run Parliament ⇒
-   `INFO`, not `WARN`; it self-heals on the first run.
-
-**If the read fails** (Confluence unavailable / unauthenticated): report `SKIP (<reason>)`. Never fail
-the audit on registry reachability.
-
 ### Step 5: Extension Validity
 
 If any `extensions` values in `hive.yml` are non-null:
@@ -433,7 +381,6 @@ hive: {HIVE_SLUG}
 - Fast-path share: {N}% measured vs ~80% predicted ({PASS/WARN})
 - Push Mode: transport={default-branch|branch(queue={INBOX_BRANCH}, depth {N})} inbox={resolved|n/a} parliament={resolved}, branch={protected|unprotected|unknown} ({PASS/WARN/FAIL})
 - Version: {current|behind}
-- Registry: row {present|missing|opted out} / ver {match|A vs B} / siblings {N of M} ({PASS/WARN/FAIL/SKIP})
 - Extensions: {valid|N issues}
 - Quarantine: {N} items pending review
 
@@ -450,9 +397,6 @@ hive: {HIVE_SLUG}
 
 ### Push Mode
 {resolved transport and inbox/parliament modes, branch protection state, queue depth/oldest-entry age when transport is `branch`, and any FAIL/WARN/INFO from Step 4b — including whether per-flow overrides were offered and the user's response}
-
-### Registry Reconciliation
-{Step 4c results: row presence, Apiary ver comparison, per-field metadata drift, sibling cache freshness. If the Hive has opted out via `federation`, say which switches are off and which checks were therefore skipped. If the Hive predates federation, the /apiary upgrade backfill recommendation instead.}
 
 ### Learning Loop Issues
 {details}

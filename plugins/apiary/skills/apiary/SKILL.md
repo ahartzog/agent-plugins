@@ -62,7 +62,7 @@ This skill bundles canonical protocol files in `protocol/`. These are the single
 
 - `protocol/design-goals.md` — North star principles (MUST be consulted before any protocol change — see CONTRIBUTING.md)
 - `protocol/triage-policy.md` — Contribution routing (fast path vs. deliberation)
-- `protocol/security-policy.md` — CUI defense-in-depth, PII, injection defense
+- `protocol/security-policy.md` — PII, credential, and injection defense
 - `protocol/operational-model.md` — Three-phase session→accumulation→incorporation loop
 - `protocol/learning-loops.md` — Four feedback circuits — compact operational rules (see operate mode Step 2 for when to load)
 - `protocol/workflows.md` — Interaction modes
@@ -76,7 +76,6 @@ This skill bundles canonical protocol files in `protocol/`. These are the single
 - `protocol/sources-policy.md` — Deposit path for primary source material (transcripts, documents); Sentinel-gated, no Parliament deliberation
 - `protocol/document-quality.md` — `doc_type` / `authority` / `covers` taxonomy for external-document catalogs; trawling heuristics; question-type routing
 - `protocol/external-search-agent.md` — Dispatch contract for the RLDP §Search live store-search subagent
-- `protocol/apiculturist-workflow.md` — Registry-reconciliation subagent dispatched by Parliament §1.4
 
 ## Machine-Readable Schemas
 
@@ -91,11 +90,7 @@ In `assets/`:
 - `sentinel-patterns.json` — Runtime source of truth for credential / PII regex patterns. Read by both the pre-push hook and Parliament Sentinel.
 - `generate-hook.sh` — Generator script (Bash + jq). Reads `sentinel-patterns.json` and emits a self-contained bash pre-push hook to stdout. Run by operate-mode Step 0 as `generate-hook.sh <patterns.json> [HIVE_ROOT]`; passing `HIVE_ROOT` also bakes in that Hive's `extensions.gates`. The generated hook supports CLI modes: `pre-push scan FILE...` or `pre-push scan-dir HIVE_ROOT` (neither runs gate extensions — those fire only on the actual push path, to avoid recursion when a gate itself calls `scan`).
 
-Validate with `yq -o json <file> | ajv validate -s <schema>`. Create mode Step 4 runs these checks automatically.
-
-## Skill Knowledge
-
-The Apiary knows that Meridian Systems shared skills live in claude-clams. When a Hive's agent-definition routes to external skills (e.g., `/platform`, `/cyber-accreditation`), the Apiary understands the invocation pattern but defers domain-specific skill relevance to each Hive's routing table.
+Validate with `yq -o json <file> | ajv validate -s <schema>`. Create mode Step 3 runs these checks automatically.
 
 ## Notes
 
@@ -103,4 +98,3 @@ The Apiary knows that Meridian Systems shared skills live in claude-clams. When 
 - **The Apiary plugin is a hard dependency for all child Hives.** Child skills declare `apiary` in their `plugin.json` dependencies. Protocol files are read directly from this skill's `protocol/` directory at runtime — no vendoring or syncing required.
 - All git flow (clone, pull, sync, rebase-before-push) is handled by operate mode, not by hooks. This ensures operations work regardless of where the user invoked the skill from.
 - Sentinel cannot be disabled. It runs on every Parliament pipeline.
-- **Hives are federated.** Each Hive is listed in the [Hive Mind Registry](https://confluence.meridian.example/pages/viewpage.action?pageId=100000001) and knows its siblings via `hive.yml.siblings`; create mode registers new Hives, and Parliament's Apiculturist reconciles both directions on every run (`protocol/apiculturist-workflow.md`). Mis-filed contributions are only ever *suggested* to siblings, under the classification direction guard — `protocol/custodian-workflow.md` §2.1 step 5 (authoritative).

@@ -12,15 +12,15 @@ Not every Hive user has every tool installed. The agent must detect what's avail
 
 ## Detection
 
-On invocation, check the available-skills list (shown in the system reminder) and the MCP server list. For each tool in the Meridian-standard set below, note `available: true/false`. The agent's routing table MUST reference this availability — it cannot assume a tool is present.
+On invocation, check the available-skills list (shown in the system reminder) and the MCP server list. For each tool in the standard set below, note `available: true/false`. The agent's routing table MUST reference this availability — it cannot assume a tool is present.
 
-## Meridian-Standard Tool Set
+## Standard Tool Set
 
 | Tool | Kind | Purpose | Fallback when missing |
 |------|------|---------|------------------------|
-| `jira-cli` | Skill | Meridian Systems Jira (jira.meridian.example) — tickets, boards, epics | URL to the board/ticket; text summary from knowledge files only |
-| `confluence-cli` | Skill | Meridian Systems Confluence (confluence.meridian.example) — docs, pages, spaces | URL to the page; text summary from knowledge files only |
-| `sharepoint` | Skill | SharePoint sites, document libraries, and files (`*.sharepoint.us`) via MS Graph | Resolved document URL; name the document and say it was not opened |
+| `jira-cli` | Skill | the organization's Jira instance — tickets, boards, epics | URL to the board/ticket; text summary from knowledge files only |
+| `confluence-cli` | Skill | the organization's Confluence instance — docs, pages, spaces | URL to the page; text summary from knowledge files only |
+| `sharepoint` | Skill | SharePoint sites, document libraries, and files (`*.sharepoint.com`) via MS Graph | Resolved document URL; name the document and say it was not opened |
 | `box-skill` | Skill | Box cloud storage (`app.box.com`) — search, browse, read files | Resolved file/folder URL; name the document and say it was not opened |
 | `quip-mcp` | MCP | Quip documents and threads (`*.quip.com`) | Resolved thread URL; name the document and say it was not opened |
 | `slack-cli` | Skill | Commercial Slack | URL to slack; summarize from knowledge files |
@@ -82,8 +82,8 @@ never substitute a different tool to fake a search the store does not offer.
 native call shape for these tools: SharePoint's `search` takes a `<drive_id>`, and Box's takes
 `--ancestor-folder-ids`. Tenant-wide is the form that costs extra — SharePoint's is a raw Graph
 `/search/query` POST with no script subcommand. Which of the two a session is *allowed* to run is not
-this table's call: `routing-protocol.md` §Search owns it, and the classification reasoning is
-`references/external-retrieval-search-design.md` § Why the classification guard is a scope default,
+this table's call: `routing-protocol.md` §Search owns it, and the reasoning is
+`references/external-retrieval-search-design.md` § Why the search-scope guard is a default,
 not a prohibition.
 
 ## Degradation Patterns
@@ -95,7 +95,7 @@ When a tool is missing, the agent should:
 
 2. **Offer the fallback immediately** without waiting for the user to ask. The fallback is usually a URL or a knowledge-file pointer.
 
-3. **Always surface the install path.** Name the missing skill/MCP, provide the install command (e.g., `claude plugin install <skill>@meridian-claude-clams`), and offer to walk the user through install. This applies even to one-off questions — Hive users span all experience levels, and explicit flagging is how newer operators discover tooling that experienced operators already have. If the skill lives in a different marketplace than `meridian-claude-clams`, say so explicitly rather than guessing.
+3. **Always surface the install path.** Name the missing skill/MCP, provide the install command (e.g., `claude plugin install <skill>@<marketplace>`), and offer to walk the user through install. This applies even to one-off questions — Hive users span all experience levels, and explicit flagging is how newer operators discover tooling that experienced operators already have. Name the actual `<marketplace>` the skill lives in rather than assuming a default — different orgs and Hives may register skills in different marketplaces.
 
    See `PROTOCOL/workflows.md` §"Cross-Cutting Discipline → Missing skill transparency" for the full template. [learned: 2026-04-19]
 
@@ -106,7 +106,7 @@ Child Hive READMEs should document three install tiers so new users can pick the
 | Tier | Install | What works |
 |------|---------|-----------|
 | **Read-only** | None (plain Claude Code) | Agent reads `knowledge/` and `PROTOCOL/`, answers with citations, writes contributions to `_inbox/` |
-| **Connected** | Meridian-standard tool set (jira-cli, confluence-cli, slack-cli, chrome-auth) | Agent queries live Jira/Confluence/Slack; surfaces current state |
+| **Connected** | the standard tool set (jira-cli, confluence-cli, slack-cli, chrome-auth) | Agent queries live Jira/Confluence/Slack; surfaces current state |
 | **Full** | + domain MCPs (e.g., a program-specific `<domain>-confluence`, or `mcp-atlassian` for combined access) | Agent queries all relevant internal + external systems |
 
 Each Hive's README may rename tiers or adjust the contents, but the tiered-install pattern is standard so users have a consistent mental model across Hives.

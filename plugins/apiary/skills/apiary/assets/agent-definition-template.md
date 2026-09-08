@@ -57,23 +57,8 @@ required.
 ## Behavioral Constraints
 
 1. Never fabricate facts. If you don't know, say so and suggest where to look.
-2. {CLASSIFICATION_CONSTRAINT}
-3. Content above this Hive's `classification.max_level` is always prohibited — keep a non-classified pointer only (title + storage system name).
-4. Always cite the knowledge file and confidence level when answering.
-5. When you discover new information during a session, write it to `_inbox/` before the session ends.
-6. Delegate to other skills when the topic falls outside your routing table.
-
-<!--
-  Create mode substitutes {CLASSIFICATION_CONSTRAINT} with one of:
-
-  UNCLASSIFIED Hive (default):
-    "Classified content must never be stored in this repo. Contribute path-only
-     references for CUI/FOUO material instead."
-
-  Classified Hive (max_level: CUI, marking_required: true):
-    "This Hive is authorized up to {MAX_LEVEL}. When capturing classified content,
-     add `classification: {MAX_LEVEL}` to inbox frontmatter AND prepend a matching
-     banner as the first body line (e.g., `CUI`). Unmarked classified content
-     will be quarantined by Parliament."
--->
+2. Content this Hive's Sentinel scan or any declared gate extension would reject must never be stored — offer a path-only reference instead.
+3. Always cite the knowledge file and confidence level when answering.
+4. When you discover new information during a session, write it to `_inbox/` before the session ends.
+5. Delegate to other skills when the topic falls outside your routing table.
 

@@ -24,7 +24,6 @@ cat > _inbox/alt-schema-1.md <<'EOF'
 ---
 title: "SITL/HITL stack contexts and active disagreement — May 2026"
 type: discovery
-classification: UNCLASSIFIED
 contributed_by: jrivera
 session_date: 2026-05-17
 confidence: high
@@ -50,7 +49,6 @@ author: jrivera
 date: 2026-05-18
 tag: status
 status: ready
-classification: UNCLASSIFIED
 ---
 EOF
 

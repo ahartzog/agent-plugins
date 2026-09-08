@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ghe.meridian.example/meridian/claude-clams/apiary-sanitized/workflow-extension.schema.json",
+  "$id": "https://github.com/ahartzog/agent-plugins/apiary/workflow-extension.schema.json",
   "title": "Hive Mind Workflow Extension Frontmatter",
   "description": "Required frontmatter on every workflow-extension file under the path declared by `extensions.workflows` in hive.yml. Validates the structural contract only; the body conventions (dispatch-table row, disambiguation, routing-vs-mechanics split) are specified in `references/authoring-workflow-extensions.md` and checked by Audit mode Step 5.",
   "type": "object",
@@ -47,11 +47,6 @@
       },
       "minItems": 1,
       "uniqueItems": true
-    },
-    "classification": {
-      "type": "string",
-      "description": "Classification of the content in this file. Optional by default; required when the Hive's `hive.yml` sets `classification.marking_required: true`. Must not exceed the Hive's `classification.max_level`.",
-      "enum": ["UNCLASSIFIED", "FOUO", "CUI"]
     },
     "delegates_to": {
       "type": "array",

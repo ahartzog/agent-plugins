@@ -186,7 +186,7 @@ Store roots exist for the one case where per-row URLs are genuinely wasteful: a 
 
 ```yaml
 sources:
-  - url: "https://meridian.sharepoint.example/sites/{site}/Shared%20Documents/"
+  - url: "https://example.sharepoint.com/sites/{site}/Shared%20Documents/"
     type: sharepoint
 ```
 
@@ -208,7 +208,7 @@ The row's location is not a resolvable address on its own; joined to the declare
 
 **Prefer absolute URLs as retrieval improves.** A store-relative row costs a join and a correct root; an absolute URL costs neither. When adding rows to an existing hierarchical catalog, match the file's convention rather than mixing forms mid-table — but for a new catalog, or any store addressed by ID, write the URL.
 
-**This is a store locator, not a content classification.** `type` here answers *where does this live and what opens it*. What the document **is** and how much it should be trusted are `doc_type` and `authority`, defined in `protocol/document-quality.md`. Do not conflate them: a `specification` with `authority: formal` may live in any store, and the store says nothing about its trust.
+**This is a store locator, not a content categorization.** `type` here answers *where does this live and what opens it*. What the document **is** and how much it should be trusted are `doc_type` and `authority`, defined in `protocol/document-quality.md`. Do not conflate them: a `specification` with `authority: formal` may live in any store, and the store says nothing about its trust.
 
 Why the root lives in frontmatter rather than on every row: `references/external-retrieval-design.md`.
 
@@ -221,7 +221,7 @@ APIARY_ROOT=$(claude plugin list --json | jq -r '.[] | select(.id | startswith("
 yq -o json path/to/knowledge-file.md | ajv validate -s "$APIARY_ROOT/skills/apiary/assets/knowledge-entry.schema.json"
 ```
 
-## Source Document Classification
+## Source Document Taxonomy
 
 When knowledge files catalog external documents (SharePoint, Confluence, vendor deliverables), source entries should carry `doc_type` and `authority` fields. See `protocol/document-quality.md` for the full taxonomy, trawling heuristics, and question-type routing guidance.
 

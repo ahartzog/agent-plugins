@@ -106,7 +106,7 @@ Box, Quip, Confluence, Jira, or a git host — is **retrieved, not paraphrased**
 
    | Locator kind | Looks like | How to resolve |
    |---|---|---|
-   | **Absolute URL** (preferred form) | `https://…sharepoint.us/…`, `https://…quip.com/NieRAn8pvonB` | fetch with the tool serving that host (`protocol/tool-tiers.md` § Store Kind → Tool — consult only when needed) |
+   | **Absolute URL** (preferred form) | `https://…sharepoint.com/…`, `https://…quip.com/NieRAn8pvonB` | fetch with the tool serving that host (`protocol/tool-tiers.md` § Store Kind → Tool — consult only when needed) |
    | Local file (default inside `knowledge/`) | `program/overview.md` | `Read` it, relative to `knowledge/` |
    | Directory pointer | `people/profiles/` (trailing slash) | every `.md` beneath it, recursively |
    | **Hive-root path** — any locator whose first segment is `sources/` | `sources/index.md`, `sources/meeting-transcripts/2026-07-15-jrivera-sync.md` | `Read` it relative to the **Hive root**, not `knowledge/` |

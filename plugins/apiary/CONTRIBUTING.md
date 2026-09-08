@@ -60,7 +60,7 @@ A Hive routes inbox contributions to a dedicated queue branch (`references/inbox
 
 ## How to Verify
 
-### Option A: Run the test script (fast, local, no GHE dependency)
+### Option A: Run the test script (fast, local, no live git host dependency)
 
 ```bash
 bash plugins/apiary/skills/apiary/tests/clone-flow.test.sh
@@ -123,7 +123,7 @@ Shared surfaces to check on every schema change:
 ## Other Requirements
 
 - **Version bump required.** Bump `plugin.json` and `marketplace.json` per the repo-level [CONTRIBUTING.md](../../../../CONTRIBUTING.md).
-- **Schema changes = major version bump.** New required fields in `hive.yml` are breaking. Add a migration to `mode-upgrade.md`.
+- **Schema changes = major version bump.** Added required fields and removed fields are both breaking. Add a migration to `mode-upgrade.md` when any Hive is known to be running the prior schema; state in the PR when none is and the migration is therefore skipped.
 - **Run the repo-level validation:** `python3 .circleci/validate_plugins.py`
 - **Test against a real Hive if possible.** The widget-integration-hive-mind repo is the lightest-weight test target.
 - **Routing/retrieval protocol changes** (routing-protocol, knowledge-schema, document-quality, tool-tiers) additionally require the golden cases — see § Verification: Routing & Retrieval Golden Cases above.

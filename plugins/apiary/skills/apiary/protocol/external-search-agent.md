@@ -182,5 +182,5 @@ Each returns **empty with a reason** — never a widened search:
 | Query ran, nothing after dedup | `search: 0 new (N hits, all in catalog)` |
 
 Never widen scope to compensate for a failure. A store that answered nothing on a well-formed query
-will not answer more on an unauthorized one, and widening is the exact exposure the classification
+will not answer more on an unauthorized one, and widening is the exact exposure the search-scope
 default guards against.

@@ -1,7 +1,5 @@
 # {HIVE_NAME} Hive Mind
 
-> 📒 Part of the [Meridian Systems Hive Mind Registry]({REGISTRY_URL}) — the index of every team Hive Mind, what each is for, and how to use it.
-
 {DESCRIPTION}
 
 This repository is a **collectively-maintained** AI knowledge base. Claude Code loads the persona from `PROTOCOL/agent-definition.md`, grounds its answers in `knowledge/`, and captures new facts in `_inbox/` for Parliament to triage.
@@ -10,7 +8,7 @@ This repository is a **collectively-maintained** AI knowledge base. Claude Code 
 
 {HIVE_PURPOSE}
 
-Knowledge outside this scope likely belongs in a different Hive — see the [registry]({REGISTRY_URL}) for the full set.
+Knowledge outside this scope likely belongs in a different repository — check with the codeowners below.
 
 ## Quick Start
 
@@ -42,11 +40,10 @@ Direct edits to `knowledge/` bypass triage and will be reverted.
 
 ```
 {HIVE_SLUG}/
-├── hive.yml                  # Identity: slug, codeowners, slack channel
+├── hive.yml                  # Identity: slug, codeowners
 ├── CLAUDE.md                 # Project-scoped Claude Code instructions
 ├── README.md                 # You are here
 ├── .claude/settings.json     # Hooks: sync on session start, rebase before push
-├── .signal/config.yml       # Signal bot Slack channel
 ├── PROTOCOL/
 │   ├── agent-definition.md   # Persona, routing, constraints
 │   └── extensions/           # (optional) hive-local workflow extensions
@@ -55,7 +52,7 @@ Direct edits to `knowledge/` bypass triage and will be reverted.
 │       └── reference-library.md  # (optional) Retrieval-trigger index for this sub-domain
 ├── _inbox/                   # Contributions land here
 │   ├── _completed/           # Post-Parliament archive
-│   └── _quarantine/          # Sentinel-flagged items (classification / injection / PII)
+│   └── _quarantine/          # Sentinel-flagged items (injection / PII)
 ├── _custodian/
 │   ├── config.yml            # Parliament thresholds
 │   └── reports/              # Parliament run logs
@@ -77,32 +74,21 @@ sources/
 - **Text / markdown** (pasted transcript, notes): Deposit workflow — `/{HIVE_SLUG}` → "deposit this transcript".
 - **Binary documents** (PDF, PPTX, DOCX, XLSX): `/extract:ingest <file> --hive .` — parses the file, LFS-tracks the binary in `sources/`, and writes a distilled inbox entry. The Apiary does not parse binaries itself.
 
-Binary sources are tracked with **Git LFS**; text sources are normal git files. Note: the pre-push Sentinel scans text sources, but **cannot** scan LFS binary content — confirm binary documents are safe to store at this Hive's classification ceiling before depositing.
+Binary sources are tracked with **Git LFS**; text sources are normal git files. Note: the pre-push Sentinel scans text sources, but **cannot** scan LFS binary content — confirm binary documents are safe to store before depositing.
 
-## Classification & Security
+## Security
 
-{CLASSIFICATION_SECTION_README}
-
+- **No credentials or PII in this repo.** Pushes made through the Apiary's own clone (at
+  `~/.claude-hive/{HIVE_SLUG}`, where operate mode Step 0 installs the hook) are scanned by the
+  Sentinel pre-push hook.
 - **No personal editorial commentary** about named individuals. Professional role + contact info only.
+- **Sensitivity marking, if this Hive needs one** (PHI, PCI, trade-secret, or a bespoke
+  public/internal/confidential ladder), is enforced by a Hive-declared gate extension layered
+  on top of the built-in scan — see the Apiary `references/authoring-gate-extensions.md`. Gate
+  extensions run only in the pre-push hook path, not in Parliament's `scan-dir` re-scan, so they
+  are a push-time control, not a catch-all.
 
 Details in the Apiary upstream `protocol/security-policy.md`.
-
-<!--
-  Create mode substitutes {CLASSIFICATION_SECTION_README} with one of:
-
-  UNCLASSIFIED Hive (default):
-    "- **No classified content in this repo.** CUI/FOUO material is referenced
-       by storage-system path only. Three enforcement layers: session agent
-       detection on contribute; GHE pre-receive hook rejection; Parliament
-       Sentinel intake scan."
-
-  Classified Hive (max_level: CUI, marking_required: true):
-    "- **This Hive is authorized for content up to {MAX_LEVEL}.** Storage tier:
-       {STORAGE_TIER}. Every knowledge and inbox file carries a frontmatter
-       `classification:` field; files with classified content also carry a
-       matching first-line banner. Unmarked classified content is quarantined
-       by Parliament Sentinel. Content above {MAX_LEVEL} is always rejected."
--->
 
 
 ## Contribution Categories
@@ -127,7 +113,7 @@ Full triage rules: Apiary upstream `protocol/triage-policy.md`.
 Governed by the Apiary (Hive Parent Protocol). The Apiary provides:
 
 - `protocol/design-goals.md` — north-star principles
-- `protocol/security-policy.md` — classification discipline / PII defense-in-depth
+- `protocol/security-policy.md` — PII/credential defense-in-depth, prompt-injection defense
 - `protocol/triage-policy.md` — contribution routing rules
 - `protocol/operational-model.md` — session → accumulation → incorporation loop
 - `protocol/knowledge-schema.md` — knowledge-file frontmatter schema
@@ -135,10 +121,6 @@ Governed by the Apiary (Hive Parent Protocol). The Apiary provides:
 
 When working in this repo, `/{HIVE_SLUG}` dispatches through the Apiary for protocol. Only domain-specific additions live here in `PROTOCOL/extensions/` — Hive-local named workflows go in `PROTOCOL/extensions/workflows/` and are wired up via `extensions.workflows` in `hive.yml` (authoring guide: `references/authoring-workflow-extensions.md` in the Apiary skill).
 
-For the full set of Hives across Meridian Systems — and which one owns a given topic — see the [Hive Mind Registry]({REGISTRY_URL}).
-
 ## Contribute
 
 Questions or corrections that don't fit the inbox — open an issue or PR. For protocol changes, PRs must be reviewed by CODEOWNERS (see `hive.yml`).
-
-Slack: `#{SLACK_CHANNEL}`.

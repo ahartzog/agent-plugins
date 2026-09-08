@@ -2,11 +2,10 @@ version: 2.1
 
 # Minimal CircleCI config for {HIVE_SLUG}.
 #
-# A Hive repo provisioned through meridian/owners gets a CircleCI project, which
-# ERRORS on every PR if no config exists ("No configuration was found in your
-# project"). The org-default required status check is
-# `ci/circleci_enterprise: gatekeeper`, emitted per-job — so a job literally named
-# `gatekeeper` must exist.
+# Some orgs provision CircleCI projects that ERROR on every PR if no config
+# exists ("No configuration was found in your project"), and enforce a
+# required status check under a specific job name — so a job literally named
+# `gatekeeper` must exist if your org's default required check expects one.
 #
 # Two jobs:
 #   - inbox-size-check: fails if more than 10 pending inbox items accumulate,
@@ -15,7 +14,7 @@ version: 2.1
 #     inbox_transport: branch, else the checked-out _inbox/.
 #   - gatekeeper: a no-op stand-in for the code-scan gate that sibling code repos
 #     run. Hives have no executable code, so this prints "all good" and exits 0,
-#     giving the org-required check something to report against.
+#     giving an org-required check something to report against, if your org has one.
 
 jobs:
   inbox-size-check:

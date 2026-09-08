@@ -73,7 +73,7 @@ The native Deposit workflow (dispatched from `PROTOCOL/workflows.md`) covers **v
 Verbatim text / markdown source
   → Session agent writes to sources/{doc-type}/
   → Append row to sources/index.md (completion gate — Goal 9)
-  → Sentinel scan (pre-push hook: PII, credentials, classification)
+  → Sentinel scan (pre-push hook: PII, credentials)
   → Direct push to {DEFAULT_BRANCH}
   → Available for Parliament citation
 ```
@@ -82,7 +82,7 @@ Verbatim text / markdown source
 
 1. **Route by format first.** If the source is a binary document (PDF/PPTX/DOCX/XLSX/image) or a path to one, do NOT parse it here — hand off to `/extract:ingest <path> --hive <this-hive>`, which parses the file, LFS-tracks it in `sources/`, and writes a distilled inbox entry. Continue below only for verbatim text/markdown.
 2. **Validate source material.** Confirm the content is verbatim, not a summary or interpretation. A summary is a claim — route it to the Contribute workflow instead.
-3. **Determine doc-type + build frontmatter.** Pick `source_type` from the taxonomy (`meeting-transcripts`, `document`, `icd`, `whitepaper`, `sow`, `spec`, `decision`, `roster`, `schedule`) — default `meeting-transcripts` for a transcript, `document` otherwise. `source_type` is always identical to its target subdirectory name (all 9 values are, deliberately, both the enum value and the literal `sources/<value>/` dir — no type→dir mapping needed). Required frontmatter fields: `source_type`, `title`, `date` (the meeting/document date, not the deposit date), `recorder` (current git user). Optional: `participants`, `duration_minutes`, `session_id`, `classification`.
+3. **Determine doc-type + build frontmatter.** Pick `source_type` from the taxonomy (`meeting-transcripts`, `document`, `icd`, `whitepaper`, `sow`, `spec`, `decision`, `roster`, `schedule`) — default `meeting-transcripts` for a transcript, `document` otherwise. `source_type` is always identical to its target subdirectory name (all 9 values are, deliberately, both the enum value and the literal `sources/<value>/` dir — no type→dir mapping needed). Required frontmatter fields: `source_type`, `title`, `date` (the meeting/document date, not the deposit date), `recorder` (current git user). Optional: `participants`, `duration_minutes`, `session_id`.
 4. **Write the source file.** Path `sources/{source_type}/YYYY-MM-DD-{recorder}-{slug}.md`; frontmatter + verbatim content. Create the doc-type subdir if absent.
 5. **Update the source index (completion gate — Goal 9).** Append a row to the single `sources/index.md` manifest: date, type, title, path, participants (if any), 3-5 topic keywords. The deposit is not complete until the row exists. If `sources/index.md` is missing, create it with the § Source Index schema.
 6. **Sentinel scan.** The pre-push hook scans text sources on push. On a hit, follow `references/pre-push-sentinel.md` (redact, override, or hand back).
@@ -108,7 +108,6 @@ participants: [alice, bob, carol]  # GitHub usernames or identifiable names
 duration_minutes: 45              # optional, for transcripts/recordings
 recorder: jrivera                # who deposited this source
 session_id: "abc123"              # optional Claude Code session ID
-classification: UNCLASSIFIED      # required when hive.yml marking_required is true
 ---
 ```
 
@@ -142,16 +141,12 @@ Text sources (`.md`, `.txt`) are **not** LFS-tracked — they diff cleanly and c
 
 Sources pass through the same Sentinel scan as inbox contributions, with one important limitation for binaries:
 
-1. **Pre-push hook** (Layer 0): Scans `sources/**` **text** files for PII, credentials, classification violations. Same `sentinel-patterns.json` pattern set.
+1. **Pre-push hook** (Layer 0): Scans `sources/**` **text** files for PII and credentials. Same `sentinel-patterns.json` pattern set.
 2. **No Parliament Sentinel** (Layer 3 does not apply): Sources are not processed by Parliament, so they do not pass through the intake scan. The pre-push hook is the sole automated gate.
 
-**Binary limitation (must be understood):** the pre-push hook greps file *content*. For an LFS-tracked binary, git presents a small text **pointer file**, not the document bytes — so the hook cannot scan a PDF's or PPTX's actual content for embedded PII/credentials/classified markings. **The depositor is responsible for the sensitivity of binary sources.** For the `extract` path, the extracted markdown (which the inbox entry is built from) *is* scannable and does pass through the normal inbox Sentinel path; the binary itself is not. Do not deposit a binary you have not confirmed is safe to store at the Hive's classification ceiling.
+**Binary limitation (must be understood):** the pre-push hook greps file *content*. For an LFS-tracked binary, git presents a small text **pointer file**, not the document bytes — so the hook cannot scan a PDF's or PPTX's actual content for embedded PII/credentials. **The depositor is responsible for the sensitivity of binary sources.** For the `extract` path, the extracted markdown (which the inbox entry is built from) *is* scannable and does pass through the normal inbox Sentinel path; the binary itself is not. Do not deposit a binary you have not confirmed is safe to store.
 
 **Override semantics** are identical to inbox files: `sentinel_override` frontmatter records user-approved false positives (text sources only).
-
-**Classification enforcement** follows the same rules as inbox:
-- UNCLASSIFIED Hive: reject any classification marker in a text source file.
-- Classified Hive: require correct markings on text source files at or below ceiling; reject above ceiling.
 
 ---
 
@@ -184,7 +179,6 @@ description: "Manifest of deposited sources — enables Ask to route source-answ
 decay: slow
 confidence: high
 last_updated: {DATE}
-classification: UNCLASSIFIED   # include only when marking_required
 ---
 ```
 

@@ -25,21 +25,22 @@ chmod +x /tmp/sentinel-scan
 ```
 
 Every reported match is dispositioned per this section (quarantine, or logged override). The LLM's
-own judgment layers ON TOP of the deterministic scan — override reconciliation, classification
-context, injection review — it never substitutes for it.
+own judgment layers ON TOP of the deterministic scan — override reconciliation, injection review —
+it never substitutes for it.
 
 The pattern set is defined in `assets/sentinel-patterns.json` (human-readable companion in `protocol/sensitive-data-patterns.md`). Categories:
 
 - **PII** — SSNs and US phone numbers (deterministic patterns). Physical addresses and other free-form PII have no reliable regex — detecting them is Archivist judgment, not a pattern. Exception: email addresses are allowed (expected in stakeholder/people knowledge files).
 - **Credentials** — API keys, tokens, passwords, private keys, AWS/GCP/Azure secrets, connection strings, GitHub PATs, Slack tokens.
-- **Classification markings** — Classification banners (CUI, FOUO, CONTROLLED UNCLASSIFIED, etc.). Sentinel reads `hive.yml.classification` to decide the disposition (see "On classification markings" below).
+
+A Hive that needs a sensitivity-marking check beyond PII/credentials declares it as a gate extension (`references/authoring-gate-extensions.md`). Gate extensions run only in the client-side pre-push hook (Layer 0), not in this Parliament re-scan — see `assets/generate-hook.sh` § `run_gate_extensions`.
 
 ### On detection (PII, credentials)
 
 Hard reject. No deliberation, no revision.
 
 1. **Redact the matched lines in the quarantined copy first** — replace each matched value with `[REDACTED: <pattern-name>]`. The Sentinel report records pattern name + file + line number, and at most a masked excerpt (e.g. last 4 characters) — never the raw matched value, which would re-preserve the secret one directory over. For purging the pre-quarantine commit from history, follow `security-policy.md` § Credential Remediation Runbook. Quarantine exists to isolate humans from process, not to preserve the leak: `_inbox/_quarantine/` is excluded from every later scan and lives in the pushed repo, so an unredacted quarantined credential would sit in the remote indefinitely. Then move the contribution to `_inbox/_quarantine/` with the Sentinel report (patterns matched, line references). For a credential, also tell CODEOWNERS to **rotate the secret** — redaction removes the copy, not the exposure.
-2. Notify CODEOWNERS via Slack (reads `slack_channel` from `hive.yml`).
+2. Quarantine is surfaced to CODEOWNERS via `/apiary audit` (§ Sentinel Retrospective, `references/mode-audit.md`) — there is no push notification.
 3. Pipeline stops for this contribution. Other contributions in the batch continue.
 
 ### Pre-push override recognition
@@ -52,24 +53,6 @@ If the contribution carries a `sentinel_override` frontmatter block (as defined 
 This preserves user-approved false-positive handling while still catching pattern drift between the contribution being authored and Parliament running.
 
 The session agent that recorded the override is responsible for the justification's accuracy. Reviewers can audit overrides via the Parliament run report or `git log` on the inbox file.
-
-### On classification markings
-Behavior depends on `hive.yml.classification`:
-
-| Hive mode | Detected content | Disposition |
-|---|---|---|
-| UNCLASSIFIED (default, or `max_level: UNCLASSIFIED`) | Any classification marker | Quarantine (hard reject, same as PII/credentials) |
-| Classified (`max_level: CUI`; a legacy `FOUO` value is treated as CUI-equivalent) | Content at or below `max_level`, correctly marked (frontmatter `classification:` + matching in-body banner for above-UNCLASSIFIED) | Allow |
-| Classified | Content at or below `max_level`, missing frontmatter field, banner, or with mismatch | Quarantine with failure mode noted: "missing frontmatter classification", "missing in-body banner", or "frontmatter/banner mismatch" |
-| Classified | Content above `max_level` | Quarantine with "content above Hive ceiling" noted. Notify CODEOWNERS. |
-
-The table governs **banner-shaped markers and marked content**. A filename-embedded or path-only
-reference (`[link][cui-reference] path/to/(CUI) document.docx`) is the *sanctioned* way to point at
-classified material (`security-policy.md` § Session Agent Behavior) and is judged in context here
-rather than auto-quarantined: quarantine it only when the surrounding contribution reproduces
-controlled content, not for naming where a document lives.
-
-Quarantined contributions follow the same notification + pipeline-stop pattern as PII/credentials.
 
 ### Post-Parliament tail-check
 At the end of every Parliament run, Sentinel performs a lightweight audit:
@@ -198,7 +181,7 @@ the pipeline (§1.2's flip, §2.0 normalizer, Archivist, critics, §6 cleanup) r
 ```bash
 mkdir -p _inbox
 # Run-scoped consumption manifest — inside the (wiped-per-run) Parliament dir and truncated
-# here. A shared or append-only path would let stale or cross-Hive lines feed wrong
+# here. A shared or append-only path would let stale or other-Hive lines feed wrong
 # queue_commit/queue_author values into §6.1's attribution records.
 MANIFEST="$PARLIAMENT_DIR/.queue-manifest"
 : > "$MANIFEST"
@@ -247,18 +230,6 @@ coexistence window rather than a flag day (`references/mode-upgrade.md` § 2.23.
 Scan `_inbox/*.md` for `status: ready`. Collect into the initial work set. **Do not skip to Cleanup yet** — Step 2.0 (Frontmatter Normalizer) runs next and may rescue additional files by adding `status: ready` to alt-schema contributions. The early-exit check happens after Step 2.0.
 
 **Recoverable schema drift:** files that lack `status:` outright but otherwise look like legitimate inbox contributions are common when contributors write entries by hand. Step 2.0 (Frontmatter Normalizer) handles these — the normalizer runs on **all** `_inbox/*.md` files (not just ready ones) so contributions written with alternate field names get rescued in the same run rather than sitting indefinitely.
-
-### 1.4 Dispatch the Apiculturist (Registry Reconciliation)
-
-Parliament is the **only** phase that routes contributions to other Hives, so it is the only phase that reconciles against the [Hive Mind Registry](https://confluence.meridian.example/pages/viewpage.action?pageId=100000001). (Operate mode never contacts Confluence — it uses whatever roster `hive.yml` already holds.) Doing the reconcile here piggybacks on a run that is already a heavy lift (fresh clone, lock, multi-agent pass).
-
-Dispatch the **Apiculturist** as a subagent per `protocol/apiculturist-workflow.md`. It pulls the sibling roster into `hive.yml.siblings` and upserts this Hive's own registry row, then returns a ≤3-line summary. Running it as a subagent keeps registry parsing out of Parliament's context window; running it **on every Parliament, regardless of work set**, is what lets an unregistered or stale-rowed Hive self-heal — precisely the Hive whose inbox is quiet.
-
-**Federation opt-outs.** `hive.yml.federation.register` and `federation.cross_hive_routing` both default to `true`; each disables one half of the Apiculturist (see its "Federation opt-outs" section). **If both are `false`, skip this step entirely — no subagent, no Confluence call** — and record `registry: disabled (federation opt-out)` in the run report.
-
-Record the returned summary in the run report (§6.2). **Never block or fail Parliament on registry reachability or write auth** — every failure mode degrades to a report line (§4 of the agent spec). Any `hive.yml` edit the Apiculturist makes is left staged for the housekeeping commit (§6.3); it never commits or pushes on its own.
-
-The refreshed roster is what the Archivist (§2.1 step 5) and Cartographer (§4.1) use for cross-hive routing decisions in this run.
 
 ---
 
@@ -314,7 +285,6 @@ Before routing, the Archivist processes every contribution in every ready file:
 - Validate frontmatter compliance (domain, type, decay, confidence, last_updated).
 - Add `[learned: YYYY-MM-DD]` annotation to each new fact.
 - Confirm or correct the target knowledge file.
-- Check classification markings against `hive.yml.classification` — quarantine per the Sentinel disposition table above.
 - Check for prompt injection patterns — quarantine if found.
 - **Re-tag mislabeled contributions** (e.g., a `[link]` contribution that actually contains architectural claims should be re-tagged `[architecture]`).
 - Produce a structured checklist (PASS/FAIL per item with reasoning).
@@ -324,18 +294,6 @@ Before routing, the Archivist processes every contribution in every ready file:
 2. If no routing table match, read each candidate knowledge file's `## Scope` or `description` frontmatter
 3. If still ambiguous, check `reference-library.md` retrieval triggers for topic alignment
 4. If no match: log as coverage gap, do not create a new file without Cartographer + Opus review
-5. **Cross-hive fit check.** **Skip this check entirely if `hive.yml.federation.cross_hive_routing` is `false`** (default `true`) — the Hive has opted out of routing outward, so no `cross_hive_suggestion` is ever set and nothing downstream (§4.1, §4.3, §6.2) has an annotation to act on. Otherwise: compare the contribution's topic against this Hive's `hive.yml.purpose` and the `hive.yml.siblings` roster. If it matches a sibling's `purpose` markedly better than this Hive's purpose, it *may* warrant a `cross_hive_suggestion: <sibling-slug>` — but you MUST apply the **classification direction guard** before setting it. This is a *suggestion only*; it never moves or rejects the contribution by itself.
-
-   **Classification direction guard (mandatory, security-critical — enforced HERE, in the Archivist, so it covers BOTH fast-path and deliberation-path contributions).** The Archivist runs on every contribution (§2.1); the Cartographer (§4.1) does not run on fast-path tags (`[link]`/`[person]`/`[tracker]`). Therefore the guard is authoritative at this step, not §4.1:
-   1. Determine the **contribution's effective sensitivity level**: its frontmatter `classification:` field if present, else the marking inferred from any in-body banner (CUI, legacy FOUO, etc.), else UNCLASSIFIED.
-   2. Look up the candidate sibling's ceiling from its `siblings` entry `classification` (REQUIRED field; if somehow absent — e.g. roster refreshed from the registry rather than schema-validated `hive.yml` — treat the sibling as UNCLASSIFIED, the most restrictive, fail-safe assumption).
-   3. **Do NOT set `cross_hive_suggestion` if the contribution's effective level is above the sibling's ceiling.** Only set it for siblings whose ceiling is at or above the contribution's level.
-      - Example (suppressed — not set): a CUI fact must NOT be suggested toward an UNCLASSIFIED sibling.
-      - Example (allowed): an UNCLASSIFIED fact may be suggested toward any sibling.
-   4. **Legacy FOUO is treated as CUI-equivalent for this guard.** Per DoDI 5200.48, `FOUO` is an obsolete marking and legacy FOUO material is **not** automatically CUI — it must be assessed against the CUI Registry, and until it is, it is unvetted controlled information. So a contribution bearing a FOUO banner is treated as **at least CUI**: never suggest it toward an UNCLASSIFIED sibling. (New content must never be *authored* as FOUO — see the ceiling-selection note in `mode-create.md` Q5.5. The guard concerns only inbound legacy markings.) Concretely, order the comparison as `UNCLASSIFIED < {FOUO, CUI}`: both FOUO and CUI are "controlled" and neither may flow toward an UNCLASSIFIED sibling.
-   5. A suppressed suggestion is simply never set — it leaves no annotation, so it cannot leak downstream into a PR body, Signal post, or run report.
-
-   This guard is defense-in-depth atop Sentinel (§0), which independently hard-quarantines any classification marker (including a legacy FOUO banner) that actually lands in a lower-ceiling Hive's inbox.
 
 After Archivist pre-processing, route each contribution per the canonical category table in
 `triage-policy.md` § Contribution Categories: `[link]` / `[person]` / `[tracker]` → §3 Fast Path;
@@ -351,7 +309,7 @@ Chancellor verdict (it targets the protocol layer, not `knowledge/`).
 The Archivist has already formatted the entry, annotated with `[learned:]`, and identified the target file. No additional agents are needed.
 
 1. Check for duplicates against the target knowledge file. If a duplicate is detected, skip with a note in the reconciliation record.
-2. For `[link]` contributions containing URLs: validate URL format. If the URL references an internal system (ghe.meridian.example, confluence.meridian.example, jira.meridian.example), optionally verify reachability (best-effort, do not block on network failure).
+2. For `[link]` contributions containing URLs: validate URL format. If the URL references an internal system (any host on the organization's private network), optionally verify reachability (best-effort, do not block on network failure).
 3. Append the formatted entry to the target knowledge file.
 4. If the contribution adds a new external reference (URL, document pointer) not already covered by a `reference-library.md` entry, append a stub reference-library entry with retrieval triggers derived from the contribution's context. Include in the batch PR. **The entry must be resolvable, not just descriptive:** point at a `type: index` catalog when one covers that store, and when the contribution names a document held in a store the Hive already catalogs, add the row to that catalog rather than putting a raw URL in the router (`protocol/knowledge-schema.md` § Reference Library Entry Format). A raw URL in a router row is the escape hatch, not the default.
 5. Accumulate the diff for inclusion in the batch merge PR (see Section 5).
@@ -380,7 +338,7 @@ Invoke Skeptic, Archivist (full checklist), and Cartographer simultaneously with
 **Archivist** — standards:
 - Correct frontmatter, temporal annotations, confidence level?
 - Descriptive link or duplicated content?
-- Classification markings match `hive.yml.classification`? Target file confirmed?
+- Target file confirmed?
 - Output: PASS/FAIL per item with reasoning.
 
 **Cartographer** — structural:
@@ -394,9 +352,7 @@ Invoke Skeptic, Archivist (full checklist), and Cartographer simultaneously with
 - If this contribution triggers a new knowledge file, draft a `reference-library.md` entry for it.
 - **Catalog table validation:** If the target file is `type: index` (a document catalog), verify that any new or modified table rows use valid `doc_type` and `authority` values per `protocol/document-quality.md`. `authority` must be one of {`formal`, `baseline`, `delivered`, `working`}. Organization names belong in `source_org`, not `authority`. Flag violations as FAIL with the specific bad value. Verify the file declares a store root when its rows are store-relative; a new row added to a rootless catalog is unreachable. Verify each new row carries `covers` text naming the document's subjects — a row without it is matchable only by filename, so the document is effectively unfindable by topic (`document-quality.md` § covers).
 - Does this contribution require structural changes (new file, file reorganization)? If yes, flag — this triggers `model_structural` (Opus) for subsequent steps.
-- **Wrong-Hive check (cross-hive routing).** Skipped entirely when `hive.yml.federation.cross_hive_routing` is `false` (see §2.1 step 5). Otherwise, for deliberation-path contributions, re-confirm the Archivist's cross-hive assessment: does this belong in a *sibling* Hive? Consult `hive.yml.purpose` and the `hive.yml.siblings` roster. If a sibling is a markedly better home, name it and explain why. This is a **suggestion**; the Cartographer never moves or rejects on this basis alone.
-  - **The classification direction guard is authoritative in the Archivist (§2.1 step 5), not here** — it must run on fast-path contributions too, which never reach the Cartographer. Re-apply the same guard when confirming or adding a suggestion: a `cross_hive_suggestion` may only name a sibling whose ceiling is at or above the contribution's own level, where controlled content (CUI, or legacy FOUO treated as CUI-equivalent per §2.1 step 5) may never be suggested toward an UNCLASSIFIED sibling. A suggestion that fails the guard is simply not set (it leaves no annotation, so it cannot leak into a PR body or run report).
-- Output: PASS/FAIL per item with reasoning, plus any `cross_hive_suggestion` (sibling slug + rationale) that passed the direction guard.
+- Output: PASS/FAIL per item with reasoning.
 
 ### 4.1.05 Loop D (Escalation) — prior-contradiction check for `[contradiction]` contributions
 
@@ -408,7 +364,8 @@ For every `[contradiction]` contribution, before the Reviser runs:
 2. **≥1 prior found (this is the second or later challenge):** Loop D fires. The Reviser's output
    MUST add a `[disputed: YYYY-MM-DD]` annotation to the challenged fact in the target knowledge
    file, the contribution routes to a **needs-review PR** (never the auto-merge batch) with every
-   contradiction source linked, and CODEOWNERS are notified via Signal.
+   contradiction source linked; CODEOWNERS are added as reviewers on that PR (§5 Auto-Add
+   Reviewers) and must approve before it merges.
 3. Record the outcome either way in `_custodian/reports/loop-d-disputes.json` (§6.2) — first
    challenges are recorded so the second one can be recognized.
 
@@ -461,15 +418,10 @@ Render one verdict:
 
 **Canonical MERGE disposition rule (single source of truth — `triage-policy.md` and §5 defer here):**
 
-- **Clean MERGE** — no high-confidence critic objections outstanding **and §4.1.05 (Loop D) did not fire** → join the **auto-merge batch PR** (§5). No pre-merge human gate; the human gate is post-hoc (Signal post to `slack_channel` + one-`git revert` rollback). Do **not** put a `needs-review` label on a batch PR — a label is visibility, not a gate, and labeling an auto-merging PR "needs-review" misstates what will happen.
+- **Clean MERGE** — no high-confidence critic objections outstanding **and §4.1.05 (Loop D) did not fire** → join the **auto-merge batch PR** (§5). No pre-merge human gate; the human gate is post-hoc (batch PR is visible in the repo's PR history and reverts cleanly with a single `git revert`). Do **not** put a `needs-review` label on a batch PR — a label is visibility, not a gate, and labeling an auto-merging PR "needs-review" misstates what will happen.
 - **MERGE with a high-confidence objection outstanding** — the Chancellor's own verification overrode a critic FAIL (deadlock resolution below), or it accepted the entry despite one → route to the **needs-review PR** (§5). Requires CODEOWNER approval before merge; auto-merge is still requested so it self-merges the moment review lands.
 
 **Deadlock resolution:** If critics disagree (some PASS, some FAIL on the same claim), the Chancellor performs its own targeted verification rather than counting votes.
-
-**Cross-hive suggestion handling.** When a contribution carries a `cross_hive_suggestion` (set by the Archivist's authoritative classification direction guard in §2.1 step 5, and re-confirmed by the Cartographer in §4.1 for deliberation-path items):
-- **Partial-fit (default):** the content is valid for *this* Hive but also relevant to a sibling. Verdict **MERGE** as normal, and attach a `cross-hive suggestion` annotation to the batch PR body and Signal post: *"This also fits `/<sibling-slug>` — consider contributing it there too."* Knowledge is never lost while the contributor is nudged.
-- **Clear mis-file:** the content is wholly a sibling's domain and does not belong here. Verdict **REJECT**, with the rejection reasoning naming the sibling and instructing re-submission: *"Re-submit to `/<sibling-slug>` (`#<sibling-slack>`) — this is out of scope for this Hive's purpose."* The rejection PR serves as the auditable record.
-- **Never auto-move.** Parliament does not write into a sibling Hive's repo. Routing is always a human-actioned suggestion. A suggestion suppressed by the classification guard is dropped silently (it is not surfaced, since surfacing it could itself hint at protected content).
 
 **Chancellor → Reviser feedback format (for REVISE verdict):**
 ```
@@ -512,23 +464,18 @@ One batch PR per Parliament run. Structure:
 **Batch merge PR** (fast-path + **clean-MERGE** deliberation contributions, per §4.3's canonical disposition rule):
 - Auto-merge; merges after CI passes.
 - PR description: list of source inbox files processed, summary of contributions by target knowledge file, attribution to original contributors.
-- **Cross-hive suggestions:** if any merged contribution carries a `cross_hive_suggestion` annotation (§4.3), list it in the PR body and Signal post so the *target* Hive's codeowners can pull it in (`"also fits /<sibling-slug>"`). **Belt-and-suspenders:** only annotations that were set by the Archivist's classification direction guard (§2.1 step 5) can exist — a suppressed suggestion leaves no annotation. Do not synthesize a cross-hive suggestion at PR-creation time from raw topic similarity; surface only the guard-approved `cross_hive_suggestion` field. This holds for fast-path contributions too, which carry only what the Archivist set.
-- Signal bot posts to slack_channel (from hive.yml).
 
 **Needs-review PR** (MERGE with a high-confidence objection outstanding, or §4.1.05 Loop D fired — §4.3's canonical disposition rule):
 - Requires CODEOWNER approval; auto-merge requested so it self-merges once review lands.
 - PR description: Tribunal reasoning summarized per contribution.
-- Signal bot posts to slack_channel (from hive.yml).
 
 **Rejection PR** (per rejected contribution, opened then immediately closed):
 - Closed immediately; serves as an auditable record.
 - Description: rejection reasoning, which critic findings drove the decision.
-- Signal bot posts to slack_channel (from hive.yml).
 
 **Escalation PR** (per escalated contribution):
 - Full escalation template: §4.3 § Escalation threshold.
 - CODEOWNER tagged for discussion.
-- Signal bot posts to slack_channel (from hive.yml).
 
 ### Auto-Add Reviewers
 
@@ -597,8 +544,6 @@ Write a run report to `_custodian/reports/YYYY-MM-DD-HHMMZ-parliament-run.md`. I
 - Token cost estimate.
 - Any security quarantine events.
 - Any lock overwrite warnings.
-- **Cross-Hive Suggestions:** any contributions flagged for a sibling Hive (slug + whether MERGE-with-annotation or REJECT-for-resubmit). Suggestions suppressed by the classification direction guard are intentionally NOT listed here.
-- **Registry:** the Apiculturist's ≤3-line summary from §1.4 verbatim (siblings delta, own-row upsert result). If it degraded, include the `<tr>` it emitted so a human can paste it into the registry — this is the only place that markup surfaces.
 
 **Write the loop telemetry (Loops C and D):**
 
@@ -634,13 +579,12 @@ Stage all cleanup artifacts together and push in one commit. The destination dep
 git add _custodian/reports/   # run report + loop-c-counters.json + loop-d-disputes.json
 git add _metrics/
 git add _inbox/_completed/
-git add hive.yml   # only if the Apiculturist (§1.4) refreshed the sibling roster; harmless no-op otherwise
 git rm .parliament-running
 git commit -m "parliament: housekeeping — run YYYY-MM-DD-HH — {N} files processed, PR #{PR_NUMBER}"
 git push origin {DEFAULT_BRANCH}
 ```
 
-This single commit covers: run report, completed file moves, any Apiculturist-refreshed `hive.yml.siblings` roster (§1.4), and lock release.
+This single commit covers: run report, completed file moves, and lock release.
 
 #### PR + auto-merge (Parliament mode resolves to `pr`)
 
@@ -703,7 +647,6 @@ release the lock ref (§1.1: `git push origin :refs/heads/parliament/lock`).
 | Inbox file unreadable or malformed frontmatter | Skip file, log in run report, do not quarantine |
 | Knowledge file missing for a target | Log as a coverage gap in the run report; do not create new files without Cartographer + Opus review |
 | Git push failure during PR creation | Retry once; if still failing, abort run and release lock |
-| Classification markings fail Hive policy (see Sentinel disposition table) | Quarantine to `_inbox/_quarantine/`, log incident, do not process further |
 | Queue drain push fails after rebase-retry (queue-branch transport, §6.3) | Log in run report; leave the queue as-is; release the lock. §1.3's idempotency guard makes the next run re-delete without reprocessing |
 | Queue ref unreachable at §0.5 (queue-branch transport) | Proceed with legacy `_inbox/` only; log `QUEUE_ABSENT` in the run report — an empty queue is normal before the first session push |
 | Lock ref steal loses the CAS race (queue-branch transport, §1.1) | Exit cleanly — another runner won; do not retry within this invocation |

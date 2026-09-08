@@ -21,12 +21,8 @@ jobs:
         working-directory: plugins/apiary/skills/apiary/tests
     steps:
       - uses: actions/checkout@v4
-      - name: Install test deps (jsonschema for the apiculturist spec harness)
-        run: pip install jsonschema
       - name: clone-flow
         run: bash clone-flow.test.sh
-      - name: apiculturist
-        run: bash apiculturist.test.sh
       - name: normalizer
         run: bash normalizer.test.sh
       - name: golden-routing (Part A — deterministic fixture checks)
@@ -35,6 +31,8 @@ jobs:
         run: bash sentinel-base.test.sh
       - name: gate-extensions
         run: bash gate-extensions.test.sh
+      - name: decoupling
+        run: bash decoupling.test.sh
       - name: sentinel (against a freshly generated hook)
         run: |
           GEN_HOOK=$(mktemp)

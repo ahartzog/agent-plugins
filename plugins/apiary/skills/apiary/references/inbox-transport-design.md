@@ -21,8 +21,8 @@ anyone may push `_inbox/**` (capture must be frictionless — Goal 5), everythin
 (curation must be gated — Goal 4). No ruleset expresses one in terms of the other.
 
 The existing answer wedges the path policy into branch-scoped tooling: `push_mode: pr` with
-policy-bot auto-approval, a CODEOWNERS file deliberately narrowed so `_inbox/` is unowned, owners-bot
-flags, and repo-level auto-merge — a six-step operator setup (`references/push-mode-pr-setup.md`)
+policy-bot auto-approval, a CODEOWNERS file deliberately narrowed so `_inbox/` is unowned,
+branch-protection tuning, and repo-level auto-merge — a six-step operator setup (`references/push-mode-pr-setup.md`)
 whose failure mode is silent enough that audit Step 4b exists solely to detect it. And it buys the
 wrong guarantee even when it works: **unreviewed content still enters the default branch's permanent
 history.** A Sentinel-missed credential lives in `master` history even after quarantine moves the
@@ -103,8 +103,9 @@ or the knowledge layer.
 - **Per-contribution `inbox/*` branches only.** Branch proliferation (one per session-push),
   garbage-collection duty, and Parliament must enumerate refs instead of reading one tree. The
   single queue branch subsumes it: one ref, same protection story, same concurrency story.
-- **Server-side path enforcement (GHE pre-receive).** GHE-only, needs server admin, and ships
-  nothing client-side — it is the Layer-2 backstop in `security-policy.md`, not a transport.
+- **Server-side path enforcement (GitHub Enterprise (GHE) pre-receive).** GHE-only, needs server admin, and shipped
+  nothing client-side — it was the former Layer-2 backstop in `security-policy.md`, retired along
+  with the sensitivity taxonomy it existed to enforce, not a transport.
 - **Writing the queue via the hosting API** (`gh api` blob/tree/commit, or GitHub Issues). Any
   server-side write path **skips the client-side pre-push Sentinel hook** — Layer 0 simply never
   runs. That is disqualifying for the default transport. (GitHub Issues as a *second*, zero-clone
@@ -441,15 +442,15 @@ Numbering follows `protocol/design-goals.md` (Goals 1–9), per house precedent
 |---|---|
 | 1 — Reference, don't duplicate | Neutral. No new content surface; the queue holds the same inbox files, elsewhere. The one sanctioned copy — `_completed/` records carrying queue content + attribution — existed under the legacy transport too. |
 | 2 — Progressive discovery | Neutral. Routing untouched. |
-| 3 — Classification discipline | Neutral by construction: the queue is a branch of the same repo, inside the same classification boundary and storage tier; the Sentinel banner scan runs on queue pushes exactly as before (the absolute-hooksPath fix exists precisely so this stays true), and quarantine copies are redacted before they travel to master. |
+| 3 — Sensitivity is Hive-local | Neutral by construction: the queue is a branch of the same repo, inside the same protection model; the Sentinel PII/credential scan runs on queue pushes exactly as before (the absolute-hooksPath fix exists precisely so this stays true), and quarantine copies are redacted before they travel to master. |
 | 4 — Collective ownership | **Strengthened.** The human gate moves from bot-approximated path rules to native required-review on everything that lands on master — including, explicitly, the `_completed/` diffs in housekeeping PRs (the last gate before session bytes become master history). No gate is bypassed, and the migration tears down the legacy zero-approval machinery rather than leaving it to undermine the new protection. |
 | 5 — Contribution flywheel | **Preserved by construction, and audited.** Capture is still one commit+push, direct, no PR, no review; every command in the queue-push blocks is covered by the child settings template's allowlist, so the transport adds zero permission prompts. The worktree is invisible plumbing. The flywheel is not taxed — the queue exists so that *master* can be locked down without touching capture. |
 | 6 — Size budgets | Rationale lives here; the hot-path files gain compact rule text only. |
 | 7 — Temporal annotations | Neutral. |
 | 8 — Upstream governance | Transport mechanics are upstream protocol; only the two `hive.yml` fields are per-Hive. |
-| 9 — Discoverability / zero contributor dependencies | bash + git only, as before (repo `DESIGN-GOALS.md` principle 9). The queue is not a new content surface (same `_inbox/` files, same index-less pending semantics as today's `_inbox/`); its observability lives in Status (reads the ref) and audit Step 4b (depth/age/hygiene). |
+| 9 — Discoverability / zero contributor dependencies | bash + git only, as before (plugin-root `DESIGN-GOALS.md` principle 9). The queue is not a new content surface (same `_inbox/` files, same index-less pending semantics as today's `_inbox/`); its observability lives in Status (reads the ref) and audit Step 4b (depth/age/hygiene). |
 
-Repo-level `DESIGN-GOALS.md` principle 10 (operating instructions carry no state or history) is
+Plugin-root `DESIGN-GOALS.md` principle 10 (operating instructions carry no state or history) is
 honored by keeping all rationale in this file; the runbooks carry rules only.
 
 ## Open questions
