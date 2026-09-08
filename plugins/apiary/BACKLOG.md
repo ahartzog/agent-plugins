@@ -131,6 +131,24 @@ Delivered from this theme: compact RLDP rendering (2.21.0, −31% per Ask), rest
   catalogs, half-line budget). Explicitly NOT full decomposition/HyDE (ablations show unreliable
   payoff against the fetch economy). (market research: Anthropic contextual retrieval, −35–67%
   retrieval failure at index granularity) [confidence: high for restatement; medium for the column]
+- [ ] **Section-level catalog rows for high-density technical documents.** `covers` is
+  document-granularity (3–8 terms, a budget set by "keep it inside one table cell" — a layout
+  constraint, not a measured recall figure), but technical questions are asked at section/parameter
+  granularity. The failure mode is **density, not corpus size**: forty link-budget-adjacent analysis
+  reports all legitimately cover "link margin, EIRP, G/T", every row matches, and `covers`
+  discriminates nothing. Fix: decompose high-value documents into one row per section, the
+  `Location` cell carrying a `§` anchor — §Extract already dispatches on `§ section` granularity and
+  `mode-audit.md`'s catalog-size check already recommends section anchors, so the machinery exists.
+  Tier it: the long tail keeps one row, repeatedly-asked documents get decomposed,
+  `loop-b-gaps.json` picks which. Design-pass questions: authoring cost (a section map requires the
+  document opened — same gate as `covers`), how a section row interacts with `supersedes` on
+  revision, whether audit should flag row-collision within a domain. **Amend the vectorless revisit
+  trigger** while here — `external-retrieval-design.md` states condition 1 as ~1–2k indexed
+  documents, the wrong axis for this failure; per-domain row collision is the measurable one.
+  Sibling option considered, not chosen: keep `extract`'s *full* parse as a greppable shadow in
+  `sources/` for binaries the Hive owns (Goal 1's objection is staleness, and a content-addressed
+  regenerable extraction goes stale detectably) — but that only helps ingested documents, never the
+  store the Hive will not mirror. (design conversation 2026-08-03) [confidence: medium]
 - [ ] **`sources/` read path in the RLDP.** The Hive's highest-fidelity representation is
   unreachable from a question: §Resolve has no `sources/` row and §Extract never falls through to
   the verbatim original when exact wording matters. Add `sources/index.md` to §Discover or a
