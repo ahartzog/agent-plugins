@@ -86,6 +86,34 @@ Session discovers new fact (workaround, tool limitation, API quirk, status updat
 
 Read the target file before writing — pre-read prevents contradiction pollution. Never leave discoveries only in memory — memory gets compacted. Never silently overwrite — changed facts get `[superseded: YYYY-MM-DD, reason]` on the old value.
 
+### Connections — the second unit of knowledge
+
+A **fact** answers "what is true." A **connection** answers "where else does this live." The rest of
+this loop routes facts; this sub-block routes connections. It fires even when the session learned no
+new fact at all — noticing that two things already written down are related is itself a contribution.
+
+**The rule:** *if you had to open a second file to answer, the path you took is an edge — and if no
+link told you to open it, that is a defect you just found.*
+
+Trigger signals — record a `[edge]` contribution when:
+- You answered by combining two files. That traversal is the evidence; nothing further is needed.
+- You opened file B because file A didn't say where to look. Record it **at A's mention**.
+- You found the counterparty of a contract/interface, or the authoritative definer of a term a file
+  only mentions.
+- The second file was in a **different domain**. Highest value — no single agent's routing table can
+  express a cross-domain edge, so this is the class that is otherwise never captured.
+- Two files claim authority over the same concept. **This is not an edge.** Route it `[architecture]`
+  (always prompt) — the fix is consolidation, and a link would cement the duplication.
+
+Traversal is *evidence*, not proof: a hop you made because routing was bad is not a real
+relationship. That is why `[edge]` always prompts. Grammar, anchor rules, and placement:
+`protocol/link-authoring.md` (demand-loaded — read it when you are about to write a link). Rationale
+and the measured failure modes: `references/link-graph.md`.
+
+Speculative edges are out of scope here. Two files merely mentioning the same term is co-occurrence,
+not a traversal; mining co-occurrence is an Audit job (`references/mode-audit.md` § Link Graph
+Health), because it needs the whole corpus at once and a human deciding what is worth connecting.
+
 ---
 
 ## Loop C: Quality → Custodian Self-Improvement
@@ -157,9 +185,11 @@ Contribution routing follows `protocol/triage-policy.md`. The triage policy defi
 | `[correction]` | Factual correction (Loop A) | Yes | Corrects known error |
 | `[link]` `[person]` `[tracker]` | Additive discovery (Loop B) | Yes | Additive, low risk |
 | `[status]` `[discovery]` | Status/workaround (Loop B) | Yes | Time-sensitive or operational |
-| `[architecture]` `[process]` | Strategic/process claim (Loop E territory) | No — always prompt | Strategic implications |
+| `[edge]` | Connection between two files (Loop B § Connections) | No — always prompt | Traversal is evidence, not proof |
+| `[architecture]` `[process]` | Strategic/process claim | No — always prompt | Strategic implications |
 | `[contradiction]` | Contradicts existing fact (Loop D) | No — always prompt | Requires human judgment |
 | `[custodian]` | New custodian check (Loop C) | No — always prompt | Structural change |
+| `[agent-revision]` | Agent-definition revision (Loop E) | No — always prompt | Changes the enforcement point |
 
 When `auto_contribute: true`: auto-eligible items are written directly; always-prompt items are surfaced.
 When `auto_contribute: false`: ALL items are surfaced to the user for approval before writing.

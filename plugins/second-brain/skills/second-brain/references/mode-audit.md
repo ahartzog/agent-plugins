@@ -142,6 +142,70 @@ Applies only to hubs stored in an Obsidian vault (bare `[[Name]]` links present)
 
 **Severity:** Ambiguous bare link → Important even though nothing is "broken" — the link may already resolve to the wrong note. The fix is to path-qualify it (`[[folder/Name]]`), not to leave it bare. Structural per-domain files that are never bare-linked (each domain's `index.md`, `overview.md`) are expected duplicates and are not findings unless something actually bare-links them.
 
+### Link Graph Health
+
+Every other structural check in this mode measures **reachability from the agent** — Knowledge File
+References asks whether the agent routes to a file. This check measures **degree in the lateral
+graph**: whether knowledge files point at each other. A file the agent routes to, that nothing else
+references and that references nothing, passes every existing check while sitting alone in the graph.
+
+Build the graph first: extract every wikilink and every relative markdown link across the domain's
+knowledge files, resolve each to a target file, and count in/out degree per file. Exclude the agent
+definition and the hub — they are the tree, not the graph.
+
+**Split the alias on `\|` as well as `|`.** Inside a Markdown table cell a wikilink alias *must* be
+written `[[path\|display]]` (safety constraint 3 above), so an extractor that splits on `|` alone
+captures a trailing backslash, the path fails to resolve, and the target is reported as a graph orphan.
+That failure looks exactly like a real finding — the file genuinely has no *resolvable* inbound link by
+the scanner's reckoning — so it will be "fixed" by adding a duplicate link that was already there.
+Strip a trailing `\` from the path before resolving, and treat a link inside a table row as normal.
+
+- [ ] **Inert references.** Count backtick `*.md` mentions and bare "see foo.md" prose whose filename
+      resolves to a real file in this domain. Each is a pointer the author intended and did not write
+      (`protocol/link-authoring.md`). → **Important** when the count exceeds the number of real links;
+      Minor otherwise. Report the count, and name the top files.
+      `scripts/link_inert_refs.py --root <vault> --scope <domain>` counts and (with `--apply`) fixes
+      them; it also lists the ambiguous ones it refuses to guess at. Its exit code is 0 when it found
+      work and 1 when there was none — do not wire it into a pass/fail gate without inverting it.
+- [ ] **Broken link target.** Link resolves to no file. → **Important**.
+- [ ] **Broken anchor.** Target file exists; the `#Heading` is not a verbatim heading in it. Compare
+      with unicode intact — a hyphen typed where an em-dash (`—`) belongs is the usual cause.
+      → **Important**.
+- [ ] **Anchor into a fast-decay target.** A `#Heading` link into a `decay: fast` file. → **Minor**;
+      fix by dropping to a file-level link.
+- [ ] **In-degree zero (graph orphan).** A knowledge file no other knowledge file links to. Domain
+      index and overview files are expected entry points and are exempt. → **Important**.
+- [ ] **Out-degree zero.** A knowledge file linking to nothing, that is not a terminal leaf (a
+      fact-sheet or a catalog legitimately has no outbound edges). → **Minor**.
+- [ ] **Cross-domain edge count.** Count links leaving this domain. **Report the number; do not grade
+      it.** A domain with genuinely no neighbours is a real and healthy case, and a check that
+      demanded cross-domain links would manufacture them.
+
+**Scope exclusions.** Dated report bundles and retired content are not graph members: `_reports/`,
+`_archive/`, and `_Templates/` are excluded from every count above, matching the `SKIP_DIRS` set in
+`scripts/link_inert_refs.py`. A dated snapshot names files as evidence of a past state, and linking it
+promotes it back into live routing.
+
+**Co-occurrence sweep (candidate generation, not a finding).** Audit is the only place with the whole
+corpus in view, so it is where speculative candidates belong — never in-session (`protocol/learning-loops.md`
+Loop B § Connections). For terms appearing in many files across more than one domain, list the term,
+its file count, and whether any file is its declared owner. A term in ten files with no owner is a
+consolidation candidate — the fix is naming one owner and pointing mentions at it (a star), **not**
+linking the ten files to each other (a clique). Present these as candidates for the user to choose
+from; do not write them.
+
+**Do not report edge count as a health score.** Consolidating duplicated content *removes* edges, and
+that is a success. Report `inert_refs` (which should fall) rather than `edges` (which can be inflated).
+
+**Report block:**
+
+```
+Link graph — {domain}
+  files {n} · links {n} · cross-domain {n} · inert refs {n}
+  in-degree 0: {files}
+  broken: {n} target · {n} anchor
+```
+
 ### Catalog Structure (L3+)
 
 **Scope:** This check applies ONLY to knowledge files with `type: index` in frontmatter — document catalogs that point to external files (SharePoint, Confluence, vendor deliverables). It does NOT apply to `type: reference-library` files (routing indexes), `type: reference` files, or other knowledge files that happen to contain tables.
@@ -202,6 +266,22 @@ For each hit, compare against the current `protocol/` files and grade:
 **Also flag:** bare relative `protocol/*.md` path references in local files when no such folder exists locally. Those paths resolve relative to the skill's base directory — inside a skill invocation they work; from the hub they point at nothing. A dead pointer masquerading as a citation → replace with the Operate-mode pointer.
 
 **Fix:** `references/migration.md` walks the cleanup — bootstrap lands first, then strip.
+
+### Behavioral Rules in CLAUDE.md (Required for L2+)
+
+A `CLAUDE.md` reliably loads only when the session's working directory is that folder. It does **not** reliably load when an agent is invoked by file path, slash command, or skill wrapper — the common cases (it can lazily attach later once a file in its tree is read, but that arrival is late and undocumented, not enforcement-grade). Any *behavioral* rule that lives only in `CLAUDE.md` is therefore unenforced for most invocations.
+
+For each hub and domain `CLAUDE.md`, flag sections that state agent behavior rather than local facts:
+
+- End-of-session knowledge pass / retrospection mandates
+- Writing rules, citation requirements, output discipline, review gates
+- Frontmatter contracts and annotation rules
+
+**The test:** would this rule matter to a session that never loaded an agent? If no, it's agent behavior and belongs in the agent definition's `## Rules`. If yes — a filename convention for restricted files applies even when hand-editing — it's an ambient guardrail and correctly stays.
+
+**Severity:** Important. Not Critical, because the rule usually also exists in the agent file; the finding is that the `CLAUDE.md` copy can drift from it and creates a false sense of coverage.
+
+This is the audited form of SKILL.md principle 8 (the skill owns the protocol; `CLAUDE.md` owns what's local), and it pairs with Protocol Duplication in Local Files above — that check catches restated protocol, this one catches behavior that was never in the protocol to begin with.
 
 ### Rule Completeness
 Check the agent's `## Rules` section against the standardized rules in `assets/agent-template.md`. Match by **function**, not by number — the template's rules are function-named and their order/count changes as the template evolves, so keying this check to numbers guarantees drift.
@@ -339,7 +419,12 @@ For each agent:
 2. Compare against domain activity (knowledge file git activity in the same window)
 3. Domain active 60+ days with zero agent-definition changes → Minor ("Loop E may not be firing — the agent file should evolve with use, or record an explicit reviewed-no-change")
 4. Rules/Principles section over budget or containing rules with no observable purpose → Minor ("check eviction discipline — dead rules erode the file's authority")
-5. If `_reports/loop-health.json` exists, check `process_revisions_proposed` is non-zero over 60+ days of active use (the protocol's mature-or-asleep heuristic)
+5. If `_reports/loop-health.json` exists, scan its entries for a wrap run — accept `run_type: "wrap"` **or** `run_type: "session-end"`; the field was renamed and existing telemetry carries the old value, so a check keyed to one value alone reports a silent false negative:
+   - No such entries and the hub has an active session history → Minor ("wrap mode has never run — Loop E, the only loop that revises the agent's own instructions, has no chance to fire")
+   - Entries exist but `process_revisions_proposed` is 0 across the trailing 90 days of active use → Minor ("Loop E gate has run but never proposed a revision — either the agent's instructions are genuinely solid, or the gate is being answered too leniently; worth spot-checking one wrap transcript")
+   - `process_revisions_proposed` grows but the agent's `## Rules` / `## How to Advise` sections never change → **Important** ("Loop E is finding gaps but revisions aren't landing — proposals may be getting declined without a recorded reason, or dropped")
+
+**Severity:** Minor for an idle gate. Important for a gate that finds things but never lands them — that's the same silent-drift failure mode Loop A guards against, applied to the agent's own instructions instead of knowledge files.
 
 ### Golden-Question Eval Coverage (L4+)
 
@@ -364,6 +449,22 @@ Check each agent's frontmatter for `auto_contribute` setting:
 - Flag conflicts: "{person} is listed as {role_a} in {agent_a} but {role_b} in {agent_b}"
 
 **Severity:** Minor (often legitimate — same person, different context).
+
+### Sensitive-Store Leak (hubs with a confidentiality-scoped domain)
+
+Applies to hubs that keep a store whose *existence and location* are themselves scoped — a
+clearance-related domain, or an agent under a confidentiality rule that survives its contribution gate
+(gift planning is the standard case: the agent may write the files but must never name their contents
+in a session report). The general index is what every domain links to, so a pointer from it *into* the
+scoped store exposes those notes to every reader.
+
+- [ ] No file outside the scoped folder links or path-references into it. Check both link forms and
+      bare backtick paths: `grep -rn "{scoped_dir}" . --include=*.md | grep -v "^./{scoped_dir}/"`
+- [ ] The reverse direction is present and fine: a scoped file may link out to a general one.
+- [ ] No general file carries content of the scoped class.
+
+**Severity:** a general → scoped link is **Important**; scoped-class *content* sitting in a general
+file is **Critical**, because copying it out already happened and a link only pointed.
 
 ### Delegation Integrity
 - For each delegation rule ("delegate to {agent}"), verify the target agent exists

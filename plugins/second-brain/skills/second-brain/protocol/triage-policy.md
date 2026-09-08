@@ -35,10 +35,12 @@ Each knowledge contribution carries an implicit category based on its nature. Th
 | `[tracker]` | New tracker/channel/tool | Yes | Prompt with entry + target file | Apply to knowledge file |
 | `[status]` | Status update | Yes | Prompt with entry + target file | Apply to knowledge file |
 | `[discovery]` | Workaround/quirk/gap (Loop B) | Yes | Prompt with content + target file | Apply to knowledge file |
+| `[edge]` | Connection between two knowledge files (Loop B § Connections) | No | Prompt with source, target, and the traversal that found it | Prompt — new category, no safety data yet |
 | `[architecture]` | Architectural claim | No | Prompt — strategic implications | Prompt — strategic implications |
-| `[process]` | Process/principle change (Loop E) | No | Prompt — affects how work is done | Prompt — affects how work is done |
+| `[process]` | Process/principle change | No | Prompt — affects how work is done | Prompt — affects how work is done |
 | `[contradiction]` | Contradicts existing fact (Loop D) | No | Prompt — judgment call | Prompt — judgment call |
 | `[custodian]` | New custodian check (Loop C) | No | Prompt — structural change | Prompt — structural change |
+| `[agent-revision]` | Agent-definition revision (Loop E) | No | Prompt — structural change to enforcement | Prompt — structural change to enforcement |
 
 **Expected split:** ~70-80% of contributions in a typical session are auto-eligible categories. The remaining 20-30% require user judgment.
 
@@ -51,11 +53,15 @@ Agents do not explicitly tag contributions. Instead, the agent evaluates the nat
 1. **Is this correcting something the user said was wrong?** → `[correction]` (Loop A)
 2. **Does this contradict an existing knowledge file entry?** → `[contradiction]` (Loop D)
 3. **Is this a new link, person, or tracker?** → `[link]`/`[person]`/`[tracker]`
-4. **Is this a status/timeline update?** → `[status]`
-5. **Is this a workaround, tool limitation, or operational discovery?** → `[discovery]`
-6. **Does this describe architecture, system design, or strategic direction?** → `[architecture]`
-7. **Does this change a process, workflow, principle, or the agent definition itself?** → `[process]` (Loop E)
-8. **Is this suggesting a new custodian check?** → `[custodian]`
+4. **Is this a relationship between two knowledge files rather than a new fact?** → `[edge]`.
+   But if both files claim authority over the same content, it is `[architecture]` instead — the fix
+   is consolidation, not a link.
+5. **Is this a status/timeline update?** → `[status]`
+6. **Is this a workaround, tool limitation, or operational discovery?** → `[discovery]`
+7. **Does this describe architecture, system design, or strategic direction?** → `[architecture]`
+8. **Does this change a process, workflow, or principle?** → `[process]`
+9. **Is this suggesting a new custodian check?** → `[custodian]`
+10. **Does this propose revising the agent's own instructions (Rules, How-to-Advise, Bootstrapping)?** → `[agent-revision]` (Loop E)
 
 When ambiguous, prefer the more conservative category (prompt over auto).
 

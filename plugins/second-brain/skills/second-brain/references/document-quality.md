@@ -1,8 +1,8 @@
 # Document Quality & Type Categorization
 
-When your domain agent catalogs external documents (SharePoint files, Confluence pages, vendor deliverables) in `type: index` knowledge files, each entry should carry categorization fields. The two required fields are **doc_type** (what kind of document) and **authority** (how much citation trust). Optional fields — **source_org**, **scope**, and **supersedes** — provide additional routing context.
+When your domain agent catalogs external documents (SharePoint files, Confluence pages, vendor deliverables) in `type: index` knowledge files, each entry should carry categorization fields. The three required fields are **doc_type** (what kind of document), **authority** (how much citation trust), and **covers** (what the document is about). Optional fields — **source_org**, **scope**, and **supersedes** — provide additional routing context.
 
-> **Note:** This taxonomy is shared between the second-brain and apiary plugins — keep the two copies in sync.
+> **Note:** This taxonomy is shared between the second-brain and apiary plugins — keep the two copies in sync. `covers` was adopted here from the apiary rendering on 2026-09-08; the field definition must stay identical in both.
 
 ## Fields
 
@@ -42,6 +42,25 @@ How much citation trust does this document carry?
 | `working` | Draft / not formally reviewed | Caveat: verify against authoritative source. |
 
 **IMPORTANT:** `authority` is a **strict 4-value enum**. Organization names go in `source_org`, not here.
+
+### covers
+
+What is this document **about** — the topical content an agent matches a question against. `doc_type` and `authority` say what class of document it is and how much to trust it; neither says what is inside it. `covers` is that field.
+
+This is the catalog's equivalent of a reference-library `Triggers` column, and it carries the same weight. An agent arriving at a catalog scans rows for the query terms; a row whose only free text is a filename can be matched only by filename. `2026 EOB Batch 3.pdf` will not match "what did the cardiology visit actually cost" no matter how directly the document answers it.
+
+**Write the subjects, not the role.** Name the topics, accounts, providers, and terms a reader would search for — the words that would appear in a question this document answers.
+
+| Good | Weak — and why |
+|---|---|
+| `Deductible, out-of-pocket max, in-network tiers, FSA eligibility` | `Benefits document` — restates `doc_type` |
+| `Roof replacement scope, shingle spec, warranty terms, payment schedule` | `Contract for the roof` — role, not content |
+| `Cost basis, capital improvements, holding periods, wash-sale dates` | `Tax reference` — says what the file is for, not what is in it |
+
+- **Length:** a phrase list, not a sentence. Aim for 3-8 terms; keep it inside one table cell. A row needing more belongs in block form or its own knowledge file.
+- **`covers` also decides fetches.** A row with real coverage terms can *be* the answer for a scoping question ("which document defines X"), which avoids opening the document at all. A row without it forces the agent to open the document to find out whether the document was relevant.
+- **Do not paste content.** `covers` is a topic list, not a summary of findings. Values, wording, and conclusions live in the document; reproducing them here is the duplication DESIGN-GOALS §1 prohibits.
+- **Folder-level rows** describe the class of document in the folder (`homeowner and auto policies, declarations pages, claim records`), since no single document is named.
 
 ### source_org (optional)
 
@@ -89,13 +108,14 @@ Skip: archive folders, user-suffix duplicates, raw binary/CAD, screenshots, empt
 ## Inline Catalog Format
 
 ```markdown
-| Document | Location | doc_type | authority | source_org | Last Modified | Author |
-|----------|----------|----------|-----------|------------|---------------|--------|
-| Home Insurance Policy 2026 | `Household/Insurance/` | record | formal | State Farm | 2026-01-14 | |
-| Kitchen Reno Final Punch List | `Household/Projects/` | deliverable | delivered | Acme Remodeling | 2025-07-14 | |
+| Document | Location | doc_type | authority | covers | source_org | Last Modified |
+|----------|----------|----------|-----------|--------|------------|---------------|
+| Home Insurance Policy 2026 | `Household/Insurance/` | record | formal | dwelling limit, deductible, wind/hail exclusions, RV coverage | State Farm | 2026-01-14 |
+| Kitchen Reno Final Punch List | `Household/Projects/` | deliverable | delivered | punch items, owners, retainage release, warranty start | Acme Remodeling | 2025-07-14 |
 ```
 
 **Common mistakes to avoid:**
 - Do NOT put organization names in the `authority` column — use `source_org`
 - Do NOT put compound values like `record, formal` in `doc_type` — these are separate fields
 - `authority` is always one of: `formal`, `baseline`, `delivered`, `working`
+- Do NOT restate `doc_type` in `covers` — "insurance policy" is the class, not the coverage terms

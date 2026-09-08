@@ -1,7 +1,7 @@
 {
   "name": "second-brain",
-  "description": "Create, adopt, audit, and improve domain-focused AI agents with persistent knowledge files. Full lifecycle: operate (load the single-sourced protocol every agent bootstraps), create via interview, adopt hand-rolled agents, audit consistency/freshness/loop health, improve against gold-standard patterns, add repeatable workflows, wrap working sessions (transcript-verified persistence check). Five self-reinforcement loops (corrections, discoveries, custodian, contradictions, process retrospection).",
-  "version": "2.1.0",
+  "description": "Create, adopt, audit, and improve domain-focused AI agents with persistent knowledge files. Full lifecycle: operate (load the single-sourced protocol every agent bootstraps), create via interview, adopt hand-rolled agents, audit consistency/freshness/loop health/link graph, improve against gold-standard patterns, add repeatable workflows, wrap working sessions (transcript-verified persistence check). Five self-reinforcement loops (corrections, discoveries, custodian, contradictions, process retrospection), plus a lateral knowledge graph: link grammar, inert-reference conversion, and graph health checks.",
+  "version": "2.2.0",
   "author": {
     "name": "Alek Hartzog",
     "email": "ahartzog@gmail.com"
@@ -18,6 +18,8 @@
     "audit",
     "workflow",
     "session-end",
+    "link-graph",
+    "cross-linking",
     "wrap"
   ]
 }

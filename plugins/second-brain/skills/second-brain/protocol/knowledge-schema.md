@@ -92,6 +92,17 @@ Entries are grouped under `##` section headers by category. The `## Scope` heade
 
 **Size:** reference-libraries are thin routers. Audit flags any over 200 lines (see `references/mode-audit.md`); the table format is the primary lever for staying under it. If a library is over threshold, convert block entries to table rows before cutting coverage.
 
+## Cross-References Between Knowledge Files
+
+A knowledge file that mentions a term another file owns should **link** to it. A filename in backticks
+(`` `budget-targets.md` ``) or a bare "see budget-targets.md" is an **inert reference** — written as a
+pointer, inert in practice, and traversable by nobody. Audit counts them
+(`references/mode-audit.md` § Link Graph Health), and `scripts/link_inert_refs.py` converts the
+unambiguous ones.
+
+Grammar, the three relation senses, path qualification, anchor durability, and placement:
+`protocol/link-authoring.md` (demand-loaded — read it when writing a link, not every session).
+
 ## Inline Annotations
 
 Knowledge file content uses inline annotations for provenance and staleness:
