@@ -1,0 +1,11 @@
+{
+  "name": "repo-wrap-kit",
+  "description": "Designs, installs and verifies a repo-specific session-close skill (a wrap) that lands each session's work and routes its learnings where the next session loads them",
+  "version": "0.1.0",
+  "author": {
+    "name": "Alek Hartzog",
+    "email": "ahartzog@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["session-close", "wrap", "learning-loop", "agent-skills", "repo-setup"]
+}

@@ -1,6 +1,6 @@
 # agent-plugins
 
-Alek Hartzog's personal Claude Code plugin marketplace (`ahartzog`). Three plugins live under `plugins/`: **second-brain**, **apiary**, **scout-generator-critic-mediator**. For orientation — what each plugin is, how to install — read [README.md](README.md).
+Alek Hartzog's personal Claude Code plugin marketplace (`ahartzog`). Four plugins live under `plugins/`: **second-brain**, **apiary**, **scout-generator-critic-mediator**, **repo-wrap-kit**. For orientation — what each plugin is, how to install — read [README.md](README.md).
 
 ## If you are changing a skill
 

@@ -1,6 +1,6 @@
 # Contributing
 
-This repo is Alek Hartzog's personal Claude Code plugin marketplace (`ahartzog`). It ships three plugins: **second-brain**, **apiary**, and **scout-generator-critic-mediator**. This file is the authoritative guide for anyone — human or agent — changing a plugin. Individual plugins may add stricter rules of their own (e.g. `plugins/apiary/CONTRIBUTING.md` requires scenario verification).
+This repo is Alek Hartzog's personal Claude Code plugin marketplace (`ahartzog`). It ships four plugins: **second-brain**, **apiary**, **scout-generator-critic-mediator**, and **repo-wrap-kit**. This file is the authoritative guide for anyone — human or agent — changing a plugin. Individual plugins may add stricter rules of their own (e.g. `plugins/apiary/CONTRIBUTING.md` requires scenario verification).
 
 ## The Rule: every skill change ships a changelog entry + a version bump
 
