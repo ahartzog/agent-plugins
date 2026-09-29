@@ -5,8 +5,8 @@
     "email": "ahartzog@gmail.com"
   },
   "metadata": {
-    "description": "Claude Code plugins for agent memory and verification — second-brain domain-agent lifecycle, apiary multi-contributor knowledge bases, and scout-generator-critic-mediator adversarial review",
-    "version": "2.0.0"
+    "description": "Claude Code plugins for agent memory and verification — second-brain domain-agent lifecycle, apiary multi-contributor knowledge bases, scout-generator-critic-mediator adversarial review, and repo-wrap-kit session-close design",
+    "version": "2.1.0"
   },
   "plugins": [
     {
@@ -25,6 +25,12 @@
       "name": "scout-generator-critic-mediator",
       "description": "Composable multi-agent verification — scout, generate, critique, mediate, with structured checklists and confidence scoring. Use for /sgcm (full loop) or /gcm|cm|m (narrower levels).",
       "source": "./plugins/scout-generator-critic-mediator",
+      "strict": false
+    },
+    {
+      "name": "repo-wrap-kit",
+      "description": "Designs, installs and verifies a repo-specific session-close skill (a wrap): surveys how the repo tracks work, keeps knowledge and integrates changes, then writes a /repo-wrap that lands each session's work and routes its learnings where the next session loads them. Use for /repo-wrap-kit:design-repo-wrap.",
+      "source": "./plugins/repo-wrap-kit",
       "strict": false
     }
   ]
