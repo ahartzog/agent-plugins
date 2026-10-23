@@ -3,3 +3,4 @@
 # Scratch planning docs (e.g. superpowers plan drafts) — never a shipped artifact.
 # Anchored to repo root so a plugin's own docs/ (if any) stays trackable.
 /docs/
+__pycache__/

@@ -12,8 +12,9 @@ Built and used daily against a production knowledge vault; informed by 2026 rese
 | **apiary** | Multi-contributor knowledge bases ("hives"): git-backed repos with inbox → Parliament triage → curated knowledge, plus Sentinel scanning. | More than one person (or machine) contributes to the same knowledge base and you need triage and attribution rather than merge conflicts. |
 | **scout-generator-critic-mediator** | Composable multi-agent verification rounds with structured checklists and 10–100 confidence scoring. Four levels: `/sgcm` (full loop), `/gcm`, `/cm`, `/m` (progressively narrower). | You want adversarial verification layered onto any task — code review, audits, plan execution — instead of trusting a single generation pass. |
 | **repo-wrap-kit** | `design-repo-wrap` surveys a repository and writes, installs and verifies that repo's own `/repo-wrap`: a session close that lands the work, routes learnings to homes the next session loads, cleans up and hands off. | A repo where agents keep rediscovering the same pitfalls, or where session ends leave branches, worktrees and tracker items dangling. |
+| **vtt-transcribe** | Ingests WebVTT (`.vtt`) transcripts from Zoom, Teams, Meet, YouTube, or Whisper into the output you request: summary, meeting notes, action items, critical analysis, quotes, structured data, or knowledge-base entries, each claim cited to a timestamp. | You have a recording's transcript and want something usable out of it without reading the raw captions. |
 
-`second-brain` and `apiary` are the same idea at two scales: single-author and multi-contributor. `scout-generator-critic-mediator` is orthogonal and composes with either. `repo-wrap-kit` carries the same learning-loop idea into code repositories: the wrap it designs lives in the repo, not in the plugin.
+`second-brain` and `apiary` are the same idea at two scales: single-author and multi-contributor. `scout-generator-critic-mediator` is orthogonal and composes with either. `repo-wrap-kit` carries the same learning-loop idea into code repositories: the wrap it designs lives in the repo, not in the plugin. `vtt-transcribe` is a standalone utility; its knowledge-base recipe can feed either memory plugin.
 
 ### Design stance
 
@@ -30,6 +31,7 @@ claude plugin install second-brain@ahartzog
 claude plugin install apiary@ahartzog
 claude plugin install scout-generator-critic-mediator@ahartzog
 claude plugin install repo-wrap-kit@ahartzog
+claude plugin install vtt-transcribe@ahartzog
 ```
 
 Then run `/second-brain operate` (or `create`, `adopt`, `audit`, `improve`, `add-workflow`, `wrap`) from any directory. If you already have hand-rolled agents, start with `adopt` — it preserves accumulated judgment instead of flattening it into a template.
