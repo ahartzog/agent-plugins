@@ -1,0 +1,11 @@
+{
+  "name": "vtt-transcribe",
+  "description": "Ingest WebVTT (.vtt) transcripts into the output you ask for: summaries, meeting notes, action items, critical analysis, quotes, structured data, or knowledge-base entries, with timestamp citations",
+  "version": "0.1.0",
+  "author": {
+    "name": "Alek Hartzog",
+    "email": "ahartzog@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["vtt", "webvtt", "transcript", "captions", "meeting-notes", "summarization"]
+}

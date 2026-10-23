@@ -5,8 +5,8 @@
     "email": "ahartzog@gmail.com"
   },
   "metadata": {
-    "description": "Claude Code plugins for agent memory and verification — second-brain domain-agent lifecycle, apiary multi-contributor knowledge bases, scout-generator-critic-mediator adversarial review, and repo-wrap-kit session-close design",
-    "version": "2.1.0"
+    "description": "Claude Code plugins for agent memory and verification — second-brain domain-agent lifecycle, apiary multi-contributor knowledge bases, scout-generator-critic-mediator adversarial review, repo-wrap-kit session-close design, and vtt-transcribe transcript ingestion",
+    "version": "2.2.0"
   },
   "plugins": [
     {
@@ -31,6 +31,12 @@
       "name": "repo-wrap-kit",
       "description": "Designs, installs and verifies a repo-specific session-close skill (a wrap): surveys how the repo tracks work, keeps knowledge and integrates changes, then writes a /repo-wrap that lands each session's work and routes its learnings where the next session loads them. Use for /repo-wrap-kit:design-repo-wrap.",
       "source": "./plugins/repo-wrap-kit",
+      "strict": false
+    },
+    {
+      "name": "vtt-transcribe",
+      "description": "Ingest WebVTT (.vtt) transcripts into summaries, meeting notes, action items, critical analysis, quotes, structured data, or knowledge-base entries, with timestamp citations. Use for /vtt-transcribe <file.vtt> [request].",
+      "source": "./plugins/vtt-transcribe",
       "strict": false
     }
   ]
