@@ -47,8 +47,10 @@ If no request is given, ask one question offering the recipes in [references/rec
 
 - **Cite timestamps** as `[HH:MM:SS]`, or `[HH:MM:SS--HH:MM:SS]` for a span. Wrap them in backticks in prose and bullets; leave them bare in headings. With multiple files, prefix the file's short name: `[standup 00:12:40]`.
 - **Source only from the transcript.** No outside knowledge about the speakers, company, or topic unless the user asks for it; if added, label it as outside the transcript.
-- **Speakers:** use the labels the file gives. Don't infer who an unlabeled speaker is. If the user tells you who's who, apply it.
+- **Speakers:** use the labels the file gives. Don't infer who an unlabeled speaker is. If the user tells you who's who, apply it. Meeting tools label by device, so people sharing a room or mic get no label of their own, and short turns often land under the wrong name. When the content clearly contradicts the label (someone describing "my" work the other person did), keep the label and flag the likely misattribution.
 - **Transcription errors:** auto-captions mishear names and jargon. When a word is likely misheard, keep the transcript's text and note the probable intended word in brackets - `"cooper netties" [Kubernetes?]` - rather than silently correcting it.
+- **Entities spelled several ways:** when one name is transcribed inconsistently, pick one spelling, say so once in a caveats line, and use it throughout. If the correct spelling comes from outside the transcript, label it as such.
+- **Numbers:** speech recognition guesses units and punctuation. Counts come out as currency (`"$3.40 per box"` for 340 units per box) and thousands separators come out as decimals. Quote the number as transcribed; when context shows the intended value, give it in brackets and list it in the caveats line. Never do arithmetic on a number you had to reinterpret without flagging it.
 - **Quotes are verbatim** from the digest. Paraphrase without quotation marks.
 - **Neutral tone** unless the recipe (e.g. Critical analysis) or the user asks for judgment.
 - **Long transcripts:** if the digest exceeds roughly 2,000 lines, work section by section and keep a running outline, but still read every line before writing the final output.

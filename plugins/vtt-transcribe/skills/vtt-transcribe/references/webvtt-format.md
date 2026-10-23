@@ -40,7 +40,8 @@ A cue with no identifier and a short timestamp
 
 ## Exporter quirks
 
-- **YouTube / auto-captions:** each cue repeats the previous line, plus near-zero-length cues duplicating text, plus `<c>` word-timing tags. The digest removes the repeats.
-- **Zoom:** no `<v>` tags; the speaker appears as `Name: text` at the start of the payload. The digest treats that prefix as the speaker unless run with `--no-inline-speakers` (use that flag if ordinary text like `Note: ...` is being mistaken for a speaker).
+- **YouTube / auto-captions:** each cue repeats the previous line, plus near-zero-length cues duplicating text, plus `<c>` word-timing tags. The digest removes the repeats only when it sees word-timing tags (`<00:00:01.000>` or `<c>`); without them, a repeated line is real speech ("Yeah." twice) and is kept.
+- **Zoom (current):** `<v Name>` voice tags, one cue per speaker turn, labels per device. Expect little size reduction from the digest; the gain is readability, not compression.
+- **Zoom (older exports) and some other tools:** no `<v>` tags; the speaker appears as `Name: text` at the start of the payload. The digest treats that prefix as the speaker unless run with `--no-inline-speakers` (use that flag if ordinary text like `Note: ...` is being mistaken for a speaker).
 - **Teams:** `<v Name>` voice tags, often with GUID-style cue identifiers.
 - **SRT files renamed to `.vtt`:** no `WEBVTT` header and comma decimal separators (`00:00:01,000`). The digest accepts both; true SRT cue numbers are treated as identifiers.

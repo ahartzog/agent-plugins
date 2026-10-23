@@ -37,6 +37,8 @@ TAG_RE = re.compile(r"<[^>]*>")
 # Zoom and some other exporters put the speaker in the payload as "Name: text".
 INLINE_SPEAKER_RE = re.compile(r"^([A-Z][\w.'\- ]{0,40}?):\s+(.*)$")
 NON_CUE_BLOCKS = ("NOTE", "STYLE", "REGION")
+# Word-timing tags only appear in auto-generated captions, which also roll.
+ROLLING_MARKERS_RE = re.compile(r"<\d{2}:\d{2}[:.]\d|<c[.>]")
 
 
 def parse_ts(ts):
@@ -140,7 +142,14 @@ def merge(cues, window):
 def digest(path, window, inline_speakers):
     with open(path, encoding="utf-8-sig", errors="replace") as f:
         raw = f.read()
-    segments = merge(dedupe(parse_cues(raw, inline_speakers)), window)
+    cues = parse_cues(raw, inline_speakers)
+    # Only auto-captions roll; in a human-attributed transcript a repeated
+    # "Yeah." is real speech and must survive.
+    if ROLLING_MARKERS_RE.search(raw):
+        cues = dedupe(cues)
+    else:
+        cues = ((start, end, speaker, " ".join(lines)) for start, end, speaker, lines in cues)
+    segments = merge(cues, window)
     return raw, segments
 
 

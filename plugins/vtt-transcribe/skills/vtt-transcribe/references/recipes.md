@@ -34,7 +34,9 @@ Section breaks go where the topic shifts, not at fixed intervals. Thoroughness o
 ```markdown
 # <Meeting title> - <date if stated in transcript or filename>
 
-**Attendees (from speaker labels):** <names>
+**Attendees (from speaker labels):** <names>; also note anyone mentioned as present who has no label
+
+**Transcript caveats:** <entity spellings normalized, numbers reinterpreted, likely misattributions - omit the line if none>
 
 ## Decisions
 - <decision> - <who made it> `[HH:MM:SS]`
