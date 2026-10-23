@@ -22,22 +22,36 @@ This skill reads existing transcripts. It does not convert audio or video to tex
 - **Files:** every argument ending in `.vtt`, plus any glob or directory the user names (expand to its `.vtt` files).
 - **Request:** everything else - "action items", "summary for my manager", "extract every product mentioned into a CSV", "add the decisions to `notes/project-x.md`".
 
-If no request is given, ask one question offering the recipes in [references/recipes.md](references/recipes.md), with **Summary** as the default.
+If no request is given, produce a **Summary** without asking.
+
+## Output folder
+
+By default every run writes two files into a folder next to the `.vtt`, named after it:
+
+```
+meetings/standup-2026-10-20.vtt
+meetings/standup-2026-10-20/
+  transcript.md     # the cleaned, timestamped transcript (the digest)
+  summary.md        # the requested output; named for the recipe: meeting-notes.md, action-items.md, analysis.md, quotes.md, extract.csv ...
+```
+
+- **Several `.vtt` files:** each gets its own folder and `transcript.md`. Output that combines them goes in a folder named for the batch, beside them; ask for the name only if nothing in the filenames or request suggests one.
+- **User names a destination** (a path, a note, a knowledge base): write the requested output there, and still save `transcript.md` in the default folder.
+- **User says no files** ("just tell me", or a question about the recording): answer in chat and skip the folder.
+- **Folder already exists:** ask whether to overwrite or use a new name before writing anything.
 
 ## Steps
 
-1. **Digest each file.** Run the bundled script by its absolute path under this skill's base directory (shown when the skill loads), writing to a scratch location rather than next to the user's files:
+1. **Digest each file** into its output folder, after checking the folder doesn't already exist (ask first if it does). Run the bundled script by its absolute path under this skill's base directory (shown when the skill loads):
    ```bash
-   python3 -I <skill-dir>/scripts/vtt_digest.py <file.vtt> [more.vtt ...] > <scratch>/digest.txt
+   mkdir -p <folder> && python3 -I <skill-dir>/scripts/vtt_digest.py <file.vtt> > <folder>/transcript.md
    ```
-   The digest strips headers, `NOTE`/`STYLE`/`REGION` blocks, cue settings, markup, and rolling auto-caption repeats, and emits `[HH:MM:SS] Speaker: text` paragraphs. Use `--window 0` when the output needs per-cue precision (subtitle edits, exact quote timing), `--json` when the output is itself structured data. Exit 3 means no cues were found: read the raw file's first 40 lines and check it against [references/webvtt-format.md](references/webvtt-format.md) before giving up.
+   When the user asked for no files, write the digest to a scratch location instead.
+   The digest strips headers, `NOTE`/`STYLE`/`REGION` blocks, cue settings, markup, and rolling auto-caption repeats, and emits `[HH:MM:SS] Speaker: text` paragraphs. Use `--window 0` when the output needs per-cue precision (subtitle edits, exact quote timing), `--json` when the output is itself structured data. Run those variants into scratch; `transcript.md` always holds the default digest. Exit 3 means no cues were found: read the raw file's first 40 lines and check it against [references/webvtt-format.md](references/webvtt-format.md) before giving up.
 
 2. **Read the entire digest.** Use the Read tool with `offset`/`limit` in chunks until every line is read. Do not start producing output from a partial read - transcript conclusions routinely reverse late in a recording.
 
-3. **Resolve the destination.**
-   - **Chat** - the default when the user names no file.
-   - **New file** - default path is the `.vtt`'s path with `.md` (or the requested extension). If the file exists, ask: overwrite, or a new name.
-   - **Existing file or knowledge base** - read the target first and match its structure, heading levels, link style, and frontmatter. Append or insert; never rewrite content the transcript doesn't touch.
+3. **Prepare the destination** (see Output folder). If the destination is an existing file or knowledge base, read it first and match its structure, heading levels, link style, and frontmatter. Append or insert; never rewrite content the transcript doesn't touch.
 
 4. **Produce the output** using the matching recipe in [references/recipes.md](references/recipes.md), or the user's own format if they gave one. The user's format wins over a recipe.
 

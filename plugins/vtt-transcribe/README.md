@@ -19,7 +19,7 @@ claude plugin install vtt-transcribe@ahartzog
 /vtt-transcribe review.vtt add the decisions to notes/project-x.md
 ```
 
-With no request, the skill asks which recipe you want and defaults to a summary.
+Each run writes a folder next to the `.vtt`, named after it, holding `transcript.md` (the cleaned, timestamped transcript) and the requested output (`summary.md` when you don't ask for anything else). Name a destination to put the output somewhere else; the transcript is still saved in the folder. Ask a question instead of requesting a document and the answer comes back in chat with no files written.
 
 ## How it works
 
