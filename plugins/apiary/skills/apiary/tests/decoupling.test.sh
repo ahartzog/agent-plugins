@@ -185,8 +185,8 @@ if run survivors; then
   check_present "override mechanism retained" \
     "skills/apiary/assets/generate-hook.sh" "_covered\(\)"
   n=$(python3 -c "import json;print(len(json.load(open('$ROOT/skills/apiary/assets/sentinel-patterns.json'))['patterns']))")
-  [[ "$n" == "18" ]] && printf 'PASS [survivors] 18 sentinel patterns\n' \
-    || { printf 'FAIL [survivors] sentinel pattern count is %s, expected 18\n' "$n" >&2; FAILED=1; }
+  [[ "$n" == "21" ]] && printf 'PASS [survivors] 21 sentinel patterns\n' \
+    || { printf 'FAIL [survivors] sentinel pattern count is %s, expected 21\n' "$n" >&2; FAILED=1; }
 fi
 
 if [[ $FAILED -ne 0 ]]; then

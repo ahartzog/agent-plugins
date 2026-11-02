@@ -79,7 +79,7 @@ ln -sf ../../.claude/hooks/pre-push-sentinel.sh "$VAULT/.git/hooks/pre-push"
 
 **Self-install, because git hooks aren't versioned.** A fresh `git clone` restores `.claude/hooks/` (tracked) but NOT `.git/hooks/pre-push` (not tracked) — so the protection silently vanishes on a new machine. Have a `SessionStart` hook re-create the symlink every session (idempotent `ln -sf`); then even the sentinel needs no manual step. Record the dependency in the per-machine setup registry.
 
-**Design constraints (keep these):** fail-open (a broken hook exits 0 — it must never block real work), single source of truth (`sentinel-patterns.json` is read by the hook, never duplicated inline), and an explicit bypass for confirmed false positives (`SENTINEL_SKIP=1 git push`).
+**Design constraints (keep these):** fail-open for a broken hook (missing pattern file or python exits 0 — it must never block real work) but fail-closed for a diff git cannot produce (an unknown remote sha or shallow clone blocks rather than reporting "clean" after scanning nothing); every outgoing commit is scanned, not just the tip (`$local_sha --not --remotes` on a new branch); single source of truth (`sentinel-patterns.json` is read by the hook, never duplicated inline), and an explicit bypass for confirmed false positives (`SENTINEL_SKIP=1 git push`).
 
 **Why:** the vault legitimately contains sensitive *content* (balances, conditions, policy numbers) — that's the point of the vault and must never be flagged. The sentinel targets a different class: secrets and identifiers that should never be committed anywhere (API keys, private keys, SSNs). apiary ships a Parliament-scoped sibling; this one is for single-operator vaults that aren't hives.
 

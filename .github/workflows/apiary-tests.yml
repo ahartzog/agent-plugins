@@ -33,6 +33,8 @@ jobs:
         run: bash gate-extensions.test.sh
       - name: decoupling
         run: bash decoupling.test.sh
+      - name: sentinel-history
+        run: bash sentinel-history.test.sh
       - name: sentinel (against a freshly generated hook)
         run: |
           GEN_HOOK=$(mktemp)

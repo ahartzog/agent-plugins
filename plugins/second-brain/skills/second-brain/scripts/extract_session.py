@@ -20,6 +20,7 @@ Exit codes: 0 ok, 2 no transcript found, 3 transcript has no substantive turns.
 import argparse
 import json
 import os
+import re
 import sys
 
 # Prefixes that mark harness-injected user turns rather than human input.
@@ -34,8 +35,11 @@ INJECTED_MARKERS = (
 
 
 def project_slug(cwd):
-    """Claude Code slugifies the cwd by replacing / and . with -."""
-    return cwd.replace("/", "-").replace(".", "-")
+    """Claude Code slugifies the cwd by replacing every non-alphanumeric character
+    with a hyphen — not only / and . but also _, spaces, and anything else. A slug
+    that keeps the underscore points at a folder that does not exist, and wrap then
+    reports a session that did real work as fresh."""
+    return re.sub(r"[^A-Za-z0-9]", "-", cwd)
 
 
 def find_transcript(cwd, session_id=None, projects_dir=None):

@@ -4,6 +4,23 @@ All notable changes to the **apiary** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for change and versioning discipline, and this plugin's [CONTRIBUTING.md](CONTRIBUTING.md) for the mandatory scenario verification.
 
+## [3.1.0] — 2026-11-01 — Sentinel scans what leaves the machine
+
+The pre-push Sentinel scanned the working-tree copy of each changed file. The commits are what get pushed, so a secret committed and then removed in a later commit of the same push passed the hook while still leaving the machine in history. Additive: no `hive.yml` change, no migration. Hooks regenerate on the next operate-mode session (Step 0), which is when a Hive picks this up.
+
+### Added
+- **Per-commit added-line scan** in the generated hook (`scan_history`). After the working-tree scan, every line each outgoing commit adds to `_inbox/*.md` and `sources/**` is run through the same patterns. A match in history is reported as `FILE@SHORTSHA` with the line number in that commit. Overrides are honored from the file's current frontmatter, so a recorded false positive does not block its own history. A line reported from the working tree is not reported a second time from history.
+- **Three key shapes** in `assets/sentinel-patterns.json` and `protocol/sensitive-data-patterns.md`: `credential.anthropic-api-key` (`sk-ant-…`), `credential.openai-api-key` (`sk-proj-`/`sk-svcacct-`/`sk-admin-` and the legacy `T3BlbkFJ` form), `credential.google-api-key` (`AIza…`). Second Brain already carried all three; the two files are deliberately independent and this brings Apiary level.
+- **`tests/sentinel-history.test.sh`** — committed-then-cleaned, committed-then-deleted, dedupe against the working-tree hit, override coverage in history, a clean multi-commit push, and the unknown-remote-sha case. Wired into `.github/workflows/apiary-tests.yml`.
+
+### Fixed
+- **`credential.connection-string`** required a user segment, so `redis://:password@host` (the common Redis form) never matched. The user segment is now optional, and `rediss`, `amqp`, `amqps` schemes are included.
+- **`sentinel_base`** returned the remote sha as the diff base without checking the clone has it. A sha this clone cannot see (shallow clone, remote moved by someone else) made `git diff` fail silently and the push pass clean. The hook now says so on stderr and falls through to the existing upstream / default-branch / empty-tree resolution, which over-reports rather than under-reports.
+- `tests/gate-extensions.test.sh` case 14 committed a secret and then removed it in a new commit — the exact leak the history scan now blocks. The fixture rewrites the dirty commit out instead. `tests/decoupling.test.sh` expects 21 patterns.
+
+### Design-goals note
+Goal 4 (Collective Ownership): a gate is tightened, none is bypassed. Goal 5 (Contribution Flywheel): a contributor who committed a secret and cleaned it must now rewrite the branch (`git rebase -i` or `git reset --soft`) before pushing; the block message names the commit. That friction is the point.
+
 ## [3.0.0] — 2026-08-03 — Commercial decoupling
 
 Removes three organization-specific couplings — a DoD-style classification model, an internal

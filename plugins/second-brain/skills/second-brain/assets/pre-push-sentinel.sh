@@ -7,7 +7,11 @@
 # a leaked credential or SSN leaves the machine.
 #
 # Bypass a confirmed false positive:  SENTINEL_SKIP=1 git push
-# Fail-open: any script error exits 0 — a broken hook must never block work.
+# Fail-open: a missing pattern file or python exits 0 — a broken hook must
+# never block work. The one exception is a scan that cannot run because git
+# cannot produce the diff (unknown remote sha, shallow clone): that blocks,
+# because "scanned nothing" reported as clean is the failure this hook exists
+# to prevent.
 #
 # Install (git hooks are NOT versioned, so this must be linked per-clone):
 #   ln -sf ../../.claude/hooks/pre-push-sentinel.sh .git/hooks/pre-push
@@ -27,9 +31,16 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   if printf '%s' "$remote_sha" | grep -q '[^0]'; then
     RANGE="$remote_sha..$local_sha"
   else
-    RANGE="$local_sha -1"   # new remote ref: scan the tip commit only
+    # New remote ref: every commit the remote does not have yet, not just the
+    # tip. A ten-commit branch pushed for the first time would otherwise ship
+    # nine commits unscanned.
+    RANGE="$local_sha --not --remotes"
   fi
-  git log $RANGE --format= --unified=0 -p 2>/dev/null | grep '^+' | \
+  DIFF="$(git log $RANGE --format= --unified=0 -p 2>/dev/null)" || {
+    echo "sentinel: cannot diff $RANGE (unknown remote sha or shallow clone); refusing to push unscanned. Bypass: SENTINEL_SKIP=1 git push" >&2
+    STATUS=1; continue
+  }
+  printf '%s\n' "$DIFF" | grep '^+' | \
   python3 -c '
 import json, re, sys
 try:

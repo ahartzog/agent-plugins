@@ -261,6 +261,10 @@ assert_not_contains 'permissive gate says OK' "$TEST_ROOT/out" \
 # --------------------------------------------------------
 # 14. scan / scan-dir do not run gates (recursion guard)
 # --------------------------------------------------------
+# Rewrite the dirty commit out of history rather than removing the file in a
+# new commit: the hook also scans every outgoing commit, so a secret that was
+# committed and then cleaned still blocks (that is the point).
+git -C "$HIVE" reset -q --soft HEAD~1
 rm "$HIVE/_inbox/2026-07-30-t-dirty.md"
 git -C "$HIVE" add -A >/dev/null; git -C "$HIVE" commit -qm rmdirty
 echo 'echo "permissive gate says OK"; exit 0' > "$HIVE/scripts/demo.sh"

@@ -32,8 +32,15 @@ from collections import defaultdict
 
 # A backticked filename, or bare "see foo.md" prose. Deliberately narrow: we only
 # touch references that look like a bare filename or a vault-ish relative path.
-BACKTICK = re.compile(r"`([A-Za-z0-9][^`\n]{0,200}?\.md)`")
-SEE_PROSE = re.compile(r"\bsee\s+([A-Za-z0-9][A-Za-z0-9 _./&()-]{0,120}?\.md)\b", re.I)
+BACKTICK = re.compile(r"`(?P<ref>[A-Za-z0-9][^`\n]{0,200}?\.md)`")
+SEE_PROSE = re.compile(
+    r"\b(?P<see>see)(?P<ws>\s+)(?P<ref>[A-Za-z0-9][A-Za-z0-9 _./&()-]{0,120}?\.md)\b", re.I
+)
+
+# Spans that are already links. A backticked or "see"-prefixed filename inside the
+# text of a working `[text](target)` or `[[target|alias]]` link is not inert, and
+# rewriting it nests one link inside another and breaks both.
+PROTECTED = re.compile(r"\[\[[^\]\n]*\]\]|\[[^\]\n]*\]\([^)\n]*\)")
 
 # References that name something outside the vault. Converting these would create a
 # dead link, which is strictly worse than a backtick — a backtick is honest about
@@ -94,13 +101,22 @@ def resolve(ref, idx, source_rel):
     if EXTERNAL.match(ref):
         return None, "external"
     stem = ref[:-3] if ref.endswith(".md") else ref
-    # A reference that already carries a folder path: trust it if it resolves.
+    # A reference that already carries a folder path: trust it if it resolves to
+    # exactly one file. The match is on a folder boundary (`ops/notes` must not
+    # resolve to `devops/notes`) and refuses when several files share the suffix,
+    # for the same reason as the bare-filename branch below.
     if "/" in stem:
         norm = os.path.normpath(stem)
-        for cand in idx.get(os.path.basename(norm), []):
-            if os.path.normpath(cand).endswith(norm):
-                return cand, "path-qualified"
-        return None, "unresolved-path"
+        cands = [c for c in idx.get(os.path.basename(norm), [])
+                 if c == norm or c.endswith(os.sep + norm)]
+        exact = [c for c in cands if c == norm]
+        if exact:
+            return exact[0], "path-qualified"
+        if len(cands) == 1:
+            return cands[0], "path-qualified"
+        if not cands:
+            return None, "unresolved-path"
+        return None, f"ambiguous-{len(cands)}"
     matches = idx.get(stem, [])
     if not matches:
         return None, "no-vault-file"
@@ -124,7 +140,7 @@ def convert_line(line, idx, source_rel, in_table):
     done, skipped = [], []
 
     def sub(m, quoted):
-        ref = m.group(1)
+        ref = m.group("ref")
         target, reason = resolve(ref, idx, source_rel)
         if not target:
             skipped.append((ref, reason))
@@ -135,11 +151,21 @@ def convert_line(line, idx, source_rel, in_table):
         pipe = r"\|" if in_table else "|"
         done.append((ref, target, reason))
         link = f"[[{target}{pipe}{ref}]]"
-        return link if quoted else f"see {link}"
+        # Keep the author's own "see"/"See" and spacing; only the filename changes.
+        return link if quoted else f"{m.group('see')}{m.group('ws')}{link}"
 
-    line = BACKTICK.sub(lambda m: sub(m, True), line)
-    line = SEE_PROSE.sub(lambda m: sub(m, False), line)
-    return line, done, skipped
+    def convert_free(seg):
+        seg = BACKTICK.sub(lambda m: sub(m, True), seg)
+        return SEE_PROSE.sub(lambda m: sub(m, False), seg)
+
+    # Convert only the text between existing links; the links pass through intact.
+    out, pos = [], 0
+    for pm in PROTECTED.finditer(line):
+        out.append(convert_free(line[pos:pm.start()]))
+        out.append(pm.group(0))
+        pos = pm.end()
+    out.append(convert_free(line[pos:]))
+    return "".join(out), done, skipped
 
 
 def main():
@@ -210,8 +236,8 @@ def main():
         for reason, count in sorted(skip_tally.items(), key=lambda kv: -kv[1]):
             print(f"  {count:>4}  {reason}")
     if ambiguous:
-        print(f"\n{len(ambiguous)} reference(s) need a human decision (basename resolves to "
-              f"several files, none in the source's own directory or domain):")
+        print(f"\n{len(ambiguous)} reference(s) need a human decision (the reference "
+              f"resolves to several files and no rule picks one):")
         for rel, ln, ref, reason in ambiguous[:40]:
             print(f"  {rel}:{ln}  `{ref}`  ({reason})")
         if len(ambiguous) > 40:

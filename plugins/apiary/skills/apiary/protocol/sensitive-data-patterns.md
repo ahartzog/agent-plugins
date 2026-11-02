@@ -39,7 +39,7 @@ positive detection test in `tests/sentinel.test.sh`.
 | `credential.aws-secret-key` | `(?i)\baws[-_]?secret[-_]?access[-_]?key[[:space:]]*[:=][[:space:]]*["'\x60]?[A-Za-z0-9/+=]{40}` | AWS secret access key (40-char). |
 | `credential.private-key-block` | `-----BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----` | Any PEM/PKCS private key header. |
 | `credential.gcp-key-json` | `"private_key_id"[[:space:]]*:[[:space:]]*"[a-f0-9]{40}"` | GCP service-account key JSON fingerprint. |
-| `credential.connection-string` | `(?i)\b(jdbc|postgres|postgresql|mysql|mongodb\+?srv?|redis)://[^[:space:]@]+:[^[:space:]@]+@` | URL-form connection string with embedded password (`scheme://user:pass@host`). |
+| `credential.connection-string` | `(?i)\b(jdbc|postgres|postgresql|mysql|mongodb\+?srv?|redis|rediss|amqp|amqps)://[^[:space:]@]*:[^[:space:]@]+@` | URL-form connection string with embedded password (`scheme://user:pass@host`, or `redis://:pass@host` with no user). |
 | `credential.github-pat` | `\bghp_[A-Za-z0-9]{36}\b` | GitHub personal access token (classic format). |
 | `credential.slack-token` | `\bxox[abprse]-[A-Za-z0-9-]{10,}` | Slack API tokens, incl. `xoxe-` refresh tokens. |
 | `credential.github-token-fine-grained` | `\bgithub_pat_[A-Za-z0-9_]{22,}\b` | GitHub fine-grained PAT. |
@@ -47,6 +47,9 @@ positive detection test in `tests/sentinel.test.sh`.
 | `credential.azure-account-key` | `(?i)\bAccountKey=[A-Za-z0-9+/=]{40,}` | Azure storage connection-string key. |
 | `credential.azure-sas-sig` | `[?&]sig=[A-Za-z0-9%+/=]{32,}` | Azure SAS signature in a URL. FP risk on shared links — but a SAS link IS a bearer credential; override genuinely public samples. |
 | `credential.jwt` | `\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}` | Signed JWT (three base64url segments). |
+| `credential.anthropic-api-key` | `\bsk-ant-[A-Za-z0-9_-]{16,}` | Anthropic API key. |
+| `credential.openai-api-key` | `\bsk-(proj|svcacct|admin)-[A-Za-z0-9_-]{20,}\|\bsk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}\b` | OpenAI API keys (project / service-account / admin prefixes, and the legacy `T3BlbkFJ` form). |
+| `credential.google-api-key` | `\bAIza[0-9A-Za-z_-]{35}\b` | Google Cloud / Maps / Firebase API key. |
 | `credential.bearer-header` | `(?i)\bauthorization:[[:space:]]*bearer[[:space:]]+[A-Za-z0-9_./+=-]{20,}` | `Authorization: Bearer <token>` with a literal value. |
 
 ### PII
