@@ -272,6 +272,12 @@ positive_case "credential.azure-account-key" 'AccountKey=abcdefghijklmnopqrstuvw
 positive_case "credential.azure-sas-sig"    'https://acct.blob.core.windows.net/c/f.txt?sv=2024&sig=abcDEF0123456789abcDEF0123456789ab'
 positive_case "credential.jwt"              'saw eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV'
 positive_case "credential.bearer-header"    'Authorization: Bearer abc123def456ghi789jkl012'
+positive_case "credential.connection-string" 'cache: redis://:s3cretpass@cache.internal:6379/0'
+positive_case "credential.anthropic-api-key" 'ANTHROPIC_API_KEY=sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123'
+positive_case "credential.openai-api-key"   'OPENAI_API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz0123456789'
+# Assembled at runtime: a literal in the legacy shape trips GitHub push protection.
+positive_case "credential.openai-api-key"   "legacy sk-$(printf 'a%.0s' {1..20})T3Blb${_K:-kFJ}$(printf 'b%.0s' {1..20})"
+positive_case "credential.google-api-key"   'maps key AIzaSyA1234567890abcdefghijklmnopqrstuv'
 
 # .txt sources are first-class text deposits (sources-policy) and scan too.
 printf 'transcript line with password = "hunter2secret"\n' > "$TEST_ROOT/deposit.txt"

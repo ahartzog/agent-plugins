@@ -50,8 +50,8 @@
     {
       "name": "credential.connection-string",
       "category": "credential",
-      "regex": "(?i)\\b(jdbc|postgres|postgresql|mysql|mongodb\\+?srv?|redis)://[^[:space:]@]+:[^[:space:]@]+@",
-      "notes": "URL-form connection string with embedded password (scheme://user:pass@host). Rewritten from \\s to [[:space:]]: inside a POSIX bracket expression \\s is LITERAL backslash+s (both GNU and BSD grep), so the old class silently excluded the letter 's' from values — a connection string whose password contained an 's' was never matched."
+      "regex": "(?i)\\b(jdbc|postgres|postgresql|mysql|mongodb\\+?srv?|redis|rediss|amqp|amqps)://[^[:space:]@]*:[^[:space:]@]+@",
+      "notes": "URL-form connection string with embedded password (scheme://user:pass@host). The user segment is optional: redis://:password@host is the common Redis form and has no user. Rewritten from \\s to [[:space:]]: inside a POSIX bracket expression \\s is LITERAL backslash+s (both GNU and BSD grep), so the old class silently excluded the letter 's' from values — a connection string whose password contained an 's' was never matched."
     },
     {
       "name": "credential.github-pat",
@@ -106,6 +106,24 @@
       "category": "credential",
       "regex": "\\beyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}",
       "notes": "Signed JWT (three base64url segments, header starting {\"). Docs examples should use a truncated token or the override flow."
+    },
+    {
+      "name": "credential.anthropic-api-key",
+      "category": "credential",
+      "regex": "\\bsk-ant-[A-Za-z0-9_-]{16,}",
+      "notes": "Anthropic API key (sk-ant-...)."
+    },
+    {
+      "name": "credential.openai-api-key",
+      "category": "credential",
+      "regex": "\\bsk-(proj|svcacct|admin)-[A-Za-z0-9_-]{20,}|\\bsk-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}\\b",
+      "notes": "OpenAI API keys: project/service-account/admin prefixes, and the legacy 51-char form with the T3BlbkFJ infix."
+    },
+    {
+      "name": "credential.google-api-key",
+      "category": "credential",
+      "regex": "\\bAIza[0-9A-Za-z_-]{35}\\b",
+      "notes": "Google Cloud / Maps / Firebase API key."
     },
     {
       "name": "credential.bearer-header",

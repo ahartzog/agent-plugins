@@ -431,6 +431,84 @@ parse_override_matches() {
   done < "$file"
 }
 
+# _already_reported FILE PATTERN EXCERPT — 0 when the same line content was
+#   already recorded for FILE (from either the working-tree or a history scan),
+#   so a secret that is both in HEAD and in an outgoing commit reports once.
+_already_reported() {
+  local file="$1" pat="$2" excerpt="$3" m mfile mpat mline mexcerpt
+  for m in "${MATCHES[@]+"${MATCHES[@]}"}"; do
+    IFS=$'\t' read -r mfile mpat mline mexcerpt <<< "$m"
+    [[ "${mfile%%@*}" == "$file" && "$mpat" == "$pat" && "$mexcerpt" == "$excerpt" ]] && return 0
+  done
+  return 1
+}
+
+# _load_overrides FILE — load FILE's sentinel_override from its working-tree
+#   copy into OV_PATTERNS / OV_MATCHES (empty when the file is gone). Cached on
+#   OV_LOADED so a history scan does not re-parse frontmatter per added line.
+_load_overrides() {
+  local file="$1" p
+  [[ "${OV_LOADED:-}" == "$file" ]] && return 0
+  OV_LOADED="$file"; OV_PATTERNS=(); OV_MATCHES=()
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r p || [[ -n "$p" ]]; do
+    [[ -n "$p" ]] && OV_PATTERNS+=("$p")
+  done < <(parse_override "$file")
+  while IFS= read -r p || [[ -n "$p" ]]; do
+    [[ -n "$p" ]] && OV_MATCHES+=("$p")
+  done < <(parse_override_matches "$file")
+}
+
+# ---------------------------------------------------------------------------
+# scan_history BASE LOCAL_SHA
+#   Scans the lines each outgoing commit ADDS to _inbox/*.md and sources/**
+#   files. scan_file sees only the working-tree copy, so a secret committed and
+#   then removed before the push would pass it — yet every commit in the range
+#   leaves the machine. Overrides are honored from the file's current
+#   frontmatter, so a recorded false positive does not block its own history.
+#   Matches are labeled FILE@SHORTSHA with the line number in that commit.
+#   An empty-tree BASE (no comparison point) scans the whole history.
+# ---------------------------------------------------------------------------
+scan_history() {
+  local base="$1" local_sha="$2" rev short file lineno dl hunk
+  local -a revs=()
+  local empty_tree
+  empty_tree="$(git hash-object -t tree /dev/null 2>/dev/null)"
+  if [[ "$base" == "$empty_tree" ]]; then
+    while IFS= read -r rev; do [[ -n "$rev" ]] && revs+=("$rev"); done \
+      < <(git rev-list "$local_sha" 2>/dev/null)
+  else
+    while IFS= read -r rev; do [[ -n "$rev" ]] && revs+=("$rev"); done \
+      < <(git rev-list "$base..$local_sha" 2>/dev/null)
+  fi
+
+  for rev in "${revs[@]+"${revs[@]}"}"; do
+    short="${rev:0:7}"; file=""; lineno=0
+    while IFS= read -r dl || [[ -n "$dl" ]]; do
+      case "$dl" in
+        "+++ b/"*)
+          file="${dl#+++ b/}"
+          [[ "$file" =~ ^(_inbox/[^/]+\.md|sources/.+\.(md|txt))$ ]] || file=""
+          ;;
+        "+++ "*) file="" ;;                      # /dev/null: a deletion
+        "@@ "*)
+          hunk="${dl#*+}"; hunk="${hunk%% *}"; lineno="${hunk%%,*}"
+          ;;
+        "+"*)
+          if [[ -n "$file" ]]; then
+            _load_overrides "$file"
+            _scan_line "$file@$short" "$lineno" "${dl#+}"
+          fi
+          ((lineno++)) || true
+          ;;
+        "-"*|"\\ "*) ;;                         # removed line / no-newline marker
+        *) ((lineno++)) || true ;;               # context (none at --unified=0)
+      esac
+    done < <(git show --format= --unified=0 --no-color --no-ext-diff -p "$rev" \
+               -- "_inbox/" "sources/" 2>/dev/null)
+  done
+}
+
 # ---------------------------------------------------------------------------
 # scan_file FILE
 #   Appends match records to global MATCHES array.
@@ -473,6 +551,7 @@ _scan_line() {
       _covered "${PATTERN_NAMES[$i]}" "$line" && continue
       local excerpt="${line#"${line%%[![:space:]]*}"}"
       [[ ${#excerpt} -gt 80 ]] && excerpt="${excerpt:0:77}..."
+      _already_reported "${file%%@*}" "${PATTERN_NAMES[$i]}" "$excerpt" && continue
       MATCHES+=("$(printf '%s\t%s\t%d\t%s' "$file" "${PATTERN_NAMES[$i]}" "$abs_line" "$excerpt")")
     fi
   done
@@ -485,6 +564,7 @@ scan_file() {
     return 2
   fi
 
+  OV_LOADED=""
   OV_PATTERNS=()
   while IFS= read -r p || [[ -n "$p" ]]; do
     [[ -n "$p" ]] && OV_PATTERNS+=("$p")
@@ -671,7 +751,13 @@ sentinel_base() {
   local base ref
 
   if [[ "$remote_sha" != "$zero" && -n "$remote_sha" ]]; then
-    printf '%s\n' "$remote_sha"; return 0
+    # The remote tip is only a base if this clone has it (a shallow clone or a
+    # remote moved by someone else may not). Otherwise fall through to the
+    # candidates below rather than diffing against nothing and passing clean.
+    if git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+      printf '%s\n' "$remote_sha"; return 0
+    fi
+    printf 'sentinel-pre-push: remote sha %s is not in this clone; resolving a base another way.\n' "${remote_sha:0:7}" >&2
   fi
 
   # Candidates in preference order. An empty entry is skipped.
@@ -694,19 +780,30 @@ sentinel_base() {
 }
 
 # ---------------------------------------------------------------------------
-# list_sentinel_changes — reads git pre-push stdin, outputs changed
-#   _inbox/*.md and sources/**/*.{md,txt} files
+# read_push_ranges — reads git pre-push stdin once into PUSH_RANGES, one
+#   "BASE<TAB>LOCAL_SHA" record per pushed ref (deletions skipped).
 # ---------------------------------------------------------------------------
-list_sentinel_changes() {
+PUSH_RANGES=()
+read_push_ranges() {
   local zero="0000000000000000000000000000000000000000"
+  local stdin_line _lref local_sha _rref remote_sha base
   while IFS= read -r stdin_line || [[ -n "$stdin_line" ]]; do
     [[ -z "$stdin_line" ]] && continue
     read -r _lref local_sha _rref remote_sha <<< "$stdin_line"
     [[ "$local_sha" == "$zero" ]] && continue
-
-    local base
     base=$(sentinel_base "$local_sha" "$remote_sha")
+    PUSH_RANGES+=("$base"$'\t'"$local_sha")
+  done
+}
 
+# ---------------------------------------------------------------------------
+# list_sentinel_changes — outputs the _inbox/*.md and sources/**/*.{md,txt}
+#   files changed across PUSH_RANGES that still exist in the working tree
+# ---------------------------------------------------------------------------
+list_sentinel_changes() {
+  local r base local_sha
+  for r in "${PUSH_RANGES[@]+"${PUSH_RANGES[@]}"}"; do
+    base="${r%%$'\t'*}"; local_sha="${r#*$'\t'}"
     git diff --name-only "$base" "$local_sha" -- "_inbox/" "sources/" 2>/dev/null | \
       grep -E '^(_inbox/[^/]+\.md|sources/.+\.(md|txt))$' || true
   done | sort -u | while IFS= read -r f; do
@@ -722,6 +819,8 @@ list_sentinel_changes() {
 #   and hardened gates themselves invoke; running gates there would recurse
 #   (gate -> its own script -> `scan` -> gate -> ...).
 cmd_hook() {
+  read_push_ranges
+
   local -a files=()
   while IFS= read -r f || [[ -n "$f" ]]; do
     [[ -n "$f" ]] && files+=("$f")
@@ -729,6 +828,13 @@ cmd_hook() {
 
   for f in "${files[@]+"${files[@]}"}"; do
     scan_file "$f" || true
+  done
+
+  # Then every line the outgoing commits add — the working-tree copy is not
+  # what leaves the machine, the commits are.
+  local r
+  for r in "${PUSH_RANGES[@]+"${PUSH_RANGES[@]}"}"; do
+    scan_history "${r%%$'\t'*}" "${r#*$'\t'}"
   done
 
   if [[ ${#MATCHES[@]} -gt 0 ]]; then
