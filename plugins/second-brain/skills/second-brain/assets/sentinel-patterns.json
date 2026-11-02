@@ -9,7 +9,7 @@
     { "name": "github-fine-grained-pat", "regex": "\\bgithub_pat_[A-Za-z0-9_]{30,}\\b" },
     { "name": "slack-token", "regex": "\\bxox[baprs]-[A-Za-z0-9-]{10,}\\b" },
     { "name": "google-api-key", "regex": "\\bAIza[0-9A-Za-z_-]{35}\\b" },
-    { "name": "connection-string-with-password", "regex": "[a-z]{2,12}(ql)?://[^\\s:@/]+:[^\\s@/]{4,}@" },
+    { "name": "connection-string-with-password", "regex": "[a-z]{2,12}(ql)?://[^\\s:@/]*:[^\\s@/]{4,}@" },
     { "name": "plaintext-ssn", "regex": "\\b\\d{3}-\\d{2}-\\d{4}\\b" }
   ]
 }

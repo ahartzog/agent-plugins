@@ -4,6 +4,23 @@ All notable changes to the **second-brain** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for what counts as a change and how to pick a bump level.
 
+## [2.2.1] — 2026-11-01
+
+Bug fixes from an external review (GitHub issues #9, #10, #11 plus four privately reported sentinel gaps). Nothing here changes an agent file or a knowledge schema; pull and the fixed scripts and hook are in effect. If you installed the pre-push sentinel into a vault, re-copy `assets/pre-push-sentinel.sh` and `assets/sentinel-patterns.json` into the vault's `.claude/hooks/` — the hook is a copy, not a link, and the old copy keeps the gaps below.
+
+### Fixed
+- **`scripts/extract_session.py`** — the project slug replaced only `/` and `.`, but Claude Code hyphenates every non-alphanumeric character. A hub under a path with an underscore or a space (`~/my_vault`, `~/Second Brain`) looked up a folder that does not exist, `find_transcript` returned None, and `/second-brain wrap` reported a session that did real work as fresh (#9).
+- **`scripts/link_inert_refs.py`** — `--apply` rewrote the text of links that already worked: ``[`foo.md`](area/foo.md)`` became a nested, broken wikilink, and `[see foo.md](...)` likewise. Existing `[text](target)` and `[[target|alias]]` spans now pass through untouched; only the text between them is converted (#10).
+- **`scripts/link_inert_refs.py`** — a prose reference that began with a capital ("See foo.md") came out as "see [[...]]". The author's own word and spacing are kept (#10).
+- **`scripts/link_inert_refs.py`** — a path-qualified reference matched on a bare string suffix with no folder boundary and took the first sorted candidate, so `` `ops/notes.md` `` could silently link to `devops/notes` or always to `a/ops/notes` when `b/ops/notes` also existed. The match is now on a folder boundary, an exact path wins, a single match converts, and several matches are refused and listed under "need a human decision" like an ambiguous bare filename (#11).
+- **`assets/pre-push-sentinel.sh`** — a branch pushed for the first time scanned only its tip commit; a ten-commit branch shipped nine commits unscanned. The range is now `$local_sha --not --remotes`.
+- **`assets/pre-push-sentinel.sh`** — when `git log` failed (remote sha not in this clone, shallow clone) the empty diff was scanned and the push passed as clean. That case now blocks with a message; `SENTINEL_SKIP=1` still bypasses. Fail-open remains for a missing pattern file or missing python.
+- **`assets/sentinel-patterns.json`** — `connection-string-with-password` required a user segment, so the common `redis://:password@host` form was never matched.
+
+### Added
+- **`scripts/test_scripts.py`** — fixture tests for both scripts (17 cases), including one for each bug above. Run with `python3 -I plugins/second-brain/skills/second-brain/scripts/test_scripts.py`.
+- **`tests/pre-push-sentinel.test.sh`** — exercises the hook against a local bare remote: multi-commit first push, incremental push, the Redis form, the unknown-remote-sha block, and the bypass.
+
 ## [2.2.0] — 2026-09-08
 
 Absorbs the link-graph work from the work-edition lineage (0.6.0–0.8.0), taken as a subset rather than a merge. Everything here is additive: no agent file needs editing, the Bootstrapping block and `auto_contribute` gate are unchanged, and no personal-edition feature was replaced.
