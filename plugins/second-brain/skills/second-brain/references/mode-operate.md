@@ -1,63 +1,44 @@
-# Operate Mode — Load the Operating Protocol
+# Operate Mode - Load the Operating Protocol
 
-Activated by `/second-brain operate` or by a domain agent's bootstrap step. Loads the universal operating protocol into the session.
+Activated by `/second-brain operate` or by a domain agent's bootstrap step. Loads the operating protocol into the session.
 
 **This file contains only what a session needs to execute.** Rationale lives in `DESIGN-GOALS.md` §3 and `references/learning-loops.md`.
 
-## Step 1: Load the Protocol Layer
+## Step 1: Load the protocol
 
-Read all three, in order. Paths are relative to this skill's base directory:
+Read one file, relative to this skill's base directory:
 
-1. `protocol/learning-loops.md` — the five loops, the Self-Awareness Protocol, and the `auto_contribute` contribution gate
-2. `protocol/triage-policy.md` — which contribution categories are auto-eligible vs always-prompt
-3. `protocol/knowledge-schema.md` — required frontmatter, type semantics, decay thresholds, inline annotations
+`protocol/operating-protocol.md`
 
-These are authoritative. Where they conflict with anything restated in a `CLAUDE.md`, agent file, or CONTRIBUTING file, **the protocol wins** — a local restatement is a stale snapshot.
+That is the whole in-session protocol. Do not read the other files in `protocol/` now. `knowledge-schema.md` and `link-authoring.md` are read when you create a file or write a link. `triage-policy.md` and `learning-loops.md` are vocabulary for wrap, audit, and custodian runs.
 
-## Step 2: Establish the Contribution Setting
+The operating protocol is authoritative. Where it conflicts with something restated in a `CLAUDE.md`, an agent file, or a CONTRIBUTING file, the protocol wins and the local restatement is stale. One exception, stated in the protocol itself: a folder's own `CLAUDE.md` may set a stricter rule for that folder, and the stricter rule holds.
 
-Read `auto_contribute` from the **invoking agent definition's** YAML frontmatter (not the hub's, not this skill's). If absent, default to `false`.
+## Step 2: Establish the contribution setting
 
-- `false` → surface every proposed knowledge change for approval before writing
-- `true` → write auto-eligible changes directly; report what changed at session end
+Read `auto_contribute` from the **invoking agent definition's** YAML frontmatter (not the hub's, not this skill's). If absent, treat it as `false`. The protocol's section "What needs a yes first" says what each setting means.
 
-Regardless of the setting, these always prompt: contradictions (Loop D), custodian evolution (Loop C), process/agent-definition changes (Loop E), architecture/process claims, and deleting or substantially rewriting existing content.
+A specialist spawned as a subagent reads its own definition and its own frontmatter. Settings are never inherited from the invoking agent.
 
-**Subagents resolve their own gate.** A specialist spawned via the `Agent` tool reads its own definition file, re-runs this bootstrap, and reads its own frontmatter. Gates are never inherited from the invoking agent — an `auto_contribute: false` specialist stays propose-first even when spawned by a `true` lead.
+If invoked with no agent context, treat the setting as `false`.
 
-If invoked standalone (no agent context), say no agent frontmatter was found and assume `false`.
+## Step 3: Local files
 
-## Step 3: Load Local Extensions, If Any
+Locate these relative to the invoking agent definition's own file path (its domain folder, then the hub root above it), not the session's working directory. Read them when present and not already in context; skip silently when absent. A missing hub is not an error and never a reason to offer to create one.
 
-Locate these **relative to the invoking agent definition's own file path** — its domain folder, then the hub root above it — not the session's working directory, which is unrelated on shim and file-path invocations. If no agent context exists, fall back to SKILL.md hub discovery from the cwd. A missing hub is not an error here: skip silently and proceed — never respond by offering to create or adopt one (operate is plumbing).
-
-Read these when present; skip silently when not:
-
-| File | Role |
+| File | Why |
 |---|---|
-| `CLAUDE.md` at the hub or domain root | Routing table, shared context, ambient guardrails, write-zone ownership |
-| `CONTRIBUTING.md` or `* Contributing.md` | Multi-maintainer conventions: ownership zones, edit rules, conflict handling |
-| `custodian-workflow.md` | The hub's accumulated Loop C check list |
+| `CLAUDE.md` at the hub root and in the domain folder | Routing, shared context, and any stricter folder rule |
+| `CONTRIBUTING.md` or `* Contributing.md` | Multi-maintainer conventions, where a hub has them |
 
-**Precedence:** protocol (floor) → agent definition (domain behavior) → `CLAUDE.md` (local additions). A local file may add a stricter or domain-specific rule. If one *contradicts* the protocol, follow the protocol and tell the user that file looks stale — a Loop C signal.
+## Step 4: Proceed
 
-## Step 4: Confirm and Proceed
+Do not announce the load. Go straight to what the session is about. If the owner asks whether the protocol is loaded, answer in one line: the protocol's `last_updated` date and the `auto_contribute` value.
 
-Report compactly, then continue with whatever the session was about:
+## If the skill is unavailable
 
-```
-Protocol loaded: 5 loops, auto_contribute={true|false}, schema v{date}.
-Local extensions: {files read, or "none"}.
-```
+There is no copy of the protocol outside this skill. The agent definition's bootstrap block carries the fallback, because this file is unreadable when the skill is missing:
 
-Keep it to those lines. Operate mode is plumbing — it should not narrate.
-
-## If the Skill Is Unavailable
-
-There is no fallback protocol; the loops, triage, and schema exist only here. An agent without them has no operating protocol at all — not a reduced one. The live copy of this contract is the agent definition's bootstrap block (this file is unreadable when the skill is missing). It requires:
-
-1. Say so once, plainly, and name the install pointer from the hub or domain `CLAUDE.md` Dependencies section (fallback: the plugin README's install commands).
-2. **Read freely, write nothing.** Answer from the knowledge files as normal — retrieval needs no protocol.
-3. Surface findings as plain text for the user to place.
-
-Do not reconstruct loop routing, target files, or triage rules from memory. A wrong write corrupts the knowledge base silently, which is what the protocol exists to prevent.
+1. Say once, plainly, that the protocol is not loaded, and give the install pointer from the hub or domain `CLAUDE.md`.
+2. Answer from the knowledge files as normal.
+3. Write only what the owner explicitly asks to have written down (a note, a log entry they dictate). Surface everything else as plain text for the owner to place.
