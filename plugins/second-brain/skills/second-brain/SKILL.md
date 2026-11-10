@@ -12,7 +12,7 @@ A meta-skill for creating, adopting, auditing, and improving domain-focused AI a
 
 This skill encodes a proven operating model for AI-assisted domain knowledge management. It helps you:
 
-1. **Operate** — load the universal operating protocol (learning loops, contribution gate, knowledge schema) into a session. This is the enforcement path every domain agent bootstraps.
+1. **Operate** — load the operating protocol (one file, `protocol/operating-protocol.md`) into a session. This is the enforcement path every domain agent bootstraps.
 2. **Create** domain agents with an interactive interview → scaffolded files
 3. **Adopt** existing hand-rolled agents — bring them under management without rewriting them
 4. **Audit** existing agents for consistency, freshness, loop health, and best-practice gaps
@@ -83,19 +83,25 @@ Read `references/mode-wrap.md` and follow its instructions. This extracts the se
 
 ## Protocol Layer
 
-The protocol layer contains the **universal** operating rules — the same for every Second Brain, with no placeholders and no hub-specific content. These are compact, imperative documents: they tell agents what to do, not why. The "why" lives in the reference documents.
+The protocol layer holds the **universal** operating rules: the same for every Second Brain, with no placeholders and no hub-specific content.
 
-**Protocol files:**
-- `protocol/learning-loops.md` — **The enforcement engine.** Five learning loops (corrections, discoveries, custodian, contradictions, process retrospection) plus the Self-Awareness Protocol (contribution reflex, task-completion gate) and the `auto_contribute` contribution rules.
-- `protocol/triage-policy.md` — Routing rules for knowledge contributions. Defines auto-eligible vs always-prompt categories.
-- `protocol/knowledge-schema.md` — Canonical frontmatter schema for all knowledge files. Required fields, type semantics, decay thresholds, reference-library entry format, inline annotations.
-- `protocol/link-authoring.md` — Link grammar for cross-references between knowledge files: the three relation senses, path qualification, anchor durability, placement. **Demand-loaded** — read it when writing a link (Loop B § Connections), not every session.
+**One file is loaded every session:**
+- `protocol/operating-protocol.md` — what the knowledge files are for, the three kinds of content (state, log, analysis), capture, matching the write to the commitment, what to do when a fact changes, how far to trust what is read, multi-day efforts, changing an agent's behavior, and what needs the owner's yes. Rules carry their reasons, because an agent that knows why a rule exists applies it to cases the rule did not name.
 
-**How the protocol reaches a session:** via **Operate mode**, loaded from this skill — never copied into a hub. Agent definitions bootstrap `Skill(second-brain)` with "operate" as their first action. This makes the protocol single-sourced: updating it here updates every Second Brain, with no per-hub migration.
+**Three files are demand-loaded:**
+- `protocol/knowledge-schema.md` — frontmatter schema and inline annotations. Read when creating a knowledge file or auditing.
+- `protocol/link-authoring.md` — link grammar. Read when writing a link.
+- `protocol/triage-policy.md` and `protocol/learning-loops.md` — the two-class write/ask rule with the tag vocabulary, and the five loop names. Wrap, audit, and custodian workflows read these for the labels they use in ledgers and reports.
 
-**The agent definition is the enforcement point, not `CLAUDE.md`.** A `CLAUDE.md` reliably loads only when the session's working directory is the hub — invoked by file path, slash command, or skill shim from elsewhere, its rules arrive incidentally at best. Reading the agent definition, by contrast, *is* invocation. So behavioral rules belong in the agent file (which bootstraps the protocol); `CLAUDE.md` keeps only what a session needs *before* picking an agent, or what must hold with no agent loaded at all: the routing table, shared context, ambient guardrails (sensitivity/write-zone conventions), and folder orientation. For a domain folder, `assets/domain-claude-md-template.md` is a thin signpost to the agent file plus a short guardrail list. Protocol files are the floor; local files may add to it, never replace it — where they conflict, the protocol wins (a Loop C signal).
+**How the protocol reaches a session:** via **Operate mode**, loaded from this skill and never copied into a hub. Agent definitions bootstrap `Skill(second-brain)` with "operate" as their first action. Updating the protocol here updates every Second Brain, with no per-hub migration.
 
-**Contribution model:** the **Self-Awareness Protocol** — the continuous contribution reflex and the task-completion gate, including the Loop E retrospection questions — lives in `protocol/learning-loops.md` and is loaded by Operate mode, not restated in agent files. When the reflex fires, the agent reads `auto_contribute` from its own YAML frontmatter: `true` writes directly, `false` surfaces proposals. See `assets/contribution-agent-prompt.md` for the legacy subagent prompt template (retained for complex multi-file contributions where context isolation is helpful).
+**Precedence:** operating protocol → agent definition (domain behavior) → `CLAUDE.md` (routing, shared context). A local file may add a stricter rule for its own folder, and the stricter rule holds. A local file that restates or contradicts the protocol is stale.
+
+**Lifecycle modes and the 3.0 protocol.** Create, adopt, audit, improve, add-workflow and wrap were written against the 2.x protocol and still use its vocabulary (loops A-E, triage tags, decay tiers). That vocabulary remains defined in the demand-loaded files above. Where a mode file's wording about in-session behavior differs from `protocol/operating-protocol.md`, the operating protocol wins.
+
+**The agent definition is the enforcement point, not `CLAUDE.md`.** A `CLAUDE.md` reliably loads only when the session's working directory is the hub. Reading the agent definition, by contrast, *is* invocation. So behavioral rules belong in the agent file (which bootstraps the protocol); `CLAUDE.md` keeps only what a session needs before picking an agent, or what must hold with no agent loaded at all: the routing table, shared context, ambient guardrails, and folder orientation.
+
+**Testing a protocol change:** `tests/protocol-scenarios.md` is a regression set of scripted conversations with expected behavior. Run it before changing the protocol or an agent template.
 
 ## Reference Materials
 
@@ -125,14 +131,14 @@ The reference layer contains teaching documents, design rationale, and catalogs.
 
 ## Key Principles
 
-1. **The reinforcement loops are the system.** Everything else — templates, audits, maturity scores — exists to serve the five learning loops. If the loops work, the system compounds. If they don't, you have static files that decay. See `protocol/learning-loops.md` for enforcement, `references/learning-loops.md` for rationale.
-2. **The contribution reflex is a structural obligation, not optional self-reflection.** Before moving to the next task, evaluate whether knowledge was produced. The difference between a static knowledge base and a compounding one is whether this fires reliably.
+1. **The knowledge base exists so a future session can answer correctly and trust what it reads.** Everything else — loops, templates, audits, maturity scores — serves that. A smaller knowledge base that is right beats a larger one that is mostly right.
+2. **Capture happens in the turn that produced the knowledge.** Sessions end without warning, so nothing is deferred to "the end", and every write is reported so the owner never has to ask whether it was saved.
 3. **Principles over procedures.** Agent files teach judgment — how to decide — with worked examples. Numbered steps are reserved for genuinely fixed procedures (MCP call sequences, confirmation gates, regulatory checklists).
-4. **`auto_contribute` is a trust dial.** New setups default to `false` (user approves each change). Once trust is established, switch to `true` — agents write directly, report at session end. Contradictions and structural changes always prompt regardless.
-5. **Reference, don't duplicate.** Knowledge files point to sources of truth (live MCP data, external docs, repos) — they don't copy content.
+4. **`auto_contribute` is a trust dial.** New setups default to `false` (the owner approves changes, apart from log entries they dictate). Once trust is established, switch to `true`. Conflicts, restructuring and rule changes wait for a yes under either setting.
+5. **Reference, don't duplicate.** Knowledge files point to sources of truth, and each piece of state has one owning file that others link to. A value copied into five files is five things to correct.
 6. **Obsidian-aware but not required.** The system works in any directory. Obsidian adds nice-to-haves.
 7. **Every gap is an improvement opportunity.** Yellow/Red readiness sources in the catalog are connectors that could be better. Improve and contribute back.
-8. **The skill owns the protocol; the agent definition enforces it; CLAUDE.md owns what's local.** Universal rules are loaded from this skill via Operate mode so every hub runs the current version — restated protocol freezes on the day it was written; loaded protocol updates everywhere at once. A hub `CLAUDE.md` carries routing, shared context, and ambient guardrails, and may extend the protocol, never restate or replace it. For discipline that MUST fire deterministically, add hooks (`references/enforcement-hooks.md`).
-9. **Temporal annotations are the atomic unit of freshness.** Every fact gets `[learned: YYYY-MM-DD]`. Without this, staleness detection is impossible. Decay rates are domain-differentiated — uniform review cadences are the primary cause of wasted review cycles.
-10. **Both phases, always.** Continuous (contribution reflex) → task completion (retrospection gate). If either is skipped, the loops degrade silently. Freshness inventories are an audit concern, not a per-session one — they don't belong on the hot path.
-11. **Never silently overwrite.** Updates that change an existing fact mark the old value `[superseded:]` and show the diff. Confident incorrectness — "I updated X" when it didn't, or overwriting a right value with a wrong one — is the #1 trust killer for personal AI systems.
+8. **The skill owns the protocol; the agent definition enforces it; CLAUDE.md owns what's local.** Universal rules are loaded from this skill via Operate mode so every hub runs the current version. For discipline that must fire deterministically, add hooks (`references/enforcement-hooks.md`).
+9. **Freshness means last checked against the world.** `[learned:]` records when a fact was written. `[verified: date, source]` records when it was last checked, which is what decides whether to rely on it. State, logs and dated analysis are trusted differently.
+10. **Size the write to the commitment.** An idea gets a line, a decision gets a record with the owner's words, and only a commitment becomes a dated task.
+11. **Nothing changes silently.** A changed fact is shown old and new in the reply, and the reason is recorded: in the commit message under git, inline as `[superseded:]` otherwise. Confident incorrectness — "I updated X" when it didn't, or overwriting a right value with a wrong one — is the #1 trust killer for personal AI systems.

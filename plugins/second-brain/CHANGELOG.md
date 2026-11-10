@@ -4,6 +4,36 @@ All notable changes to the **second-brain** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for what counts as a change and how to pick a bump level.
 
+## [3.0.0] — 2026-11-09
+
+The in-session protocol is replaced. Operate mode now loads one file, `protocol/operating-protocol.md` (about 9.5KB), where 2.x loaded three protocol files plus the hub's custodian workflow (about 45KB). The change came out of a 30-day audit of real sessions and thirteen scripted head-to-head runs. Token cost was not the driver; on a heavy scenario both protocols cost the same. The driver was behavior: under the new protocol a knowledge base grew a third to a half as much for the same events, copied values turned into links to one owner, no task dates were invented, every write was reported, and nothing was queued for approval somewhere the owner had to go and look.
+
+**Do you need to do anything?** Agent definitions do not change: the Bootstrapping block and `Skill(second-brain)` "operate" work as before. Three things in an existing hub are worth a look after pulling: (1) any local `CLAUDE.md` line that restates "changed facts get `[superseded:]`" is now stale under git and should be reworded or removed; (2) if your hub is a git repository, sessions will start committing their own writes with descriptive messages; (3) open checkbox tasks that agents wrote as suggestions, with dates nobody set, no longer match the protocol and can be triaged.
+
+### Added
+- **`protocol/operating-protocol.md`** — the whole in-session protocol in one file, with reasons attached to rules. New concepts: three kinds of content (state, log, analysis) that are written and trusted differently; `[verified: date, source]` for when a fact was last checked against the world; a `Saved:` line for every write; per-write commits under git; vault-wide propagation of a corrected fact, with copies replaced by links to one owner; a second read by a fresh subagent on figures that feed irreversible actions; commitments versus suggestions (only a commitment becomes a dated task); project status blocks for multi-day efforts; a stricter folder rule beats the protocol.
+- **`tests/protocol-scenarios.md`** — a regression set of three scripted conversations (17 turns) with expected behavior, what to measure from the diff, and how to run it. All particulars are invented.
+- **`[verified:]`** in `protocol/knowledge-schema.md` § Inline Annotations.
+
+### Changed
+- **Supersession.** Under git, a changed fact replaces the old value; old, new and reason go in the reply and the commit message. Inline `[superseded:]` is kept only where the old value is still in circulation. Without git, inline `[superseded:]` remains the rule.
+- **`references/mode-operate.md`** — loads one file, no longer reads `custodian-workflow.md`, and no longer prints a "Protocol loaded" line. Asked directly, an agent reports the protocol date and its `auto_contribute` value.
+- **`auto_contribute: false`** — a log entry the owner dictates is written directly. Everything else is still proposed, as one numbered list rather than one prompt per item.
+- **Links (`[edge]`)** move from always-prompt to write. A link is additive and easy to remove.
+- **Agent-file changes** are proposed as numbered items in the reply and applied in the session on a yes. The four retrospection questions and the per-loop prompt template are gone.
+- **`protocol/triage-policy.md`** and **`protocol/learning-loops.md`** — rewritten as short demand-loaded references: the two-class write/ask rule with the tag vocabulary, and the five loop names mapped to the operating protocol. Loop telemetry now counts outcomes (facts the owner corrected, save checks requested, deadlines missed).
+- **`SKILL.md`** — Protocol Layer and Key Principles sections rewritten to match.
+- **`assets/agent-template.md`** — the bootstrap fallback now lets an agent without the skill write what the owner explicitly dictates; it previously wrote nothing.
+- **`DESIGN-GOALS.md`** — protocol-size guidance and the contributor test step updated for the single file.
+- Examples in `protocol/knowledge-schema.md` made generic.
+
+### Removed
+- The Self-Awareness Protocol's task-completion gate, the session-end report, the "fresh-session test", and the requirement that sessions write `loop-health.json`. Capture is continuous and reported per write.
+
+### Known follow-ups
+- Create, adopt, audit, improve, add-workflow and wrap still describe in-session behavior in 2.x terms in places (decay tiers, the "Protocol loaded: 5 loops" check in migration and audit text, edges as always-prompt in wrap). `SKILL.md` states that the operating protocol wins where they differ. Reconciling those files is a later release.
+- `references/learning-loops.md` (design rationale) describes the 2.x mechanics.
+
 ## [2.2.1] — 2026-11-01
 
 Bug fixes from an external review (GitHub issues #9, #10, #11 plus four privately reported sentinel gaps). Nothing here changes an agent file or a knowledge schema; pull and the fixed scripts and hook are in effect. If you installed the pre-push sentinel into a vault, re-copy `assets/pre-push-sentinel.sh` and `assets/sentinel-patterns.json` into the vault's `.claude/hooks/` — the hook is a copy, not a link, and the old copy keeps the gaps below.

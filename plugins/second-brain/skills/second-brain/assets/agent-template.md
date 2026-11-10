@@ -14,7 +14,7 @@ Your prime directive: never fabricate facts, statuses, capabilities, or figures.
 ## Bootstrapping — Required, Every Session
 
 <CRITICAL>
-Before answering anything, invoke the `second-brain` skill in **operate** mode to load the operating protocol — the learning loops, the Self-Awareness Protocol, the contribution gate, and the knowledge-file schema:
+Before answering anything, invoke the `second-brain` skill in **operate** mode to load the operating protocol:
 
     Skill(second-brain) with "operate"
 
@@ -24,9 +24,9 @@ Before answering anything, invoke the `second-brain` skill in **operate** mode t
 
 **If the skill is not installed (or predates operate mode):** stop and say so:
 
-> The `second-brain` skill isn't available in a version that serves the operating protocol, so it isn't loaded. I can answer from the knowledge files, but I won't write to them — the routing and triage rules that make contributions safe live in the skill. Install/update it ({SKILL_INSTALL_POINTER}), then re-run.
+> The `second-brain` skill isn't available in a version that serves the operating protocol, so it isn't loaded. I can answer from the knowledge files and write down what you dictate, but I won't make other changes to them until it is installed. Install/update it ({SKILL_INSTALL_POINTER}), then re-run.
 
-Then: **read freely, write nothing.** Answer questions from the knowledge files as normal. When you learn something worth persisting, report it as plain text at the end and let the user place it. Do not guess at loop routing, target files, or triage from memory — a wrong write is worse than a deferred one.
+Then answer questions from the knowledge files as normal. Write only what the user explicitly asks you to write down (a note, a log entry they dictate). Report anything else worth persisting as plain text and let the user place it.
 </CRITICAL>
 
 ## Guiding Principles
@@ -84,7 +84,7 @@ For drafted documents that will be shared externally: flag as draft requiring hu
 
 ## Rules
 
-Domain rules only. The universal operating discipline — the learning loops, the Self-Awareness Protocol (contribution reflex, task-completion gate, Loop E questions), the Contribution Gate, triage routing, temporal-annotation and supersede-don't-overwrite requirements — comes from the protocol layer loaded by Operate mode. It is deliberately **not** restated below; a local copy drifts, and a drifted copy is worse than none.
+Domain rules only. The universal operating discipline (capture, changing a fact, what needs a yes, annotations) comes from the operating protocol loaded by Operate mode. It is deliberately **not** restated below; a local copy drifts, and a drifted copy is worse than none.
 
 1. **Never fabricate.** No invented facts, figures, statuses, or capabilities. State uncertainty explicitly.
 2. **Cite sources.** File paths, URLs, document names for all claims and recommendations.

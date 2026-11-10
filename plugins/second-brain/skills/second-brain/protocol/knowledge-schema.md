@@ -1,12 +1,14 @@
 ---
 type: protocol
 description: "Canonical schema for knowledge-file frontmatter in Second Brain agents"
-last_updated: 2026-07-30
+last_updated: 2026-11-09
 ---
 
 # Knowledge File Schema
 
 Every knowledge file in a Second Brain agent must carry YAML frontmatter conforming to this schema. This is the authoritative definition — agent templates and audit checks reference this file.
+
+Demand-loaded since 3.0.0: operate mode does not read this file. Read it when you create a knowledge file, add an annotation you have not used before, or run an audit.
 
 ## Required Fields
 
@@ -113,8 +115,9 @@ Knowledge file content uses inline annotations for provenance and staleness:
 | `[effective: YYYY-MM-DD]` | **When the fact became true in the world** — distinct from when it was learned | Optional; apply whenever the two dates differ |
 | `[decided: <who>, YYYY-MM-DD]` | **Epistemic provenance** — a decision was made, by `<who>` (human name or agent id) | Optional; see Provenance below |
 | `[review-by: YYYY-MM-DD]` | When the fact should be re-verified | Required for `decay: fast`, recommended otherwise |
-| `[superseded: YYYY-MM-DD, reason]` | Marks a fact as replaced | Used when updating, not deleting |
-| `[disputed: YYYY-MM-DD]` | Marks a fact with contradicting claims | Added by Loop D |
+| `[verified: YYYY-MM-DD, source]` | **When the fact was last checked against its outside source**, and which source | Recommended on volatile state (balances, statuses, prices, versions) |
+| `[superseded: YYYY-MM-DD, reason]` | Marks a replaced value that stays in the file | Under git: only where the old value is still in circulation and someone could act on it; the default is to replace the value and put old, new and reason in the commit message. Without git: on every replaced value. See `operating-protocol.md` § When a fact changes |
+| `[disputed: YYYY-MM-DD]` | Marks a conflict that is still open after asking the owner | Not used for a fact the owner has settled |
 | `[confidence: low]` | Inline flag for unverified claims | Required when presenting decisions with real stakes |
 
 ### `[effective:]` — world-validity, as distinct from ingestion time
@@ -156,7 +159,7 @@ Here it serves answer ranking and staleness judgment.
 
 `[learned:]` captures *when* a fact arrived; `[decided:]` captures *that a decision was made and who made it.* Years later, "we chose X" must be distinguishable along two axes: **was it a decision at all** (a fork in the road) vs. an observed/inferred fact, and if so **who decided** — a human, or an agent acting autonomously.
 
-The `<who>` sub-field carries the actor: a human name (`Alek`) or an agent id (`claude`). Human-vs-agent falls out of reading `<who>` — the marker does not privilege one over the other.
+The `<who>` sub-field carries the actor: a human name (`Sam`) or an agent id (`claude`). Human-vs-agent falls out of reading `<who>` — the marker does not privilege one over the other.
 
 - **Means:** a decision — a choice between viable alternatives — was made by `<who>` on this date. It records that a fork was taken, not merely that a fact is true.
 - **Apply when:** *anyone* (human or agent) chooses a direction, commits to an approach, or resolves an option that could have gone another way. Written at author-time by whoever records the decision. Pairs with `[learned:]` (a fact can carry both).
@@ -170,8 +173,8 @@ The `<who>` sub-field carries the actor: a human name (`Alek`) or an agent id (`
 **Worked example — human decision vs. agent decision vs. agent inference, side by side:**
 
 ```markdown
-- 529 contributions stay at $500/mo through 2026; we will not front-load this year. [decided: Alek, 2026-07-30] [learned: 2026-07-30]
-- Picked Marcus over Ally for the emergency-fund HYSA — both cleared the rate threshold; chose the one already linked in the budget tool. [decided: claude, 2026-07-30] [learned: 2026-07-30]
+- Retirement contributions stay at $500/mo through 2026; we will not front-load this year. [decided: Sam, 2026-07-30] [learned: 2026-07-30]
+- Picked the credit-union account over the online bank for the emergency fund — both cleared the rate threshold; chose the one already linked in the budget tool. [decided: claude, 2026-07-30] [learned: 2026-07-30]
 - The mortgage appears to have no prepayment penalty, inferred from the loan disclosure PDF. [learned: 2026-07-30]
 ```
 

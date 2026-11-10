@@ -1,109 +1,51 @@
 ---
 type: protocol
-description: "Rules for routing knowledge contributions: auto-apply vs prompt-user, by contribution category and auto_contribute setting"
-last_updated: 2026-05-22
+description: "Which knowledge changes an agent writes directly and which wait for the owner's yes, plus the tag vocabulary wrap and audit use in their ledgers. Demand-loaded; the in-session rule lives in operating-protocol.md"
+last_updated: 2026-11-09
 ---
 
 # Triage Policy
 
-This file governs how learning loop contributions are routed during a session. The agent's `auto_contribute` frontmatter setting determines baseline behavior; this policy defines category-level overrides that always require prompting regardless.
+Since 3.0.0 the in-session rule is the section "What needs a yes first" in `protocol/operating-protocol.md`. Operate mode does not load this file. Wrap and audit read it for the tag vocabulary they use in ledgers and reports. Where this file and the operating protocol differ, the operating protocol wins.
 
----
+## Two classes
 
-## Contribution Behavior
-
-Each agent declares `auto_contribute` in its own YAML frontmatter:
-
-| Setting | Behavior | Best For |
+| Class | What is in it | What the agent does |
 |---|---|---|
-| `false` | Surface every proposed change to the user. Wait for approval before writing. | New setups, sensitive domains, early trust-building |
-| `true` | Write auto-eligible changes directly to knowledge files. Report what changed at session end. | Mature agents where the user trusts the flywheel |
+| **Write** | New facts, status updates, log entries, factual corrections, decisions the owner stated, links between files | Writes in the same turn and reports it with a `Saved:` line |
+| **Ask first** | Unresolved conflicts; deleting or restructuring content beyond the fact being changed; changes to agent definitions, the protocol, hooks, or workflows; anything in an external system | Proposes it as a numbered item in the reply and applies it on a yes |
 
-Default is `false`. Users switch to `true` once the agent has demonstrated good judgment — this is what makes the system compound.
+## The `auto_contribute` setting
 
----
+Each agent declares `auto_contribute` in its own frontmatter. It moves the Write class only.
 
-## Contribution Categories
+| Setting | Behavior |
+|---|---|
+| `true` | Writes the Write class directly |
+| `false` (default for a new agent) | A log entry the owner dictates still goes straight in. Everything else in the Write class is proposed as one numbered list and written on approval |
 
-Each knowledge contribution carries an implicit category based on its nature. The category determines whether it is auto-eligible (written directly when `auto_contribute: true`) or always-prompt (requires user approval regardless of setting).
+The Ask-first class waits for a yes under either setting.
 
-| Tag | Category | Auto-eligible? | Path when `false` | Path when `true` |
-|---|---|---|---|---|
-| `[correction]` | Factual correction (Loop A) | Yes | Prompt with proposed rule text + target | Apply to agent rules + annotate |
-| `[link]` | New document/resource link | Yes | Prompt with entry + target file | Apply to knowledge file |
-| `[person]` | New person/role | Yes | Prompt with entry + target file | Apply to knowledge file |
-| `[tracker]` | New tracker/channel/tool | Yes | Prompt with entry + target file | Apply to knowledge file |
-| `[status]` | Status update | Yes | Prompt with entry + target file | Apply to knowledge file |
-| `[discovery]` | Workaround/quirk/gap (Loop B) | Yes | Prompt with content + target file | Apply to knowledge file |
-| `[edge]` | Connection between two knowledge files (Loop B § Connections) | No | Prompt with source, target, and the traversal that found it | Prompt — new category, no safety data yet |
-| `[architecture]` | Architectural claim | No | Prompt — strategic implications | Prompt — strategic implications |
-| `[process]` | Process/principle change | No | Prompt — affects how work is done | Prompt — affects how work is done |
-| `[contradiction]` | Contradicts existing fact (Loop D) | No | Prompt — judgment call | Prompt — judgment call |
-| `[custodian]` | New custodian check (Loop C) | No | Prompt — structural change | Prompt — structural change |
-| `[agent-revision]` | Agent-definition revision (Loop E) | No | Prompt — structural change to enforcement | Prompt — structural change to enforcement |
+## Tag vocabulary
 
-**Expected split:** ~70-80% of contributions in a typical session are auto-eligible categories. The remaining 20-30% require user judgment.
+Wrap ledgers, audit reports, and custodian telemetry label contributions with these tags. Agents do not need to tag anything during a session.
 
----
+| Tag | Meaning | Class |
+|---|---|---|
+| `[correction]` | A fact the owner said was wrong | Write |
+| `[link]` `[person]` `[tracker]` | A new document, person, or tool | Write |
+| `[status]` | A status or timeline update | Write |
+| `[discovery]` | A workaround, quirk, or limitation | Write |
+| `[edge]` | A link between two knowledge files | Write (changed in 3.0.0: a link is additive and easy to remove) |
+| `[contradiction]` | New information conflicts with a file and the right value is unclear | Ask first |
+| `[architecture]` `[process]` | Restructuring content, or changing how work is done | Ask first |
+| `[custodian]` | A new or changed custodian check | Ask first |
+| `[agent-revision]` | A change to an agent definition | Ask first |
 
-## Category Detection
+## How to ask
 
-Agents do not explicitly tag contributions. Instead, the agent evaluates the nature of the knowledge being written and applies the appropriate routing:
+Put proposals in the reply the owner is already reading, as numbered items they can answer by number. One line of what would change and where, one line of why. Batch them; do not raise them one at a time, and do not queue them somewhere the owner has to go and look.
 
-1. **Is this correcting something the user said was wrong?** → `[correction]` (Loop A)
-2. **Does this contradict an existing knowledge file entry?** → `[contradiction]` (Loop D)
-3. **Is this a new link, person, or tracker?** → `[link]`/`[person]`/`[tracker]`
-4. **Is this a relationship between two knowledge files rather than a new fact?** → `[edge]`.
-   But if both files claim authority over the same content, it is `[architecture]` instead — the fix
-   is consolidation, not a link.
-5. **Is this a status/timeline update?** → `[status]`
-6. **Is this a workaround, tool limitation, or operational discovery?** → `[discovery]`
-7. **Does this describe architecture, system design, or strategic direction?** → `[architecture]`
-8. **Does this change a process, workflow, or principle?** → `[process]`
-9. **Is this suggesting a new custodian check?** → `[custodian]`
-10. **Does this propose revising the agent's own instructions (Rules, How-to-Advise, Bootstrapping)?** → `[agent-revision]` (Loop E)
+## Changing this policy
 
-When ambiguous, prefer the more conservative category (prompt over auto).
-
----
-
-## Prompt Format
-
-When prompting the user (either because `auto_contribute` is `false` or the category requires it), use this format:
-
-```
-[Loop {A|B|C|D|E}] Proposed knowledge update:
-  Category: {category}
-  Target: {file path}
-  Content: {the proposed addition or change, 1-3 lines}
-  Apply? (y/n/edit)
-```
-
-If the user says `y`, apply immediately. If `n`, discard (but note the rejection — repeated rejections of a category are a signal to recalibrate). If `edit`, let the user modify before applying.
-
----
-
-## Session-End Report
-
-When `auto_contribute: true`, the agent MUST report all changes made during the session before concluding:
-
-```
-Knowledge updates this session:
-  - [correction] Added rule to financial-advisor.md: "Re-verify live FMV before sizing any exercise"
-  - [link] Added insurance portal URL to reference-library.md
-  - [status] Updated benefits.md: Esprea credit activated Apr 1
-```
-
-When `auto_contribute: false`, this report is unnecessary since the user approved each change individually.
-
----
-
-## Policy Evolution (Loop C)
-
-This policy can evolve based on observed patterns:
-
-- If a user consistently approves a category that is currently always-prompt, that's a signal the category could be reclassified as auto-eligible. The custodian should surface this observation.
-- If a user consistently rejects auto-eligible contributions in a specific category, that's a signal to reclassify as always-prompt for that hub.
-- Policy changes are always proposed via Loop C (custodian self-improvement) and require user approval.
-
-Track approval/rejection patterns in `_reports/loop-health.json` to support data-driven policy evolution.
+If an owner keeps approving a category that is in Ask first, or keeps rejecting one that is in Write, say so and propose moving it for that hub. The move itself is an Ask-first change.
