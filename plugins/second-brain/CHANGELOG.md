@@ -4,6 +4,13 @@ All notable changes to the **second-brain** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for what counts as a change and how to pick a bump level.
 
+## [3.0.1] — 2026-11-21
+
+Multi-agent packaging: adds a native Antigravity `plugin.json` manifest at the plugin root alongside `.claude-plugin/plugin.json` so `second-brain` can be loaded directly as a plugin in Google Antigravity without changing any skill content or behavior.
+
+### Added
+- **`plugin.json`** — Antigravity plugin manifest exposing `skills/second-brain` for multi-agent use.
+
 ## [3.0.0] — 2026-11-09
 
 The in-session protocol is replaced. Operate mode now loads one file, `protocol/operating-protocol.md` (about 9.5KB), where 2.x loaded three protocol files plus the hub's custodian workflow (about 45KB). The change came out of a 30-day audit of real sessions and thirteen scripted head-to-head runs. Token cost was not the driver; on a heavy scenario both protocols cost the same. The driver was behavior: under the new protocol a knowledge base grew a third to a half as much for the same events, copied values turned into links to one owner, no task dates were invented, every write was reported, and nothing was queued for approval somewhere the owner had to go and look.
