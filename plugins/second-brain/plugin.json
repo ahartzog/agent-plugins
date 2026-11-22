@@ -1,0 +1,16 @@
+{
+  "name": "second-brain",
+  "displayName": "Second Brain",
+  "version": "3.0.1",
+  "description": "Create, adopt, audit, and improve domain-focused AI agents with persistent knowledge files, operating protocol bootstrap, and session wrap.",
+  "author": {
+    "name": "Alek Hartzog",
+    "url": "https://github.com/ahartzog"
+  },
+  "repository": "https://github.com/ahartzog/agent-plugins",
+  "suggestedPrompts": [
+    "Load the Second Brain operating protocol for this vault",
+    "Audit my Second Brain agents for consistency and freshness",
+    "Wrap this session and check that everything got persisted"
+  ]
+}
