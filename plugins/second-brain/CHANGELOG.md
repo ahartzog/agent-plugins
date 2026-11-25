@@ -4,6 +4,14 @@ All notable changes to the **second-brain** plugin are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this plugin uses [Semantic Versioning](https://semver.org/). The version at the top of each release must match `.claude-plugin/plugin.json`. See the repo-level [CONTRIBUTING.md](../../CONTRIBUTING.md) for what counts as a change and how to pick a bump level.
 
+## [3.0.2] — 2026-11-24
+
+Replies stop carrying commit details. The `Saved:` line already tells the owner what was written; a hash, a branch name or "not pushed" after it was noise on every write-turn. Nothing to do after pulling: agents still commit each write-turn exactly as before, and only the reply changes.
+
+### Changed
+- **`protocol/operating-protocol.md`** — the `Saved:` lines are the whole receipt. Commit hashes, branch names and push state stay out of the reply unless the commit is what was asked for or it failed.
+- **`tests/protocol-scenarios.md`** — one more measure for the regression set: commit details in a reply, expected 0.
+
 ## [3.0.1] — 2026-11-21
 
 Multi-agent packaging: adds a native Antigravity `plugin.json` manifest at the plugin root alongside `.claude-plugin/plugin.json` so `second-brain` can be loaded directly as a plugin in Google Antigravity without changing any skill content or behavior.
