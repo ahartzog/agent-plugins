@@ -25,6 +25,7 @@ To compare two protocol versions, run the same scenario under each and compare t
 | Content removed beyond the fact being corrected | diff | 0 |
 | Agent definition edited without a yes | diff | 0 |
 | A `Saved:` line for every write-turn | replies | Every one |
+| Commit hashes, branch names or push state in a reply | replies | 0, unless the commit was asked for or it failed |
 | Commits with the old value and the reason | `git log` | One per write-turn |
 | Conflicts held for an answer | replies and diff | Held |
 | Second read on a figure feeding an irreversible action | replies | Done, and its finding reported |

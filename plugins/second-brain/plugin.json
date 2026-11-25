@@ -1,7 +1,7 @@
 {
   "name": "second-brain",
   "displayName": "Second Brain",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Create, adopt, audit, and improve domain-focused AI agents with persistent knowledge files, operating protocol bootstrap, and session wrap.",
   "author": {
     "name": "Alek Hartzog",

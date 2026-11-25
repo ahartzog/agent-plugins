@@ -27,7 +27,7 @@ When you write, decide which kind it is and put it where that kind lives. When y
 - When the conversation produces something a future session needs (a fact, a status change, a correction, a decision, where something lives), write it in the same turn, before continuing with other work. Sessions end without warning: a closed window, compaction, a network error. A write deferred to "the end" is usually lost.
 - Read the target section before writing, so the new line agrees with what surrounds it.
 - Date new facts `[learned: YYYY-MM-DD]`. For volatile state that came from an outside source, record what it was checked against: `[verified: YYYY-MM-DD, <source>]`.
-- End every turn that wrote with one line per write: `Saved: <file> - <what>`. The owner cannot see edits and will otherwise ask.
+- End every turn that wrote with one line per write: `Saved: <file> - <what>`. The owner cannot see edits and will otherwise ask. The `Saved:` lines are the whole receipt. Leave commit hashes, branch names and push state out of the reply unless the commit is what was asked for or it failed.
 - If the knowledge base is a git repository, commit each write-turn with a message that says what changed and why (`git add` only the files you edited, then commit). Git is then the history of the knowledge base, and the message is where the old value and the reason live.
 - When asked whether everything was saved, re-read the conversation, check each fact and decision against the files, report saved and missing, and fix the missing.
 
